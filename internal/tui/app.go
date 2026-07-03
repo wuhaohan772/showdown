@@ -428,6 +428,8 @@ func (m *Model) apply(a poker.Action) error {
 		"pot":    m.hand.Pot,
 		"stacks": []int{m.hand.Seats[0].Stack, m.hand.Seats[1].Stack},
 		"board":  cardStrings(m.hand.Board),
+		"current_bet": m.hand.CurrentBet,
+		"committed":   []int{m.hand.Seats[0].Committed, m.hand.Seats[1].Committed},
 	}
 	if err != nil {
 		f["error"] = err.Error()

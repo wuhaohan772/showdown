@@ -63,6 +63,9 @@ func main() {
 	dir, _ := os.Getwd()
 	m := tui.NewModel(opp, st, stats.DefaultPath(), *quiet, dir, dlog)
 	_, runErr := tea.NewProgram(m, tea.WithAltScreen()).Run()
+	// Closing here means an agent call still in flight when user quits no-ops
+	// its log write (write-after-close is a no-op); accepted tradeoff—never
+	// block exit on the log.
 	_ = dlog.Close()
 	if dlog != nil {
 		fmt.Fprintln(os.Stderr, "debug log:", dlogPath)

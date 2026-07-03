@@ -52,6 +52,8 @@ func (l *Logger) Log(event string, fields map[string]any) {
 		return
 	}
 	l.seq++
+	// If marshal fails below, this seq is lost, creating a gap.
+	// Best-effort logging guarantees monotonic but not contiguous seq.
 	rec := make(map[string]any, len(fields)+3)
 	for k, v := range fields {
 		rec[k] = v

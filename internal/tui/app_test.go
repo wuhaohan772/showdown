@@ -262,7 +262,7 @@ func TestDebugLogCapturesHandFlow(t *testing.T) {
 	if ap["action"] != "fold" || ap["actor_seat"] != float64(0) {
 		t.Errorf("apply = %v", ap)
 	}
-	for _, k := range []string{"street", "pot", "stacks", "board"} {
+	for _, k := range []string{"street", "pot", "stacks", "board", "current_bet", "committed"} {
 		if _, ok := ap[k]; !ok {
 			t.Errorf("apply missing %q", k)
 		}
