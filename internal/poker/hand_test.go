@@ -150,3 +150,109 @@ func TestBetThroughAllStreets(t *testing.T) {
 		t.Errorf("board %d, result %v — want 5 cards and a showdown result", len(h.Board), h.Result())
 	}
 }
+
+// --- All-in edge cases (Task 5 gaps A/B/C) ---
+
+func TestButtonAllInFromBlind_ImmediateRunout(t *testing.T) {
+	// Button/SB has only 5 chips, less than the 10 SB: posting the blind
+	// leaves the button all-in before anyone has a decision. The BB gains
+	// nothing by acting (button can never respond), so the hand must
+	// resolve immediately at NewHand time.
+	h := NewHand([2]int{5, 1500}, 10, 20, rand.New(rand.NewSource(11)))
+	if h.Street != HandOver {
+		t.Fatalf("street = %v, want HandOver (immediate runout)", h.Street)
+	}
+	r := h.Result()
+	if r == nil || !r.Showdown {
+		t.Fatalf("result = %+v, want a showdown result", r)
+	}
+	if len(h.Board) != 5 {
+		t.Errorf("board = %d cards, want 5", len(h.Board))
+	}
+	if got, want := h.Seats[0].Stack+h.Seats[1].Stack, 5+1500; got != want {
+		t.Errorf("chips not conserved: total stacks = %d, want %d", got, want)
+	}
+}
+
+func TestBBAllInFromBlindThenButtonCalls_RunoutAndClose(t *testing.T) {
+	// BB has only 15, less than the 20 BB: posting leaves BB all-in, but
+	// the button (not all-in) still gets a normal decision (fold/call).
+	h := NewHand([2]int{1500, 15}, 10, 20, rand.New(rand.NewSource(11)))
+	if h.Street != Preflop {
+		t.Fatalf("street = %v, want Preflop (button still has a live decision)", h.Street)
+	}
+	mustApply(t, h, Action{Type: Call})
+	if h.Street != HandOver {
+		t.Fatalf("street = %v, want HandOver after button calls the all-in BB", h.Street)
+	}
+	r := h.Result()
+	if r == nil || !r.Showdown {
+		t.Fatalf("result = %+v, want a showdown result", r)
+	}
+	if len(h.Board) != 5 {
+		t.Errorf("board = %d cards, want 5", len(h.Board))
+	}
+	if r.Pot != 30 {
+		t.Errorf("pot = %d, want 30 (both matched at 15, no refund due)", r.Pot)
+	}
+	if got, want := h.Seats[0].Stack+h.Seats[1].Stack, 1500+15; got != want {
+		t.Errorf("chips not conserved: total stacks = %d, want %d", got, want)
+	}
+}
+
+func TestButtonCommittedExceedsShortBBAllIn_ForcedCheckClosesWithRefund(t *testing.T) {
+	// BB has only 5, less than even the 10 SB the button already posted.
+	// The button's only legal action is Check (nothing to call, and no
+	// raise is offered against an all-in opponent). That check must close
+	// the street immediately and refund the button's excess over BB's 5.
+	h := NewHand([2]int{1500, 5}, 10, 20, rand.New(rand.NewSource(11)))
+	if h.Street != Preflop {
+		t.Fatalf("street = %v, want Preflop", h.Street)
+	}
+	la := h.LegalActions()
+	if len(la) != 1 || la[0] != Check {
+		t.Fatalf("legal actions = %v, want only [Check]", la)
+	}
+	mustApply(t, h, Action{Type: Check})
+	if h.Street != HandOver {
+		t.Fatalf("street = %v, want HandOver after the forced check closes the round", h.Street)
+	}
+	r := h.Result()
+	if r == nil || !r.Showdown {
+		t.Fatalf("result = %+v, want a showdown result", r)
+	}
+	if len(h.Board) != 5 {
+		t.Errorf("board = %d cards, want 5", len(h.Board))
+	}
+	if r.Pot != 10 {
+		t.Errorf("pot = %d, want 10 (5+5 after refunding the button's excess)", r.Pot)
+	}
+	if got, want := h.Seats[0].Stack+h.Seats[1].Stack, 1500+5; got != want {
+		t.Errorf("chips not conserved: total stacks = %d, want %d", got, want)
+	}
+}
+
+func TestBetCalledByShorterAllInStack_Refund(t *testing.T) {
+	// BB only has 100 total. Button shoves a big raise; BB can only call
+	// all-in for less. The street must close and refund the button's
+	// uncalled excess.
+	h := NewHand([2]int{1500, 100}, 10, 20, rand.New(rand.NewSource(11)))
+	mustApply(t, h, Action{Type: Raise, To: 500})
+	if h.Street != Preflop {
+		t.Fatalf("street = %v, want Preflop (BB still to act)", h.Street)
+	}
+	mustApply(t, h, Action{Type: Call})
+	if h.Street != HandOver {
+		t.Fatalf("street = %v, want HandOver after the short all-in call", h.Street)
+	}
+	r := h.Result()
+	if r == nil || !r.Showdown {
+		t.Fatalf("result = %+v, want a showdown result", r)
+	}
+	if r.Pot != 200 {
+		t.Errorf("pot = %d, want 200 (100+100 after refunding the button's excess)", r.Pot)
+	}
+	if got, want := h.Seats[0].Stack+h.Seats[1].Stack, 1500+100; got != want {
+		t.Errorf("chips not conserved: total stacks = %d, want %d", got, want)
+	}
+}
