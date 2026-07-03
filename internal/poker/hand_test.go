@@ -313,3 +313,20 @@ func TestBetCalledByShorterAllInStack_Refund(t *testing.T) {
 		t.Errorf("chips not conserved: total stacks = %d, want %d", got, want)
 	}
 }
+
+func TestShortAllInCallRefundsExcess(t *testing.T) {
+	// BB is short: shove 1500 vs 600 stack — 900 must come back to the bettor.
+	h := NewHand([2]int{1500, 600}, 10, 20, rand.New(rand.NewSource(9)))
+	mustApply(t, h, Action{Type: Raise, To: 1500})
+	mustApply(t, h, Action{Type: Call})
+	if h.Pot != 1200 {
+		t.Errorf("pot = %d, want 1200 (600 each)", h.Pot)
+	}
+	if got := h.Seats[0].Stack + h.Seats[1].Stack; got != 2100 {
+		t.Errorf("chips not conserved: %d", got)
+	}
+	r := h.Result()
+	if r == nil || r.Pot != 1200 {
+		t.Fatalf("result %+v, want pot 1200", r)
+	}
+}
