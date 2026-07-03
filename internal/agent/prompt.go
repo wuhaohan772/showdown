@@ -38,7 +38,7 @@ func RenderPrompt(d RequestData) string {
 	return out
 }
 
-// BuildHandState describes the hand from the agent's perspective (agent = "you").
+// BuildHandState describes the hand from agentSeat's perspective (agent = "you"), regardless of whose turn it is.
 func BuildHandState(h *poker.Hand, agentSeat int, sb, bb int) string {
 	var b strings.Builder
 	you, opp := h.Seats[agentSeat], h.Seats[1-agentSeat]
@@ -79,7 +79,11 @@ func BuildHandState(h *poker.Hand, agentSeat int, sb, bb int) string {
 		}
 	}
 	b.WriteString("\n")
-	if call := h.CallAmount(); call > 0 {
+	call := h.CurrentBet - h.Seats[agentSeat].Committed
+	if call > h.Seats[agentSeat].Stack {
+		call = h.Seats[agentSeat].Stack
+	}
+	if call > 0 {
 		fmt.Fprintf(&b, "To you: call %d more, raise, or fold.", call)
 	} else {
 		b.WriteString("To you: check or bet/raise.")

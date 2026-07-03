@@ -40,6 +40,15 @@ func TestBuildHandState(t *testing.T) {
 	}
 }
 
+func TestBuildHandStatePerspectiveIndependentOfActor(t *testing.T) {
+	h := poker.NewHand([2]int{1500, 1500}, 10, 20, rand.New(rand.NewSource(7)))
+	// Actor is seat 0 (button); render for seat 1 (BB), who owes nothing preflop.
+	s := BuildHandState(h, 1, 10, 20)
+	if !strings.Contains(s, "To you: check or bet/raise.") {
+		t.Errorf("BB perspective should not owe a call; got:\n%s", s)
+	}
+}
+
 func TestDigestFlow(t *testing.T) {
 	d := NewDigest()
 	if d.HandTalk() != "(nothing said yet)" {
