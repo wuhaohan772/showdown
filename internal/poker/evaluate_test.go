@@ -41,3 +41,12 @@ func TestEvaluateDescription(t *testing.T) {
 		t.Error("want non-empty description")
 	}
 }
+
+func TestEvaluateRejectsBadCardCount(t *testing.T) {
+	defer func() {
+		if recover() == nil {
+			t.Error("Evaluate with 3 cards should panic")
+		}
+	}()
+	Evaluate(cards("Ah", "Kh", "Qh"))
+}
