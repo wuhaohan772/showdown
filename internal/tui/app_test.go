@@ -329,3 +329,99 @@ func TestFallbackNoticeVisibleInQuietMode(t *testing.T) {
 		t.Errorf("view = %q, want it to contain the glitch notice even in quiet mode", stripANSI(m.View()))
 	}
 }
+
+func typeString(t *testing.T, m Model, s string) Model {
+	t.Helper()
+	for _, r := range s {
+		m2, _ := m.Update(tea.KeyMsg{Type: tea.KeyRunes, Runes: []rune{r}})
+		m = m2.(Model)
+	}
+	return m
+}
+
+func TestTalkEchoRendersAndClearsNextHand(t *testing.T) {
+	m := testModel(t)
+	m2, _ := m.Update(startHandMsg{})
+	m = m2.(Model)
+	m2, _ = m.Update(key("t"))
+	m = m2.(Model)
+	if m.phase != phaseTalkInput {
+		t.Fatalf("phase = %v, want phaseTalkInput", m.phase)
+	}
+	m = typeString(t, m, "read em and weep")
+	m2, _ = m.Update(key("enter"))
+	m = m2.(Model)
+	if m.phase != phaseHumanTurn {
+		t.Fatalf("phase after enter = %v, want phaseHumanTurn", m.phase)
+	}
+	if !strings.Contains(stripANSI(m.View()), `you: "read em and weep"`) {
+		t.Error("echo line missing from view")
+	}
+	if !strings.Contains(m.digest.HandTalk(), "HUMAN: read em and weep") {
+		t.Error("talk missing from digest")
+	}
+	// fold ends the hand; enter starts the next: echo must clear
+	m2, _ = m.Update(key("f"))
+	m = m2.(Model)
+	m2, _ = m.Update(key("enter"))
+	m = m2.(Model)
+	if strings.Contains(stripANSI(m.View()), "you:") {
+		t.Error("echo should clear at next hand start")
+	}
+}
+
+func TestTalkEchoHiddenInQuietMode(t *testing.T) {
+	ad := agent.Adapter{Key: "stub", DisplayName: "Stub", Bin: "true",
+		Args: func(p string) []string { return nil }}
+	m := NewModel(ad, stats.Stats{}, t.TempDir()+"/stats.json", true, ".", nil)
+	m2, _ := m.Update(startHandMsg{})
+	m = m2.(Model)
+	m2, _ = m.Update(key("t"))
+	m = m2.(Model)
+	m = typeString(t, m, "silence")
+	m2, _ = m.Update(key("enter"))
+	m = m2.(Model)
+	if strings.Contains(stripANSI(m.View()), "you:") {
+		t.Error("echo must be hidden in quiet mode")
+	}
+}
+
+func TestTalkAtHandEndReturnsToHandEnd(t *testing.T) {
+	m := testModel(t)
+	m2, _ := m.Update(startHandMsg{})
+	m = m2.(Model)
+	m2, _ = m.Update(key("f")) // fold -> phaseHandEnd
+	m = m2.(Model)
+	if m.phase != phaseHandEnd {
+		t.Fatalf("phase = %v, want phaseHandEnd", m.phase)
+	}
+	m2, _ = m.Update(key("t"))
+	m = m2.(Model)
+	if m.phase != phaseTalkInput {
+		t.Fatalf("t at hand end: phase = %v, want phaseTalkInput", m.phase)
+	}
+	m = typeString(t, m, "lucky fold")
+	m2, _ = m.Update(key("enter"))
+	m = m2.(Model)
+	if m.phase != phaseHandEnd {
+		t.Fatalf("phase after enter = %v, want phaseHandEnd", m.phase)
+	}
+	if !strings.Contains(m.digest.HandTalk(), "HUMAN: lucky fold") {
+		t.Error("hand-end talk missing from digest")
+	}
+}
+
+func TestTalkEscRestoresOriginPhase(t *testing.T) {
+	m := testModel(t)
+	m2, _ := m.Update(startHandMsg{})
+	m = m2.(Model)
+	m2, _ = m.Update(key("f")) // -> phaseHandEnd
+	m = m2.(Model)
+	m2, _ = m.Update(key("t"))
+	m = m2.(Model)
+	m2, _ = m.Update(tea.KeyMsg{Type: tea.KeyEsc})
+	m = m2.(Model)
+	if m.phase != phaseHandEnd {
+		t.Fatalf("esc from hand-end talk: phase = %v, want phaseHandEnd", m.phase)
+	}
+}

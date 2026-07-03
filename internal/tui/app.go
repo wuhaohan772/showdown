@@ -54,13 +54,15 @@ type Model struct {
 	hand   *poker.Hand
 	digest *agent.Digest
 
-	phase    phase
-	input    textinput.Model
-	spin     spinner.Model
-	agentSay string
-	banner   string
-	revealed int
-	saved    bool
+	phase      phase
+	talkReturn phase // phase to restore when talk input closes
+	input      textinput.Model
+	spin       spinner.Model
+	agentSay   string
+	humanSay   string
+	banner     string
+	revealed   int
+	saved      bool
 
 	// finalHumanSeat captures humanSeat() just before NextHand() advances
 	// HandNum (which flips ButtonPlayer/SeatOf). The match-over screen still
@@ -105,6 +107,7 @@ func (m *Model) startHand() tea.Cmd {
 		"stacks":     []int{m.hand.Seats[0].Stack, m.hand.Seats[1].Stack},
 	})
 	m.agentSay = ""
+	m.humanSay = ""
 	m.banner = fmt.Sprintf("hand %d — blinds %d/%d", m.match.HandNum, sb, bb)
 	m.revealed = 0
 	return m.advance()
@@ -283,7 +286,11 @@ func (m Model) handleKey(msg tea.KeyMsg) (tea.Model, tea.Cmd) {
 		case "enter":
 			return m.confirmInput()
 		case "esc":
-			m.phase = phaseHumanTurn
+			if m.phase == phaseTalkInput {
+				m.phase = m.talkReturn
+			} else {
+				m.phase = phaseHumanTurn
+			}
 			m.input.Blur()
 			return m, nil
 		default:
@@ -294,6 +301,10 @@ func (m Model) handleKey(msg tea.KeyMsg) (tea.Model, tea.Cmd) {
 	case phaseHumanTurn:
 		return m.humanAction(k)
 	case phaseHandEnd:
+		if k == "t" {
+			m.openTalk()
+			return m, nil
+		}
 		if k == "enter" {
 			cmd := m.settleAndNext()
 			return m, cmd
@@ -347,12 +358,19 @@ func (m Model) humanAction(k string) (tea.Model, tea.Cmd) {
 			return m, cmd
 		}
 	case "t":
-		m.phase = phaseTalkInput
-		m.input.Placeholder = "talk trash"
-		m.input.SetValue("")
-		m.input.Focus()
+		m.openTalk()
 	}
 	return m, nil
+}
+
+// openTalk switches to talk input, remembering which phase to restore
+// when the input closes (enter or esc).
+func (m *Model) openTalk() {
+	m.talkReturn = m.phase
+	m.phase = phaseTalkInput
+	m.input.Placeholder = "talk trash"
+	m.input.SetValue("")
+	m.input.Focus()
 }
 
 func (m Model) confirmInput() (tea.Model, tea.Cmd) {
@@ -361,8 +379,9 @@ func (m Model) confirmInput() (tea.Model, tea.Cmd) {
 	if m.phase == phaseTalkInput {
 		if val != "" {
 			m.digest.AddTalk("HUMAN", val)
+			m.humanSay = val
 		}
-		m.phase = phaseHumanTurn
+		m.phase = m.talkReturn
 		return m, nil
 	}
 	// raise input
@@ -495,7 +514,11 @@ func (m Model) View() string {
 	fmt.Fprintf(&b, "  pot: %d\n\n", m.hand.Pot)
 
 	b.WriteString(indent(RenderCardRow(m.hand.Hole[hs][:], 2), 2) + "\n")
-	fmt.Fprintf(&b, "  ♥ YOU   stack: %d\n\n", humanStack)
+	fmt.Fprintf(&b, "  ♥ YOU   stack: %d\n", humanStack)
+	if m.humanSay != "" && !m.quiet {
+		b.WriteString(dimStyle.Render(`  you: "`+m.humanSay+`"`) + "\n")
+	}
+	b.WriteString("\n")
 
 	b.WriteString(bannerStyle.Render("  "+m.banner) + "\n")
 	switch m.phase {
