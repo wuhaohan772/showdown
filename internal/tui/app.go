@@ -424,10 +424,10 @@ func (m *Model) apply(a poker.Action) error {
 	f := map[string]any{
 		"hand": m.match.HandNum, "actor_seat": actor,
 		"action": string(a.Type), "to": a.To,
-		"street": m.hand.Street.String(),
-		"pot":    m.hand.Pot,
-		"stacks": []int{m.hand.Seats[0].Stack, m.hand.Seats[1].Stack},
-		"board":  cardStrings(m.hand.Board),
+		"street":      m.hand.Street.String(),
+		"pot":         m.hand.Pot,
+		"stacks":      []int{m.hand.Seats[0].Stack, m.hand.Seats[1].Stack},
+		"board":       cardStrings(m.hand.Board),
 		"current_bet": m.hand.CurrentBet,
 		"committed":   []int{m.hand.Seats[0].Committed, m.hand.Seats[1].Committed},
 	}

@@ -82,7 +82,7 @@ func TestLogAfterCloseIsNoop(t *testing.T) {
 		t.Fatalf("New: %v", err)
 	}
 	l.Close()
-	l.Log("late", nil)         // must not panic
+	l.Log("late", nil)                // must not panic
 	if err := l.Close(); err != nil { // double close must not error
 		t.Errorf("double Close: %v", err)
 	}
