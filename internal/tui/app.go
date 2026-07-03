@@ -13,6 +13,7 @@ import (
 	tea "github.com/charmbracelet/bubbletea"
 	"github.com/charmbracelet/lipgloss"
 	"github.com/haohanwu/showdown/internal/agent"
+	"github.com/haohanwu/showdown/internal/debuglog"
 	"github.com/haohanwu/showdown/internal/poker"
 	"github.com/haohanwu/showdown/internal/stats"
 )
@@ -47,6 +48,7 @@ type Model struct {
 	quiet     bool
 	dir       string
 	rng       *rand.Rand
+	log       *debuglog.Logger
 
 	match  *poker.Match
 	hand   *poker.Hand
@@ -67,13 +69,18 @@ type Model struct {
 	finalHumanSeat int
 }
 
-func NewModel(opp agent.Adapter, st stats.Stats, statsPath string, quiet bool, dir string) Model {
+func NewModel(opp agent.Adapter, st stats.Stats, statsPath string, quiet bool, dir string, log *debuglog.Logger) Model {
 	in := textinput.New()
 	in.CharLimit = 120
 	sp := spinner.New(spinner.WithSpinner(spinner.Dot))
+	seed := time.Now().UnixNano()
+	log.Log("session_start", map[string]any{
+		"agent_key": opp.Key, "agent_name": opp.DisplayName,
+		"quiet": quiet, "dir": dir, "seed": seed,
+	})
 	return Model{
-		opp: opp, stats: st, statsPath: statsPath, quiet: quiet, dir: dir,
-		rng:   rand.New(rand.NewSource(time.Now().UnixNano())),
+		opp: opp, stats: st, statsPath: statsPath, quiet: quiet, dir: dir, log: log,
+		rng:   rand.New(rand.NewSource(seed)),
 		match: poker.NewMatch(), digest: agent.NewDigest(),
 		input: in, spin: sp,
 	}
@@ -90,6 +97,13 @@ func (m *Model) startHand() tea.Cmd {
 	sb, bb := m.match.Blinds()
 	seatStacks := [2]int{m.match.Stacks[m.match.PlayerAt(0)], m.match.Stacks[m.match.PlayerAt(1)]}
 	m.hand = poker.NewHand(seatStacks, sb, bb, m.rng)
+	m.log.Log("hand_start", map[string]any{
+		"hand": m.match.HandNum, "sb": sb, "bb": bb,
+		"human_seat": m.humanSeat(),
+		"hole_seat0": cardStrings(m.hand.Hole[0][:]),
+		"hole_seat1": cardStrings(m.hand.Hole[1][:]),
+		"stacks":     []int{m.hand.Seats[0].Stack, m.hand.Seats[1].Stack},
+	})
 	m.agentSay = ""
 	m.banner = fmt.Sprintf("hand %d — blinds %d/%d", m.match.HandNum, sb, bb)
 	m.revealed = 0
@@ -121,7 +135,7 @@ func (m *Model) askAgentCmd() tea.Cmd {
 		MaxAmount:    m.hand.MaxRaiseTo(),
 	}
 	legal := m.hand.LegalActions()
-	ask := m.opp.Asker(m.dir, decisionTimeout)
+	ask := debuglog.WrapAsker(m.opp.Asker(m.dir, decisionTimeout), m.log)
 	return func() tea.Msg {
 		act, say, fb := agent.GetDecision(context.Background(), ask, data, legal)
 		return decisionMsg{act: act, say: say, fallback: fb}
@@ -130,6 +144,11 @@ func (m *Model) askAgentCmd() tea.Cmd {
 
 func (m *Model) finishHand() tea.Cmd {
 	r := m.hand.Result()
+	m.log.Log("hand_end", map[string]any{
+		"hand": m.match.HandNum, "winner_seat": r.Winner,
+		"pot": r.Pot, "showdown": r.Showdown, "split": r.Split, "desc": r.Desc,
+		"stacks": []int{m.hand.Seats[0].Stack, m.hand.Seats[1].Stack},
+	})
 	m.phase = phaseHandEnd
 	winnerName := "YOU"
 	if r.Winner == m.agentSeat() {
@@ -150,7 +169,7 @@ func (m *Model) finishHand() tea.Cmd {
 
 	var cmds []tea.Cmd
 	if !m.quiet {
-		ask := m.opp.Asker(m.dir, decisionTimeout)
+		ask := debuglog.WrapAsker(m.opp.Asker(m.dir, decisionTimeout), m.log)
 		name, digest := m.opp.DisplayName, m.digest.String()
 		cmds = append(cmds, func() tea.Msg {
 			return reactionMsg(agent.GetReaction(context.Background(), ask, name, digest, summary))
@@ -213,9 +232,13 @@ func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		m.spin, cmd = m.spin.Update(msg)
 		return m, cmd
 	case decisionMsg:
-		if err := m.hand.Apply(msg.act); err != nil {
+		m.log.Log("agent_decision", map[string]any{
+			"action": string(msg.act.Type), "to": msg.act.To,
+			"say": msg.say, "fallback": msg.fallback,
+		})
+		if err := m.apply(msg.act); err != nil {
 			// GetDecision guarantees legality; a failure here is a bug — force fallback.
-			_ = m.hand.Apply(agent.FallbackAction(m.hand.LegalActions()))
+			_ = m.apply(agent.FallbackAction(m.hand.LegalActions()))
 		}
 		if msg.say != "" && !m.quiet {
 			m.agentSay = msg.say
@@ -250,6 +273,7 @@ func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 
 func (m Model) handleKey(msg tea.KeyMsg) (tea.Model, tea.Cmd) {
 	k := msg.String()
+	m.log.Log("human_key", map[string]any{"key": k, "phase": phaseName(m.phase)})
 	if k == "ctrl+c" || (k == "q" && m.phase != phaseTalkInput && m.phase != phaseRaiseInput) {
 		return m, tea.Quit
 	}
@@ -290,18 +314,18 @@ func (m Model) humanAction(k string) (tea.Model, tea.Cmd) {
 	switch k {
 	case "f":
 		if legal[poker.Fold] {
-			_ = m.hand.Apply(poker.Action{Type: poker.Fold})
+			_ = m.apply(poker.Action{Type: poker.Fold})
 			cmd := m.advance()
 			return m, cmd
 		}
 	case "c":
 		if legal[poker.Call] {
-			_ = m.hand.Apply(poker.Action{Type: poker.Call})
+			_ = m.apply(poker.Action{Type: poker.Call})
 			cmd := m.advance()
 			return m, cmd
 		}
 		if legal[poker.Check] {
-			_ = m.hand.Apply(poker.Action{Type: poker.Check})
+			_ = m.apply(poker.Action{Type: poker.Check})
 			cmd := m.advance()
 			return m, cmd
 		}
@@ -318,7 +342,7 @@ func (m Model) humanAction(k string) (tea.Model, tea.Cmd) {
 			if legal[poker.Bet] {
 				t = poker.Bet
 			}
-			_ = m.hand.Apply(poker.Action{Type: t, To: m.hand.MaxRaiseTo()})
+			_ = m.apply(poker.Action{Type: t, To: m.hand.MaxRaiseTo()})
 			cmd := m.advance()
 			return m, cmd
 		}
@@ -354,13 +378,64 @@ func (m Model) confirmInput() (tea.Model, tea.Cmd) {
 			t = poker.Bet
 		}
 	}
-	if err := m.hand.Apply(poker.Action{Type: t, To: n}); err != nil {
+	if err := m.apply(poker.Action{Type: t, To: n}); err != nil {
 		m.banner = err.Error()
 		m.phase = phaseHumanTurn
 		return m, nil
 	}
 	cmd := m.advance()
 	return m, cmd
+}
+
+func cardStrings(cs []poker.Card) []string {
+	out := make([]string, len(cs))
+	for i, c := range cs {
+		out[i] = c.String()
+	}
+	return out
+}
+
+func phaseName(p phase) string {
+	switch p {
+	case phaseHumanTurn:
+		return "human_turn"
+	case phaseRaiseInput:
+		return "raise_input"
+	case phaseTalkInput:
+		return "talk_input"
+	case phaseAgentTurn:
+		return "agent_turn"
+	case phaseRunout:
+		return "runout"
+	case phaseHandEnd:
+		return "hand_end"
+	case phaseMatchOver:
+		return "match_over"
+	}
+	return "unknown"
+}
+
+// apply funnels every Hand.Apply so the debug log records each action and
+// the resulting engine state. Behavior is identical to calling
+// m.hand.Apply directly.
+func (m *Model) apply(a poker.Action) error {
+	actor := m.hand.Actor
+	err := m.hand.Apply(a)
+	f := map[string]any{
+		"hand": m.match.HandNum, "actor_seat": actor,
+		"action": string(a.Type), "to": a.To,
+		"street":      m.hand.Street.String(),
+		"pot":         m.hand.Pot,
+		"stacks":      []int{m.hand.Seats[0].Stack, m.hand.Seats[1].Stack},
+		"board":       cardStrings(m.hand.Board),
+		"current_bet": m.hand.CurrentBet,
+		"committed":   []int{m.hand.Seats[0].Committed, m.hand.Seats[1].Committed},
+	}
+	if err != nil {
+		f["error"] = err.Error()
+	}
+	m.log.Log("apply", f)
+	return err
 }
 
 func joinActions(as []poker.ActionType) string {

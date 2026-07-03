@@ -1,11 +1,16 @@
 package tui
 
 import (
+	"bufio"
+	"encoding/json"
+	"os"
+	"path/filepath"
 	"strings"
 	"testing"
 
 	tea "github.com/charmbracelet/bubbletea"
 	"github.com/haohanwu/showdown/internal/agent"
+	"github.com/haohanwu/showdown/internal/debuglog"
 	"github.com/haohanwu/showdown/internal/poker"
 	"github.com/haohanwu/showdown/internal/stats"
 )
@@ -14,7 +19,7 @@ func testModel(t *testing.T) Model {
 	t.Helper()
 	ad := agent.Adapter{Key: "stub", DisplayName: "Stub", Bin: "true",
 		Args: func(p string) []string { return nil }}
-	return NewModel(ad, stats.Stats{}, t.TempDir()+"/stats.json", false, ".")
+	return NewModel(ad, stats.Stats{}, t.TempDir()+"/stats.json", false, ".", nil)
 }
 
 func key(s string) tea.KeyMsg {
@@ -164,10 +169,153 @@ func TestMatchOverShowsCorrectStacks(t *testing.T) {
 	}
 }
 
+func readLogEvents(t *testing.T, path string) []map[string]any {
+	t.Helper()
+	f, err := os.Open(path)
+	if err != nil {
+		t.Fatalf("open log: %v", err)
+	}
+	defer f.Close()
+	var out []map[string]any
+	sc := bufio.NewScanner(f)
+	sc.Buffer(make([]byte, 1024*1024), 1024*1024)
+	for sc.Scan() {
+		var m map[string]any
+		if err := json.Unmarshal(sc.Bytes(), &m); err != nil {
+			t.Fatalf("invalid JSONL: %v", err)
+		}
+		out = append(out, m)
+	}
+	return out
+}
+
+func TestSessionStartLogged(t *testing.T) {
+	path := filepath.Join(t.TempDir(), "d.jsonl")
+	l, err := debuglog.New(path)
+	if err != nil {
+		t.Fatalf("debuglog.New: %v", err)
+	}
+	ad := agent.Adapter{Key: "stub", DisplayName: "Stub", Bin: "true",
+		Args: func(p string) []string { return nil }}
+	NewModel(ad, stats.Stats{}, t.TempDir()+"/stats.json", true, ".", l)
+	l.Close()
+
+	evs := readLogEvents(t, path)
+	if len(evs) != 1 || evs[0]["event"] != "session_start" {
+		t.Fatalf("events = %v, want one session_start", evs)
+	}
+	if evs[0]["agent_key"] != "stub" || evs[0]["quiet"] != true {
+		t.Errorf("session_start fields = %v", evs[0])
+	}
+	if _, ok := evs[0]["seed"]; !ok {
+		t.Error("session_start missing seed")
+	}
+}
+
+func TestDebugLogCapturesHandFlow(t *testing.T) {
+	path := filepath.Join(t.TempDir(), "d.jsonl")
+	l, err := debuglog.New(path)
+	if err != nil {
+		t.Fatalf("debuglog.New: %v", err)
+	}
+	ad := agent.Adapter{Key: "stub", DisplayName: "Stub", Bin: "true",
+		Args: func(p string) []string { return nil }}
+	m := NewModel(ad, stats.Stats{}, t.TempDir()+"/stats.json", true, ".", l)
+
+	m2, _ := m.Update(startHandMsg{})
+	m = m2.(Model)
+	m2, _ = m.Update(key("f")) // human folds hand 1
+	m = m2.(Model)
+	l.Close()
+
+	byEvent := map[string][]map[string]any{}
+	for _, e := range readLogEvents(t, path) {
+		name := e["event"].(string)
+		byEvent[name] = append(byEvent[name], e)
+	}
+
+	if n := len(byEvent["hand_start"]); n != 1 {
+		t.Fatalf("hand_start count = %d, want 1", n)
+	}
+	hs := byEvent["hand_start"][0]
+	if hs["hand"] != float64(1) || hs["sb"] != float64(10) || hs["bb"] != float64(20) {
+		t.Errorf("hand_start = %v", hs)
+	}
+	for _, k := range []string{"hole_seat0", "hole_seat1", "stacks", "human_seat"} {
+		if _, ok := hs[k]; !ok {
+			t.Errorf("hand_start missing %q", k)
+		}
+	}
+
+	if n := len(byEvent["human_key"]); n != 1 {
+		t.Fatalf("human_key count = %d, want 1", n)
+	}
+	hk := byEvent["human_key"][0]
+	if hk["key"] != "f" || hk["phase"] != "human_turn" {
+		t.Errorf("human_key = %v", hk)
+	}
+
+	if n := len(byEvent["apply"]); n != 1 {
+		t.Fatalf("apply count = %d, want 1", n)
+	}
+	ap := byEvent["apply"][0]
+	if ap["action"] != "fold" || ap["actor_seat"] != float64(0) {
+		t.Errorf("apply = %v", ap)
+	}
+	for _, k := range []string{"street", "pot", "stacks", "board", "current_bet", "committed"} {
+		if _, ok := ap[k]; !ok {
+			t.Errorf("apply missing %q", k)
+		}
+	}
+	if _, ok := ap["error"]; ok {
+		t.Error("apply has error field on legal action")
+	}
+
+	if n := len(byEvent["hand_end"]); n != 1 {
+		t.Fatalf("hand_end count = %d, want 1", n)
+	}
+	he := byEvent["hand_end"][0]
+	if he["winner_seat"] != float64(1) || he["showdown"] != false {
+		t.Errorf("hand_end = %v", he)
+	}
+}
+
+func TestAgentDecisionLogged(t *testing.T) {
+	path := filepath.Join(t.TempDir(), "d.jsonl")
+	l, err := debuglog.New(path)
+	if err != nil {
+		t.Fatalf("debuglog.New: %v", err)
+	}
+	ad := agent.Adapter{Key: "stub", DisplayName: "Stub", Bin: "true",
+		Args: func(p string) []string { return nil }}
+	m := NewModel(ad, stats.Stats{}, t.TempDir()+"/stats.json", true, ".", l)
+
+	m2, _ := m.Update(startHandMsg{})
+	m = m2.(Model)
+	m2, _ = m.Update(key("c")) // human limps; agent's turn
+	m = m2.(Model)
+	m2, _ = m.Update(decisionMsg{act: poker.Action{Type: poker.Check}, say: "hm", fallback: true})
+	m = m2.(Model)
+	l.Close()
+
+	var dec map[string]any
+	for _, e := range readLogEvents(t, path) {
+		if e["event"] == "agent_decision" {
+			dec = e
+		}
+	}
+	if dec == nil {
+		t.Fatal("no agent_decision event logged")
+	}
+	if dec["action"] != "check" || dec["say"] != "hm" || dec["fallback"] != true {
+		t.Errorf("agent_decision = %v", dec)
+	}
+}
+
 func TestFallbackNoticeVisibleInQuietMode(t *testing.T) {
 	ad := agent.Adapter{Key: "stub", DisplayName: "Stub", Bin: "true",
 		Args: func(p string) []string { return nil }}
-	m := NewModel(ad, stats.Stats{}, t.TempDir()+"/stats.json", true, ".")
+	m := NewModel(ad, stats.Stats{}, t.TempDir()+"/stats.json", true, ".", nil)
 	m2, _ := m.Update(startHandMsg{})
 	m = m2.(Model)
 	m2, _ = m.Update(key("c")) // human limps; agent (BB) has the option
