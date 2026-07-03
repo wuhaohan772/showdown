@@ -315,6 +315,7 @@ func (m Model) handleKey(msg tea.KeyMsg) (tea.Model, tea.Cmd) {
 	case phaseAgentTurn:
 		if k == "t" {
 			m.openTalk()
+			return m, nil
 		}
 	case phaseHandEnd:
 		if k == "t" {
@@ -503,8 +504,9 @@ func (m Model) View() string {
 		as = 1 - hs
 		agentStack, humanStack = m.match.Stacks[1], m.match.Stacks[0]
 	}
+	inRunout := m.phase == phaseRunout || (m.phase == phaseTalkInput && m.talkReturn == phaseRunout)
 	agentHoleUp := m.phase == phaseMatchOver ||
-		(m.hand.Result() != nil && m.hand.Result().Showdown && m.phase != phaseRunout)
+		(m.hand.Result() != nil && m.hand.Result().Showdown && !inRunout)
 
 	fmt.Fprintf(&b, "  ♠ %s   stack: %d\n", m.opp.DisplayName, agentStack)
 	rev := 0
@@ -515,13 +517,13 @@ func (m Model) View() string {
 	if m.agentSay != "" && !m.quiet {
 		b.WriteString(sayStyle.Render(`  "`+m.agentSay+`"`) + "\n")
 	}
-	if m.phase == phaseAgentTurn {
+	if m.phase == phaseAgentTurn || (m.phase == phaseTalkInput && m.talkReturn == phaseAgentTurn) {
 		b.WriteString(dimStyle.Render("  "+m.spin.View()+m.opp.DisplayName+" is thinking...") + "\n")
 	}
 	b.WriteString("\n")
 
 	boardRev := len(m.hand.Board)
-	if m.phase == phaseRunout {
+	if inRunout {
 		boardRev = m.revealed
 	}
 	if len(m.hand.Board) > 0 {

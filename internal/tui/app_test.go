@@ -483,14 +483,86 @@ func TestTalkSurvivesShowdownRunout(t *testing.T) {
 	}
 	// ticks must advance the reveal behind the input box
 	for i := 0; i < len(m.hand.Board); i++ {
-		m2, _ = m.Update(runoutTickMsg{})
+		var cmd tea.Cmd
+		m2, cmd = m.Update(runoutTickMsg{})
 		m = m2.(Model)
+		if i < len(m.hand.Board)-1 && cmd == nil {
+			t.Fatalf("tick %d: reveal chain broke (nil cmd) while typing", i)
+		}
 	}
 	if m.revealed != len(m.hand.Board) {
 		t.Fatalf("revealed = %d, want %d (ticks must advance while typing)", m.revealed, len(m.hand.Board))
 	}
 	if m.phase != phaseTalkInput || m.talkReturn != phaseHandEnd {
 		t.Fatalf("after full reveal: phase = %v talkReturn = %v, want phaseTalkInput/phaseHandEnd", m.phase, m.talkReturn)
+	}
+	m2, _ = m.Update(key("enter"))
+	m = m2.(Model)
+	if m.phase != phaseHandEnd {
+		t.Fatalf("phase after enter = %v, want phaseHandEnd", m.phase)
+	}
+}
+
+func TestViewHidesRunoutWhileTyping(t *testing.T) {
+	m := testModel(t)
+	m2, _ := m.Update(startHandMsg{})
+	m = m2.(Model)
+	m2, _ = m.Update(key("a")) // human shoves
+	m = m2.(Model)
+	m2, _ = m.Update(key("t"))
+	m = m2.(Model)
+	m = typeString(t, m, "gg")
+	m2, _ = m.Update(decisionMsg{act: poker.Action{Type: poker.Call}}) // showdown mid-typing
+	m = m2.(Model)
+	if m.phase != phaseTalkInput || m.talkReturn != phaseRunout {
+		t.Fatalf("setup: phase %v talkReturn %v", m.phase, m.talkReturn)
+	}
+	view := stripANSI(m.View())
+	// cardMidLine extracts the middle line of a face-up rendered card, e.g. "│A♠│".
+	// That string appears in the view iff the card is rendered face-up.
+	cardMidLine := func(c poker.Card) string {
+		lines := strings.Split(stripANSI(RenderCard(c, true)), "\n")
+		return lines[1]
+	}
+	// Build set of mid-lines for the human's hole cards (legitimately shown face-up).
+	humanVisible := map[string]bool{}
+	for _, c := range m.hand.Hole[m.humanSeat()] {
+		humanVisible[cardMidLine(c)] = true
+	}
+	for _, c := range m.hand.Hole[m.agentSeat()] {
+		ml := cardMidLine(c)
+		if humanVisible[ml] {
+			continue // ambiguous — same render as a human card shown face-up
+		}
+		if strings.Contains(view, ml) {
+			t.Errorf("agent hole card %v visible during typing-over-runout (mid-line %q in view)", c, ml)
+		}
+	}
+	// board must respect m.revealed (0 right after decision): no board card visible yet
+	for _, c := range m.hand.Board {
+		ml := cardMidLine(c)
+		if humanVisible[ml] {
+			continue
+		}
+		if strings.Contains(view, ml) {
+			t.Errorf("board card %v visible before reveal tick (mid-line %q in view)", c, ml)
+		}
+	}
+}
+
+func TestTalkSurvivesAgentFoldToHandEnd(t *testing.T) {
+	m := testModel(t)
+	m2, _ := m.Update(startHandMsg{})
+	m = m2.(Model)
+	m2, _ = m.Update(key("a")) // human shoves -> agent turn
+	m = m2.(Model)
+	m2, _ = m.Update(key("t"))
+	m = m2.(Model)
+	m = typeString(t, m, "scared?")
+	m2, _ = m.Update(decisionMsg{act: poker.Action{Type: poker.Fold}})
+	m = m2.(Model)
+	if m.phase != phaseTalkInput || m.talkReturn != phaseHandEnd {
+		t.Fatalf("phase %v talkReturn %v, want phaseTalkInput/phaseHandEnd", m.phase, m.talkReturn)
 	}
 	m2, _ = m.Update(key("enter"))
 	m = m2.(Model)
