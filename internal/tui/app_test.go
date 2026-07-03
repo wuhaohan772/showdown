@@ -425,3 +425,76 @@ func TestTalkEscRestoresOriginPhase(t *testing.T) {
 		t.Fatalf("esc from hand-end talk: phase = %v, want phaseHandEnd", m.phase)
 	}
 }
+
+func TestTalkDuringAgentTurnSurvivesDecision(t *testing.T) {
+	m := testModel(t)
+	m2, _ := m.Update(startHandMsg{})
+	m = m2.(Model)
+	m2, _ = m.Update(key("c")) // human limps -> agent (BB) turn
+	m = m2.(Model)
+	if m.phase != phaseAgentTurn {
+		t.Fatalf("phase = %v, want phaseAgentTurn", m.phase)
+	}
+	m2, _ = m.Update(key("t"))
+	m = m2.(Model)
+	if m.phase != phaseTalkInput {
+		t.Fatalf("t during agent turn: phase = %v, want phaseTalkInput", m.phase)
+	}
+	m = typeString(t, m, "hurry up")
+	// agent's decision lands mid-typing: BB checks, flop comes, agent acts first
+	m2, _ = m.Update(decisionMsg{act: poker.Action{Type: poker.Check}})
+	m = m2.(Model)
+	if m.phase != phaseTalkInput {
+		t.Fatalf("decision clobbered talk input: phase = %v", m.phase)
+	}
+	if m.hand.Street != poker.Flop {
+		t.Fatalf("street = %v, want Flop (decision must still apply)", m.hand.Street)
+	}
+	m2, _ = m.Update(key("enter"))
+	m = m2.(Model)
+	if m.phase != phaseAgentTurn {
+		t.Fatalf("phase after enter = %v, want phaseAgentTurn (post-decision phase)", m.phase)
+	}
+	if !strings.Contains(m.digest.HandTalk(), "HUMAN: hurry up") {
+		t.Error("talk missing from digest")
+	}
+}
+
+func TestTalkSurvivesShowdownRunout(t *testing.T) {
+	m := testModel(t)
+	m2, _ := m.Update(startHandMsg{})
+	m = m2.(Model)
+	m2, _ = m.Update(key("a")) // human shoves -> agent turn
+	m = m2.(Model)
+	if m.phase != phaseAgentTurn {
+		t.Fatalf("phase = %v, want phaseAgentTurn", m.phase)
+	}
+	m2, _ = m.Update(key("t"))
+	m = m2.(Model)
+	m = typeString(t, m, "gg")
+	// agent calls the shove mid-typing -> showdown -> runout
+	m2, _ = m.Update(decisionMsg{act: poker.Action{Type: poker.Call}})
+	m = m2.(Model)
+	if m.phase != phaseTalkInput {
+		t.Fatalf("phase = %v, want phaseTalkInput preserved over runout", m.phase)
+	}
+	if m.talkReturn != phaseRunout {
+		t.Fatalf("talkReturn = %v, want phaseRunout", m.talkReturn)
+	}
+	// ticks must advance the reveal behind the input box
+	for i := 0; i < len(m.hand.Board); i++ {
+		m2, _ = m.Update(runoutTickMsg{})
+		m = m2.(Model)
+	}
+	if m.revealed != len(m.hand.Board) {
+		t.Fatalf("revealed = %d, want %d (ticks must advance while typing)", m.revealed, len(m.hand.Board))
+	}
+	if m.phase != phaseTalkInput || m.talkReturn != phaseHandEnd {
+		t.Fatalf("after full reveal: phase = %v talkReturn = %v, want phaseTalkInput/phaseHandEnd", m.phase, m.talkReturn)
+	}
+	m2, _ = m.Update(key("enter"))
+	m = m2.(Model)
+	if m.phase != phaseHandEnd {
+		t.Fatalf("phase after enter = %v, want phaseHandEnd", m.phase)
+	}
+}

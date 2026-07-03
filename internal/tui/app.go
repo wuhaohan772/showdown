@@ -239,6 +239,7 @@ func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 			"action": string(msg.act.Type), "to": msg.act.To,
 			"say": msg.say, "fallback": msg.fallback,
 		})
+		wasTyping := m.phase == phaseTalkInput
 		if err := m.apply(msg.act); err != nil {
 			// GetDecision guarantees legality; a failure here is a bug — force fallback.
 			_ = m.apply(agent.FallbackAction(m.hand.LegalActions()))
@@ -251,6 +252,12 @@ func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 			m.banner = "agent glitched — forced " + string(msg.act.Type)
 		}
 		cmd := m.advance()
+		if wasTyping {
+			// The player was mid-sentence: keep the input open and remember
+			// the phase the game advanced to for when it closes.
+			m.talkReturn = m.phase
+			m.phase = phaseTalkInput
+		}
 		return m, cmd
 	case reactionMsg:
 		if string(msg) != "" && !m.quiet {
@@ -258,11 +265,16 @@ func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		}
 		return m, nil
 	case runoutTickMsg:
-		if m.phase == phaseRunout {
+		typingOverRunout := m.phase == phaseTalkInput && m.talkReturn == phaseRunout
+		if m.phase == phaseRunout || typingOverRunout {
 			m.revealed++
 			if m.revealed >= len(m.hand.Board) {
 				m.revealed = len(m.hand.Board)
-				m.phase = phaseHandEnd
+				if typingOverRunout {
+					m.talkReturn = phaseHandEnd
+				} else {
+					m.phase = phaseHandEnd
+				}
 				return m, nil
 			}
 			return m, runoutTick()
@@ -300,6 +312,10 @@ func (m Model) handleKey(msg tea.KeyMsg) (tea.Model, tea.Cmd) {
 		}
 	case phaseHumanTurn:
 		return m.humanAction(k)
+	case phaseAgentTurn:
+		if k == "t" {
+			m.openTalk()
+		}
 	case phaseHandEnd:
 		if k == "t" {
 			m.openTalk()
