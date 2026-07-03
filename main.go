@@ -24,6 +24,10 @@ func main() {
 
 	var opp agent.Adapter
 	if *agentFlag != "" {
+		if len(roster) == 0 {
+			fmt.Fprintln(os.Stderr, "no agent CLIs found on PATH (looked for: claude, codex, gemini)")
+			os.Exit(1)
+		}
 		for _, a := range roster {
 			if a.Key == *agentFlag {
 				opp = a

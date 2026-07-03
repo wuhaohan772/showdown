@@ -32,6 +32,11 @@ func (a Adapter) Asker(dir string, timeout time.Duration) Asker {
 		defer cancel()
 		cmd := exec.CommandContext(cctx, a.Bin, a.Args(prompt)...)
 		cmd.Dir = dir
+		// Guard against a grandchild process holding the stdout pipe open: on
+		// context cancellation, exec only signals the direct child, and
+		// cmd.Output() would otherwise block forever waiting for stdout to
+		// close. WaitDelay bounds that wait, then kills the process group.
+		cmd.WaitDelay = 5 * time.Second
 		out, err := cmd.Output()
 		if err != nil {
 			return "", err

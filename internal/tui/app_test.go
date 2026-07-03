@@ -134,6 +134,36 @@ func TestHandSummaryDecisiveWin(t *testing.T) {
 	}
 }
 
+// TestMatchOverShowsCorrectStacks guards against a regression where the
+// match-over screen rendered stacks/hole cards using the seat mapping for
+// the *next* hand (humanSeat()/agentSeat() flip once NextHand advances
+// HandNum), even though it was still displaying the just-finished hand.
+// That bug showed "YOU stack: 0" even when the human won the match.
+func TestMatchOverShowsCorrectStacks(t *testing.T) {
+	m := testModel(t)
+	m2, _ := m.Update(startHandMsg{})
+	m = m2.(Model)
+
+	// Simulate the human winning the final hand outright: human's seat ends
+	// with the whole 3000-chip pool, agent's seat is busted.
+	hs, as := m.humanSeat(), m.agentSeat()
+	m.hand.Seats[hs].Stack = 3000
+	m.hand.Seats[as].Stack = 0
+
+	m.settleAndNext()
+
+	if m.phase != phaseMatchOver {
+		t.Fatalf("phase = %v, want phaseMatchOver", m.phase)
+	}
+	view := stripANSI(m.View())
+	if !strings.Contains(view, "YOU   stack: 3000") {
+		t.Errorf("view should show human's winning stack 3000 on the YOU line, got:\n%s", view)
+	}
+	if strings.Contains(view, "YOU   stack: 0") {
+		t.Errorf("view incorrectly shows YOU stack: 0 (inverted result), got:\n%s", view)
+	}
+}
+
 func TestFallbackNoticeVisibleInQuietMode(t *testing.T) {
 	ad := agent.Adapter{Key: "stub", DisplayName: "Stub", Bin: "true",
 		Args: func(p string) []string { return nil }}

@@ -59,6 +59,12 @@ type Model struct {
 	banner   string
 	revealed int
 	saved    bool
+
+	// finalHumanSeat captures humanSeat() just before NextHand() advances
+	// HandNum (which flips ButtonPlayer/SeatOf). The match-over screen still
+	// renders m.hand (the just-finished hand), so it must keep using the seat
+	// mapping that was valid for that hand, not the next one.
+	finalHumanSeat int
 }
 
 func NewModel(opp agent.Adapter, st stats.Stats, statsPath string, quiet bool, dir string) Model {
@@ -177,6 +183,7 @@ func runoutTick() tea.Cmd {
 
 func (m *Model) settleAndNext() tea.Cmd {
 	final := [2]int{m.hand.Seats[0].Stack, m.hand.Seats[1].Stack}
+	m.finalHumanSeat = m.humanSeat()
 	m.match.NextHand(final)
 	if m.match.Over() {
 		m.phase = phaseMatchOver
@@ -376,10 +383,20 @@ func (m Model) View() string {
 	}
 	var b strings.Builder
 	hs, as := m.humanSeat(), m.agentSeat()
+	agentStack, humanStack := m.hand.Seats[as].Stack, m.hand.Seats[hs].Stack
+	if m.phase == phaseMatchOver {
+		// m.hand is the just-finished hand; HandNum has already advanced (via
+		// NextHand), which flips humanSeat()/agentSeat(). Use the seat mapping
+		// captured before that advance, and read stacks from the match (which
+		// is player-id indexed and unaffected by the seat flip).
+		hs = m.finalHumanSeat
+		as = 1 - hs
+		agentStack, humanStack = m.match.Stacks[1], m.match.Stacks[0]
+	}
 	agentHoleUp := m.phase == phaseMatchOver ||
 		(m.hand.Result() != nil && m.hand.Result().Showdown && m.phase != phaseRunout)
 
-	fmt.Fprintf(&b, "  ♠ %s   stack: %d\n", m.opp.DisplayName, m.hand.Seats[as].Stack)
+	fmt.Fprintf(&b, "  ♠ %s   stack: %d\n", m.opp.DisplayName, agentStack)
 	rev := 0
 	if agentHoleUp {
 		rev = 2
@@ -403,7 +420,7 @@ func (m Model) View() string {
 	fmt.Fprintf(&b, "  pot: %d\n\n", m.hand.Pot)
 
 	b.WriteString(indent(RenderCardRow(m.hand.Hole[hs][:], 2), 2) + "\n")
-	fmt.Fprintf(&b, "  ♥ YOU   stack: %d\n\n", m.hand.Seats[hs].Stack)
+	fmt.Fprintf(&b, "  ♥ YOU   stack: %d\n\n", humanStack)
 
 	b.WriteString(bannerStyle.Render("  "+m.banner) + "\n")
 	switch m.phase {
