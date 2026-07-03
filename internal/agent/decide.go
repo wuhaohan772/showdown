@@ -140,8 +140,8 @@ func GetReaction(ctx context.Context, ask Asker, agentName, digest, handSummary 
 	if i := strings.IndexByte(line, '\n'); i >= 0 {
 		line = strings.TrimSpace(line[:i])
 	}
-	if len(line) > 120 {
-		line = line[:120]
+	if r := []rune(line); len(r) > 120 {
+		line = string(r[:120])
 	}
 	return line
 }

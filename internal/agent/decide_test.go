@@ -3,7 +3,9 @@ package agent
 import (
 	"context"
 	"errors"
+	"strings"
 	"testing"
+	"unicode/utf8"
 
 	"github.com/haohanwu/showdown/internal/poker"
 )
@@ -95,5 +97,17 @@ func TestFallbackPrefersCheck(t *testing.T) {
 	a := FallbackAction([]poker.ActionType{poker.Check, poker.Bet})
 	if a.Type != poker.Check {
 		t.Errorf("got %v, want check", a.Type)
+	}
+}
+
+func TestGetReactionRuneSafeTruncation(t *testing.T) {
+	long := strings.Repeat("a", 118) + "——中文" // multi-byte runes straddling the cap
+	ask := func(ctx context.Context, prompt string) (string, error) { return long, nil }
+	got := GetReaction(context.Background(), ask, "X", "d", "s")
+	if !utf8.ValidString(got) {
+		t.Errorf("truncated reaction is invalid UTF-8: %q", got)
+	}
+	if utf8.RuneCountInString(got) > 120 {
+		t.Errorf("rune count %d > 120", utf8.RuneCountInString(got))
 	}
 }
