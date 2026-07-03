@@ -56,3 +56,13 @@ func TestPreflopLegalActionsAndAmounts(t *testing.T) {
 		t.Errorf("MaxRaiseTo = %d, want 1500 (all-in total)", h.MaxRaiseTo())
 	}
 }
+
+func TestAllInActorHasNoActions(t *testing.T) {
+	// BB has only 15 and is all-in from posting the blind.
+	h := NewHand([2]int{1500, 15}, 10, 20, rand.New(rand.NewSource(5)))
+	h.Actor = 1
+	if la := h.LegalActions(); la != nil {
+		t.Errorf("all-in actor legal actions = %v, want nil", la)
+	}
+	h.Actor = 0
+}

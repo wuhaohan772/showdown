@@ -113,6 +113,9 @@ func (h *Hand) LegalActions() []ActionType {
 	if h.Street == HandOver {
 		return nil
 	}
+	if h.Seats[h.Actor].AllIn || h.Seats[h.Actor].Folded {
+		return nil
+	}
 	opp := h.Seats[1-h.Actor]
 	var out []ActionType
 	if h.CallAmount() > 0 {
