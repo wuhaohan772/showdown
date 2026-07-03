@@ -51,3 +51,13 @@ func TestKnownAdapterArgs(t *testing.T) {
 		}
 	}
 }
+
+func TestWhitespaceCustomCmdFallsBack(t *testing.T) {
+	t.Setenv("SHOWDOWN_AGENT_CMD", "   ")
+	roster := DetectRoster() // must not panic
+	for _, a := range roster {
+		if a.Key == "custom" {
+			t.Errorf("whitespace-only SHOWDOWN_AGENT_CMD produced custom adapter")
+		}
+	}
+}

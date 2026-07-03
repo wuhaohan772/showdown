@@ -45,10 +45,15 @@ func (a Adapter) Asker(dir string, timeout time.Duration) Asker {
 func DetectRoster() []Adapter {
 	if custom := os.Getenv("SHOWDOWN_AGENT_CMD"); custom != "" {
 		parts := strings.Fields(custom)
-		return []Adapter{{
-			Key: "custom", DisplayName: parts[0], Bin: parts[0],
-			Args: func(p string) []string { return append(append([]string{}, parts[1:]...), p) },
-		}}
+		// Whitespace-only commands fall through to normal PATH detection; no shell-quoting support, space-separated tokens only.
+		if len(parts) == 0 {
+			// Fall through to normal PATH detection
+		} else {
+			return []Adapter{{
+				Key: "custom", DisplayName: parts[0], Bin: parts[0],
+				Args: func(p string) []string { return append(append([]string{}, parts[1:]...), p) },
+			}}
+		}
 	}
 	var out []Adapter
 	for _, a := range knownAdapters {
