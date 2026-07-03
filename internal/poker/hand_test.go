@@ -66,3 +66,87 @@ func TestAllInActorHasNoActions(t *testing.T) {
 	}
 	h.Actor = 0
 }
+
+func mustApply(t *testing.T, h *Hand, a Action) {
+	t.Helper()
+	if err := h.Apply(a); err != nil {
+		t.Fatalf("Apply(%v): %v", a, err)
+	}
+}
+
+func TestFoldEndsHand(t *testing.T) {
+	h := newTestHand(t)
+	mustApply(t, h, Action{Type: Fold})
+	r := h.Result()
+	if r == nil || r.Winner != 1 || r.Showdown {
+		t.Fatalf("result = %+v, want BB wins without showdown", r)
+	}
+	if r.Pot != 30 {
+		t.Errorf("pot = %d, want 30", r.Pot)
+	}
+	if h.Street != HandOver {
+		t.Errorf("street = %v, want HandOver", h.Street)
+	}
+}
+
+func TestLimpCheckAdvancesToFlop(t *testing.T) {
+	h := newTestHand(t)
+	mustApply(t, h, Action{Type: Call}) // button limps
+	if h.Actor != 1 || h.Street != Preflop {
+		t.Fatalf("BB should have the option; actor %d street %v", h.Actor, h.Street)
+	}
+	mustApply(t, h, Action{Type: Check}) // BB checks option
+	if h.Street != Flop || len(h.Board) != 3 {
+		t.Fatalf("street %v board %d cards, want flop/3", h.Street, len(h.Board))
+	}
+	if h.Actor != 1 {
+		t.Errorf("postflop first actor = %d, want 1 (BB out of position)", h.Actor)
+	}
+	if h.CurrentBet != 0 || h.Seats[0].Committed != 0 {
+		t.Errorf("street commitments should reset: bet %d committed %d", h.CurrentBet, h.Seats[0].Committed)
+	}
+}
+
+func TestRaiseCallFlow(t *testing.T) {
+	h := newTestHand(t)
+	mustApply(t, h, Action{Type: Raise, To: 60})
+	if h.CurrentBet != 60 || h.Actor != 1 {
+		t.Fatalf("after raise: bet %d actor %d", h.CurrentBet, h.Actor)
+	}
+	if h.MinRaiseTo() != 100 {
+		t.Errorf("MinRaiseTo = %d, want 100 (60 + raise size 40)", h.MinRaiseTo())
+	}
+	mustApply(t, h, Action{Type: Call})
+	if h.Street != Flop || h.Pot != 120 {
+		t.Errorf("street %v pot %d, want Flop/120", h.Street, h.Pot)
+	}
+}
+
+func TestIllegalActionsRejected(t *testing.T) {
+	h := newTestHand(t)
+	if err := h.Apply(Action{Type: Check}); err == nil {
+		t.Error("check while facing a bet should fail")
+	}
+	if err := h.Apply(Action{Type: Raise, To: 30}); err == nil {
+		t.Error("raise below minimum should fail")
+	}
+	if err := h.Apply(Action{Type: Raise, To: 9999}); err == nil {
+		t.Error("raise above stack should fail")
+	}
+}
+
+func TestBetThroughAllStreets(t *testing.T) {
+	h := newTestHand(t)
+	mustApply(t, h, Action{Type: Call})
+	mustApply(t, h, Action{Type: Check}) // flop
+	for _, street := range []Street{Turn, River, HandOver} {
+		mustApply(t, h, Action{Type: Check}) // BB
+		mustApply(t, h, Action{Type: Check}) // button
+		if h.Street != street {
+			t.Fatalf("street = %v, want %v", h.Street, street)
+		}
+	}
+	if len(h.Board) != 5 || h.Result() == nil {
+		t.Errorf("board %d, result %v — want 5 cards and a showdown result", len(h.Board), h.Result())
+	}
+}

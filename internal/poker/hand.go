@@ -79,6 +79,13 @@ func NewHand(stacks [2]int, sb, bb int, rng *rand.Rand) *Hand {
 	for i := 0; i < 2; i++ {
 		h.Hole[i] = [2]Card{h.deck.Deal(), h.deck.Deal()}
 	}
+	// If posting blinds already leaves the button all-in, the BB can gain
+	// nothing by acting (an all-in player can never respond), so there is no
+	// live decision preflop: refund the BB's excess and run the board out.
+	if h.Seats[0].AllIn {
+		h.refundExcess()
+		h.dealRemainingAndShowdown()
+	}
 	return h
 }
 
@@ -143,6 +150,171 @@ func min(a, b int) int {
 	return b
 }
 
-type Result struct{} // TODO: define in later task
+type Result struct {
+	Winner   int // seat index; -1 when Split
+	Split    bool
+	Pot      int
+	Desc     string
+	Showdown bool
+}
 
-var _ = fmt.Sprintf // placeholder use; removed when Task 5 adds Apply errors
+func (h *Hand) Result() *Result { return h.result }
+
+func (h *Hand) Apply(a Action) error {
+	legal := false
+	for _, t := range h.LegalActions() {
+		if t == a.Type {
+			legal = true
+		}
+	}
+	if !legal {
+		return fmt.Errorf("%s is not legal now (legal: %v)", a.Type, h.LegalActions())
+	}
+	s := &h.Seats[h.Actor]
+	switch a.Type {
+	case Fold:
+		s.Folded = true
+		h.Log = append(h.Log, LogItem{Seat: h.Actor, Street: h.Street, Act: a, AllIn: s.AllIn})
+		h.finishFold(1 - h.Actor)
+		return nil
+	case Check:
+		h.acted++
+	case Call:
+		h.post(h.Actor, h.CallAmount())
+		h.acted++
+	case Bet, Raise:
+		if a.To > h.MaxRaiseTo() {
+			return fmt.Errorf("raise to %d exceeds all-in max %d", a.To, h.MaxRaiseTo())
+		}
+		if a.To < h.MinRaiseTo() && a.To != h.MaxRaiseTo() {
+			return fmt.Errorf("raise to %d below minimum %d", a.To, h.MinRaiseTo())
+		}
+		if a.To <= h.CurrentBet {
+			return fmt.Errorf("raise to %d must exceed current bet %d", a.To, h.CurrentBet)
+		}
+		h.lastRaiseSize = a.To - h.CurrentBet
+		h.post(h.Actor, a.To-s.Committed)
+		h.CurrentBet = a.To
+		h.acted = 1
+	}
+	h.Log = append(h.Log, LogItem{Seat: h.Actor, Street: h.Street, Act: a, AllIn: s.AllIn})
+	if h.roundShouldClose() {
+		h.refundExcess()
+		h.nextStreet()
+	} else {
+		h.Actor = 1 - h.Actor
+	}
+	return nil
+}
+
+// roundShouldClose reports whether no further response is possible on the
+// current street. In heads-up play this is either the usual "both matched
+// and both have acted" case, or — whenever either seat is all-in — the case
+// where the live seat has matched or exceeded the all-in seat's commitment
+// (an all-in seat can never act again, so nothing more can happen).
+func (h *Hand) roundShouldClose() bool {
+	s0, s1 := h.Seats[0], h.Seats[1]
+	switch {
+	case s0.AllIn && s1.AllIn:
+		return true
+	case s0.AllIn:
+		return s1.Committed >= s0.Committed
+	case s1.AllIn:
+		return s0.Committed >= s1.Committed
+	default:
+		return s0.Committed == s1.Committed && h.acted >= 2
+	}
+}
+
+// refundExcess returns any uncalled excess to the deeper-committed seat
+// whenever the street closes with unequal commitments — e.g. a call that is
+// all-in for less, or an all-in seat whose opponent already committed more
+// (from a blind post or an earlier call). Chips are always conserved.
+func (h *Hand) refundExcess() {
+	s0, s1 := &h.Seats[0], &h.Seats[1]
+	var deep, shallow *SeatState
+	switch {
+	case s0.Committed > s1.Committed:
+		deep, shallow = s0, s1
+	case s1.Committed > s0.Committed:
+		deep, shallow = s1, s0
+	default:
+		return
+	}
+	excess := deep.Committed - shallow.Committed
+	deep.Stack += excess
+	deep.Committed -= excess
+	deep.Total -= excess
+	h.Pot -= excess
+	deep.AllIn = deep.Stack == 0
+	h.CurrentBet = shallow.Committed
+}
+
+func (h *Hand) finishFold(winner int) {
+	h.Street = HandOver
+	h.result = &Result{Winner: winner, Pot: h.Pot}
+	h.Seats[winner].Stack += h.Pot
+}
+
+func (h *Hand) nextStreet() {
+	for i := range h.Seats {
+		h.Seats[i].Committed = 0
+	}
+	h.CurrentBet = 0
+	h.lastRaiseSize = h.bb
+	h.acted = 0
+	if h.Seats[0].AllIn || h.Seats[1].AllIn {
+		h.dealRemainingAndShowdown()
+		return
+	}
+	if h.Street < River {
+		h.Street++
+		h.dealStreet()
+		h.Actor = 1 // BB acts first postflop
+		return
+	}
+	h.showdown()
+}
+
+// dealStreet deals the correct number of board cards for the current street
+// (3 on the flop, 1 otherwise).
+func (h *Hand) dealStreet() {
+	n := 3
+	if h.Street != Flop {
+		n = 1
+	}
+	for i := 0; i < n; i++ {
+		h.Board = append(h.Board, h.deck.Deal())
+	}
+}
+
+// dealRemainingAndShowdown deals every street up to the river (used both for
+// a normal all-in runout and for the blind-post-all-in case at NewHand time)
+// and then resolves the showdown.
+func (h *Hand) dealRemainingAndShowdown() {
+	for h.Street < River {
+		h.Street++
+		h.dealStreet()
+	}
+	h.showdown()
+}
+
+func (h *Hand) showdown() {
+	h.Street = HandOver
+	cmp := CompareHands(h.Hole[0], h.Hole[1], h.Board)
+	_, desc0 := Evaluate(append(h.Hole[0][:], h.Board...))
+	_, desc1 := Evaluate(append(h.Hole[1][:], h.Board...))
+	switch cmp {
+	case -1:
+		h.result = &Result{Winner: 0, Pot: h.Pot, Desc: desc0, Showdown: true}
+		h.Seats[0].Stack += h.Pot
+	case 1:
+		h.result = &Result{Winner: 1, Pot: h.Pot, Desc: desc1, Showdown: true}
+		h.Seats[1].Stack += h.Pot
+	default:
+		h.result = &Result{Winner: -1, Split: true, Pot: h.Pot, Desc: desc0, Showdown: true}
+		half := h.Pot / 2
+		h.Seats[0].Stack += h.Pot - half // odd chip to the button
+		h.Seats[1].Stack += half
+	}
+}
