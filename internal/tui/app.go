@@ -162,9 +162,9 @@ func (m *Model) finishHand() tea.Cmd {
 		how = r.Desc
 	}
 	if r.Split {
-		m.banner = fmt.Sprintf("split pot (%d) — %s. enter for next hand", r.Pot, r.Desc)
+		m.banner = fmt.Sprintf("split pot (%d) — %s", r.Pot, r.Desc)
 	} else {
-		m.banner = fmt.Sprintf("%s wins %d (%s). enter for next hand", winnerName, r.Pot, how)
+		m.banner = fmt.Sprintf("%s wins %d (%s)", winnerName, r.Pot, how)
 	}
 	summary := handSummary(m.match.HandNum, r, winnerName)
 	m.digest.EndHand(summary)
@@ -560,6 +560,10 @@ func (m Model) View() string {
 		b.WriteString("  > " + strings.Join(opts, "  ") + "\n")
 	case phaseRaiseInput, phaseTalkInput:
 		b.WriteString("  > " + m.input.View() + "\n")
+	case phaseAgentTurn:
+		b.WriteString("  > (t)alk\n")
+	case phaseHandEnd:
+		b.WriteString("  > (enter) next hand  (t)alk\n")
 	case phaseMatchOver:
 		winner := "YOU WIN THE MATCH"
 		if m.match.Winner() == 1 {

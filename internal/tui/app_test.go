@@ -570,3 +570,33 @@ func TestTalkSurvivesAgentFoldToHandEnd(t *testing.T) {
 		t.Fatalf("phase after enter = %v, want phaseHandEnd", m.phase)
 	}
 }
+
+func TestKeyHintRows(t *testing.T) {
+	m := testModel(t)
+	m2, _ := m.Update(startHandMsg{})
+	m = m2.(Model)
+	m2, _ = m.Update(key("c")) // human limps -> agent turn
+	m = m2.(Model)
+	if m.phase != phaseAgentTurn {
+		t.Fatalf("phase = %v, want phaseAgentTurn", m.phase)
+	}
+	if !strings.Contains(stripANSI(m.View()), "> (t)alk") {
+		t.Error("agent-turn view missing talk hint row")
+	}
+
+	m = testModel(t)
+	m2, _ = m.Update(startHandMsg{})
+	m = m2.(Model)
+	m2, _ = m.Update(key("f")) // fold -> hand end
+	m = m2.(Model)
+	if m.phase != phaseHandEnd {
+		t.Fatalf("phase = %v, want phaseHandEnd", m.phase)
+	}
+	view := stripANSI(m.View())
+	if !strings.Contains(view, "> (enter) next hand  (t)alk") {
+		t.Error("hand-end view missing key hint row")
+	}
+	if strings.Contains(view, "enter for next hand") {
+		t.Error("banner still contains redundant 'enter for next hand'")
+	}
+}
