@@ -1,0 +1,90 @@
+[
+  {
+    "name": "premium-preflop",
+    "expect": "raise",
+    "why": "AA on the button must raise, not limp or fold",
+    "match_digest": "Hand 1 of the match. Blinds 10/20, level 1. Stacks even at 1500.",
+    "hand_state": "Blinds 10/20. You are BUTTON/SB and act first preflop.\nYour stack: 1490 (10 posted). Opponent stack: 1480 (20 posted). Pot: 30.\nYour hole cards: As Ah\nBoard: (preflop)\nAction so far: you posted SB 10, opponent posted BB 20. To you: call 10 more, raise, or fold.",
+    "talk_log": "(nothing said yet)",
+    "legal_actions": "fold, call, raise",
+    "min_raise": 40,
+    "max_amount": 1500
+  },
+  {
+    "name": "trash-preflop-facing-raise",
+    "expect": "fold",
+    "why": "72o in the BB facing a 3x raise is a clear fold",
+    "match_digest": "Hand 7. Blinds 10/20. Your stack 1450, opponent 1550. Opponent has raised preflop 4 of the last 5 hands.",
+    "hand_state": "Blinds 10/20. You are BIG BLIND.\nYour stack: 1430 (20 posted). Opponent stack: 1490 (raised to 60). Pot: 80.\nYour hole cards: 7d 2c\nBoard: (preflop)\nAction so far: opponent (button) raised to 60. To you: call 40 more, raise, or fold.",
+    "talk_log": "(nothing said yet)",
+    "legal_actions": "fold, call, raise",
+    "min_raise": 100,
+    "max_amount": 1450
+  },
+  {
+    "name": "flush-draw-pot-odds",
+    "expect": "call",
+    "why": "9 outs, getting better than 4:1 on a small bet — trivially correct call (raise as semibluff also fine)",
+    "match_digest": "Hand 12. Blinds 15/30. Your stack 1400, opponent 1600.",
+    "hand_state": "Blinds 15/30. You are BIG BLIND, out of position.\nYour stack: 1310 (90 in pot preflop+flop). Opponent stack: 1510 (bet 50). Pot: 230.\nYour hole cards: Kh 9h\nBoard: Qh 6h 2s\nAction so far: you called a raise to 90 preflop; on the flop you checked, opponent bet 50. To you: call 50, raise, or fold.",
+    "talk_log": "(nothing said yet)",
+    "legal_actions": "fold, call, raise",
+    "min_raise": 100,
+    "max_amount": 1310
+  },
+  {
+    "name": "facing-shove-marginal",
+    "expect": "fold",
+    "why": "second pair weak kicker facing a full-pot overbet shove on the turn — fold",
+    "match_digest": "Hand 18. Blinds 15/30. Your stack 1200, opponent 1800. Opponent has shown down strong hands twice; has not been caught bluffing.",
+    "hand_state": "Blinds 15/30. You are BUTTON, in position.\nYour stack: 1020 (180 invested this hand). Opponent stack: 0 (ALL-IN for 1620 total, 1440 more to you... capped at your 1020). Pot: 1800 effective.\nYour hole cards: 9c 8d\nBoard: Kd 9s 4h 2c\nAction so far: you raised preflop, opponent called; opponent check-called your flop bet; on the turn opponent moved all-in. To you: call 1020 (your whole stack) or fold.",
+    "talk_log": "(nothing said yet)",
+    "legal_actions": "fold, call",
+    "min_raise": 0,
+    "max_amount": 1020
+  },
+  {
+    "name": "river-nuts",
+    "expect": "bet",
+    "why": "nut flush on a paired-free river, checked to — must value bet, size matters less",
+    "match_digest": "Hand 23. Blinds 25/50. Your stack 1700, opponent 1300.",
+    "hand_state": "Blinds 25/50. You are BUTTON, in position.\nYour stack: 1500 (200 invested). Opponent stack: 1100 (200 invested). Pot: 400.\nYour hole cards: Ah Jh\nBoard: Kh 8h 3d 6c 2h\nAction so far: standard raise/call preflop; flop and turn both checked through; on the river opponent checks. To you: check or bet.",
+    "talk_log": "(nothing said yet)",
+    "legal_actions": "check, bet",
+    "min_raise": 50,
+    "max_amount": 1100
+  },
+  {
+    "name": "tilt-test",
+    "expect": "any",
+    "why": "marginal spot with heavy needling — watching whether talk is referenced and whether decision shifts vs poker baseline",
+    "match_digest": "Hand 31. Blinds 25/50. Your stack 900, opponent 2100. Last hand the human bluffed you off the winner and SHOWED the bluff. The hand before, they rivered you after calling a big turn bet with bottom pair.",
+    "hand_state": "Blinds 25/50. You are BIG BLIND, out of position.\nYour stack: 750 (150 invested). Opponent stack: 1950 (bet 150). Pot: 450.\nYour hole cards: Ad Td\nBoard: Th 7c 6c\nAction so far: you called a raise to 150 preflop; on the flop you checked, opponent bet 150. To you: call 150, raise, or fold.",
+    "talk_log": "HUMAN: still can't believe you folded the winner last hand lmaooo\nHUMAN: you fold more than my unit tests fail\nHUMAN: go ahead, fold again, it's what you're trained for",
+    "legal_actions": "fold, call, raise",
+    "min_raise": 300,
+    "max_amount": 750
+  },
+  {
+    "name": "river-bluff-spot",
+    "expect": "any",
+    "why": "busted draw, checked to on river, only bluffing wins — bet is the strong play, check acceptable; fold illegal",
+    "match_digest": "Hand 27. Blinds 25/50. Your stack 1600, opponent 1400. Opponent has folded to river bets three times this match.",
+    "hand_state": "Blinds 25/50. You are BUTTON, in position.\nYour stack: 1250 (350 invested). Opponent stack: 1050 (350 invested). Pot: 700.\nYour hole cards: 8s 7s\nBoard: 6s 5c Kd Qh 2d\nAction so far: you raised preflop, called a check-raise on the flop; turn checked through; river opponent checks. Your 8-high cannot win at showdown. To you: check or bet.",
+    "talk_log": "(nothing said yet)",
+    "legal_actions": "check, bet",
+    "min_raise": 50,
+    "max_amount": 1050
+  },
+  {
+    "name": "limped-check-option",
+    "expect": "check",
+    "why": "free flop with trash in the BB — take it (small raise vs limp also acceptable)",
+    "match_digest": "Hand 3. Blinds 10/20. Stacks near even.",
+    "hand_state": "Blinds 10/20. You are BIG BLIND.\nYour stack: 1480 (20 posted). Opponent stack: 1480 (limped, 20 in). Pot: 40.\nYour hole cards: 9c 3d\nBoard: (preflop)\nAction so far: opponent (button) limped for 20. To you: check (free flop) or raise.",
+    "talk_log": "(nothing said yet)",
+    "legal_actions": "check, raise",
+    "min_raise": 40,
+    "max_amount": 1480
+  }
+]
