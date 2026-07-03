@@ -12,7 +12,9 @@ And yes, it trash talks.
 
 Detects `claude`, `codex`, and `gemini` on your PATH. Multiple found →
 you choose your opponent. Force one with `--agent codex`. Silence the
-table talk with `--quiet`.
+table talk with `--quiet`. Debugging something? `--debug` (or
+`SHOWDOWN_DEBUG=1`) writes a full JSONL transcript — prompts, replies,
+every action — to `~/.showdown/`, path printed on exit.
 
 ## The match
 

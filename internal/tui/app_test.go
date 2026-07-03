@@ -1,11 +1,16 @@
 package tui
 
 import (
+	"bufio"
+	"encoding/json"
+	"os"
+	"path/filepath"
 	"strings"
 	"testing"
 
 	tea "github.com/charmbracelet/bubbletea"
 	"github.com/haohanwu/showdown/internal/agent"
+	"github.com/haohanwu/showdown/internal/debuglog"
 	"github.com/haohanwu/showdown/internal/poker"
 	"github.com/haohanwu/showdown/internal/stats"
 )
@@ -14,7 +19,7 @@ func testModel(t *testing.T) Model {
 	t.Helper()
 	ad := agent.Adapter{Key: "stub", DisplayName: "Stub", Bin: "true",
 		Args: func(p string) []string { return nil }}
-	return NewModel(ad, stats.Stats{}, t.TempDir()+"/stats.json", false, ".")
+	return NewModel(ad, stats.Stats{}, t.TempDir()+"/stats.json", false, ".", nil)
 }
 
 func key(s string) tea.KeyMsg {
@@ -164,10 +169,53 @@ func TestMatchOverShowsCorrectStacks(t *testing.T) {
 	}
 }
 
+func readLogEvents(t *testing.T, path string) []map[string]any {
+	t.Helper()
+	f, err := os.Open(path)
+	if err != nil {
+		t.Fatalf("open log: %v", err)
+	}
+	defer f.Close()
+	var out []map[string]any
+	sc := bufio.NewScanner(f)
+	sc.Buffer(make([]byte, 1024*1024), 1024*1024)
+	for sc.Scan() {
+		var m map[string]any
+		if err := json.Unmarshal(sc.Bytes(), &m); err != nil {
+			t.Fatalf("invalid JSONL: %v", err)
+		}
+		out = append(out, m)
+	}
+	return out
+}
+
+func TestSessionStartLogged(t *testing.T) {
+	path := filepath.Join(t.TempDir(), "d.jsonl")
+	l, err := debuglog.New(path)
+	if err != nil {
+		t.Fatalf("debuglog.New: %v", err)
+	}
+	ad := agent.Adapter{Key: "stub", DisplayName: "Stub", Bin: "true",
+		Args: func(p string) []string { return nil }}
+	NewModel(ad, stats.Stats{}, t.TempDir()+"/stats.json", true, ".", l)
+	l.Close()
+
+	evs := readLogEvents(t, path)
+	if len(evs) != 1 || evs[0]["event"] != "session_start" {
+		t.Fatalf("events = %v, want one session_start", evs)
+	}
+	if evs[0]["agent_key"] != "stub" || evs[0]["quiet"] != true {
+		t.Errorf("session_start fields = %v", evs[0])
+	}
+	if _, ok := evs[0]["seed"]; !ok {
+		t.Error("session_start missing seed")
+	}
+}
+
 func TestFallbackNoticeVisibleInQuietMode(t *testing.T) {
 	ad := agent.Adapter{Key: "stub", DisplayName: "Stub", Bin: "true",
 		Args: func(p string) []string { return nil }}
-	m := NewModel(ad, stats.Stats{}, t.TempDir()+"/stats.json", true, ".")
+	m := NewModel(ad, stats.Stats{}, t.TempDir()+"/stats.json", true, ".", nil)
 	m2, _ := m.Update(startHandMsg{})
 	m = m2.(Model)
 	m2, _ = m.Update(key("c")) // human limps; agent (BB) has the option

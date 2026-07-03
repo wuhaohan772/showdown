@@ -13,6 +13,7 @@ import (
 	tea "github.com/charmbracelet/bubbletea"
 	"github.com/charmbracelet/lipgloss"
 	"github.com/haohanwu/showdown/internal/agent"
+	"github.com/haohanwu/showdown/internal/debuglog"
 	"github.com/haohanwu/showdown/internal/poker"
 	"github.com/haohanwu/showdown/internal/stats"
 )
@@ -47,6 +48,7 @@ type Model struct {
 	quiet     bool
 	dir       string
 	rng       *rand.Rand
+	log       *debuglog.Logger
 
 	match  *poker.Match
 	hand   *poker.Hand
@@ -67,13 +69,18 @@ type Model struct {
 	finalHumanSeat int
 }
 
-func NewModel(opp agent.Adapter, st stats.Stats, statsPath string, quiet bool, dir string) Model {
+func NewModel(opp agent.Adapter, st stats.Stats, statsPath string, quiet bool, dir string, log *debuglog.Logger) Model {
 	in := textinput.New()
 	in.CharLimit = 120
 	sp := spinner.New(spinner.WithSpinner(spinner.Dot))
+	seed := time.Now().UnixNano()
+	log.Log("session_start", map[string]any{
+		"agent_key": opp.Key, "agent_name": opp.DisplayName,
+		"quiet": quiet, "dir": dir, "seed": seed,
+	})
 	return Model{
-		opp: opp, stats: st, statsPath: statsPath, quiet: quiet, dir: dir,
-		rng:   rand.New(rand.NewSource(time.Now().UnixNano())),
+		opp: opp, stats: st, statsPath: statsPath, quiet: quiet, dir: dir, log: log,
+		rng:   rand.New(rand.NewSource(seed)),
 		match: poker.NewMatch(), digest: agent.NewDigest(),
 		input: in, spin: sp,
 	}
