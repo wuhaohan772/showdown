@@ -1,0 +1,60 @@
+package agent
+
+import (
+	"math/rand"
+	"strings"
+	"testing"
+
+	"github.com/haohanwu/showdown/internal/poker"
+)
+
+func TestRenderPromptFillsEverything(t *testing.T) {
+	p := RenderPrompt(RequestData{
+		AgentName: "Codex", MatchDigest: "Hand 3.", HandState: "STATE",
+		TalkLog: "(nothing said yet)", LegalActions: "fold, call, raise",
+		MinRaise: 40, MaxAmount: 1500,
+	})
+	for _, want := range []string{"Codex", "Hand 3.", "STATE", "fold, call, raise", "40", "1500"} {
+		if !strings.Contains(p, want) {
+			t.Errorf("prompt missing %q", want)
+		}
+	}
+	if strings.Contains(p, "{agent_name}") || strings.Contains(p, "{{") {
+		t.Error("unreplaced placeholders remain")
+	}
+	if !strings.Contains(p, `{"action":`) {
+		t.Error("JSON example lost its braces")
+	}
+}
+
+func TestBuildHandState(t *testing.T) {
+	h := poker.NewHand([2]int{1500, 1500}, 10, 20, rand.New(rand.NewSource(7)))
+	s := BuildHandState(h, 0, 10, 20) // agent is the button
+	for _, want := range []string{"Blinds 10/20", "BUTTON", h.Hole[0][0].String(), "Pot: 30"} {
+		if !strings.Contains(s, want) {
+			t.Errorf("hand state missing %q in:\n%s", want, s)
+		}
+	}
+	if strings.Contains(s, h.Hole[1][0].String()+" "+h.Hole[1][1].String()) {
+		t.Error("hand state leaks opponent hole cards")
+	}
+}
+
+func TestDigestFlow(t *testing.T) {
+	d := NewDigest()
+	if d.HandTalk() != "(nothing said yet)" {
+		t.Errorf("empty talk = %q", d.HandTalk())
+	}
+	d.AddTalk("HUMAN", "you fold too much")
+	if !strings.Contains(d.HandTalk(), "HUMAN: you fold too much") {
+		t.Errorf("talk log = %q", d.HandTalk())
+	}
+	d.EndHand("Hand 1: opponent won 30 (you folded preflop)")
+	if d.HandTalk() != "(nothing said yet)" {
+		t.Error("EndHand should reset current-hand talk")
+	}
+	full := d.String()
+	if !strings.Contains(full, "Hand 1:") || !strings.Contains(full, "you fold too much") {
+		t.Errorf("digest should keep hand summaries and old talk:\n%s", full)
+	}
+}
