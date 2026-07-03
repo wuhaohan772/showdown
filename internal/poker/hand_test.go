@@ -232,6 +232,63 @@ func TestButtonCommittedExceedsShortBBAllIn_ForcedCheckClosesWithRefund(t *testi
 	}
 }
 
+// --- Task 6: additional all-in runout / refund / min-raise-exception coverage ---
+
+func TestAllInCallRunsOutBoard(t *testing.T) {
+	// Both seats start with equal 1500 stacks: the button open-shoves and the
+	// BB calls off for exactly the same amount, so both seats end up all-in
+	// with no refund due. This is the symmetric double all-in case, distinct
+	// from the short-stack/refund scenarios covered elsewhere.
+	h := newTestHand(t)
+	mustApply(t, h, Action{Type: Raise, To: 1500}) // button open-shoves
+	if !h.Seats[0].AllIn {
+		t.Fatal("button should be all-in")
+	}
+	mustApply(t, h, Action{Type: Call}) // BB calls all-in
+	if h.Street != HandOver || len(h.Board) != 5 {
+		t.Fatalf("street %v board %d — want full runout to showdown", h.Street, len(h.Board))
+	}
+	r := h.Result()
+	if r == nil || !r.Showdown {
+		t.Fatal("want a showdown result")
+	}
+	if got := h.Seats[0].Stack + h.Seats[1].Stack; got != 3000 {
+		t.Errorf("chips not conserved: %d", got)
+	}
+}
+
+func TestBelowMinRaiseAllInAllowed(t *testing.T) {
+	// Stack of 35 can shove even though min raise-to is 40.
+	h := NewHand([2]int{35, 1500}, 10, 20, rand.New(rand.NewSource(3)))
+	if err := h.Apply(Action{Type: Raise, To: 35}); err != nil {
+		t.Fatalf("all-in below min raise should be legal: %v", err)
+	}
+}
+
+func TestChipConservationRandomPlay(t *testing.T) {
+	rng := rand.New(rand.NewSource(42))
+	for i := 0; i < 500; i++ {
+		// Widen the range below SB(10)/BB(20) so blind-post all-ins are hammered.
+		stacks := [2]int{5 + rng.Intn(2000), 5 + rng.Intn(2000)}
+		total := stacks[0] + stacks[1]
+		h := NewHand(stacks, 10, 20, rng)
+		for h.Street != HandOver {
+			la := h.LegalActions()
+			a := Action{Type: la[rng.Intn(len(la))]}
+			if a.Type == Bet || a.Type == Raise {
+				lo, hi := h.MinRaiseTo(), h.MaxRaiseTo()
+				a.To = lo + rng.Intn(hi-lo+1)
+			}
+			if err := h.Apply(a); err != nil {
+				t.Fatalf("iter %d: Apply(%+v): %v", i, a, err)
+			}
+		}
+		if got := h.Seats[0].Stack + h.Seats[1].Stack; got != total {
+			t.Fatalf("iter %d: chips %d, want %d", i, got, total)
+		}
+	}
+}
+
 func TestBetCalledByShorterAllInStack_Refund(t *testing.T) {
 	// BB only has 100 total. Button shoves a big raise; BB can only call
 	// all-in for less. The street must close and refund the button's
