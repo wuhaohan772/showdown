@@ -109,3 +109,45 @@ func TestTalkInputFeedsDigest(t *testing.T) {
 		t.Errorf("phase = %v, want back to phaseHumanTurn", m.phase)
 	}
 }
+
+func TestHandSummarySplitPot(t *testing.T) {
+	r := &poker.Result{Split: true, Pot: 40, Desc: "chopped, both had two pair"}
+	got := handSummary(3, r, "YOU")
+	want := "Hand 3: split pot (40) — chopped, both had two pair."
+	if got != want {
+		t.Errorf("handSummary = %q, want %q", got, want)
+	}
+}
+
+func TestHandSummaryDecisiveWin(t *testing.T) {
+	r := &poker.Result{Showdown: true, Pot: 80, Desc: "a pair of kings"}
+	got := handSummary(5, r, "Stub")
+	want := "Hand 5: Stub won 80 (a pair of kings)."
+	if got != want {
+		t.Errorf("handSummary = %q, want %q", got, want)
+	}
+	r2 := &poker.Result{Showdown: false, Pot: 20}
+	got2 := handSummary(6, r2, "YOU")
+	want2 := "Hand 6: YOU won 20 (opponent folded)."
+	if got2 != want2 {
+		t.Errorf("handSummary = %q, want %q", got2, want2)
+	}
+}
+
+func TestFallbackNoticeVisibleInQuietMode(t *testing.T) {
+	ad := agent.Adapter{Key: "stub", DisplayName: "Stub", Bin: "true",
+		Args: func(p string) []string { return nil }}
+	m := NewModel(ad, stats.Stats{}, t.TempDir()+"/stats.json", true, ".")
+	m2, _ := m.Update(startHandMsg{})
+	m = m2.(Model)
+	m2, _ = m.Update(key("c")) // human limps; agent (BB) has the option
+	m = m2.(Model)
+	if m.phase != phaseAgentTurn {
+		t.Fatalf("phase = %v, want phaseAgentTurn", m.phase)
+	}
+	m2, _ = m.Update(decisionMsg{act: poker.Action{Type: poker.Check}, fallback: true})
+	m = m2.(Model)
+	if !strings.Contains(stripANSI(m.View()), "agent glitched") {
+		t.Errorf("view = %q, want it to contain the glitch notice even in quiet mode", stripANSI(m.View()))
+	}
+}

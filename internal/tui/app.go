@@ -138,7 +138,7 @@ func (m *Model) finishHand() tea.Cmd {
 	} else {
 		m.banner = fmt.Sprintf("%s wins %d (%s). enter for next hand", winnerName, r.Pot, how)
 	}
-	summary := fmt.Sprintf("Hand %d: %s won %d (%s).", m.match.HandNum, winnerName, r.Pot, how)
+	summary := handSummary(m.match.HandNum, r, winnerName)
 	m.digest.EndHand(summary)
 	m.revealed = len(m.hand.Board)
 
@@ -156,6 +156,19 @@ func (m *Model) finishHand() tea.Cmd {
 		cmds = append(cmds, runoutTick())
 	}
 	return tea.Batch(cmds...)
+}
+
+// handSummary builds the digest-log summary line for a finished hand,
+// distinguishing split pots (no single winner) from decisive ones.
+func handSummary(handNum int, r *poker.Result, winnerName string) string {
+	if r.Split {
+		return fmt.Sprintf("Hand %d: split pot (%d) — %s.", handNum, r.Pot, r.Desc)
+	}
+	how := "opponent folded"
+	if r.Showdown {
+		how = r.Desc
+	}
+	return fmt.Sprintf("Hand %d: %s won %d (%s).", handNum, winnerName, r.Pot, how)
 }
 
 func runoutTick() tea.Cmd {
@@ -186,7 +199,8 @@ func (m *Model) settleAndNext() tea.Cmd {
 func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 	switch msg := msg.(type) {
 	case startHandMsg:
-		return m, m.startHand()
+		cmd := m.startHand()
+		return m, cmd
 	case spinner.TickMsg:
 		var cmd tea.Cmd
 		m.spin, cmd = m.spin.Update(msg)
@@ -201,9 +215,10 @@ func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 			m.digest.AddTalk(m.opp.DisplayName, msg.say)
 		}
 		if msg.fallback {
-			m.agentSay = "(agent glitched — forced " + string(msg.act.Type) + ")"
+			m.banner = "agent glitched — forced " + string(msg.act.Type)
 		}
-		return m, m.advance()
+		cmd := m.advance()
+		return m, cmd
 	case reactionMsg:
 		if string(msg) != "" && !m.quiet {
 			m.agentSay = string(msg)
@@ -249,7 +264,8 @@ func (m Model) handleKey(msg tea.KeyMsg) (tea.Model, tea.Cmd) {
 		return m.humanAction(k)
 	case phaseHandEnd:
 		if k == "enter" {
-			return m, m.settleAndNext()
+			cmd := m.settleAndNext()
+			return m, cmd
 		}
 	case phaseMatchOver:
 		if k == "enter" || k == "q" {
@@ -268,16 +284,19 @@ func (m Model) humanAction(k string) (tea.Model, tea.Cmd) {
 	case "f":
 		if legal[poker.Fold] {
 			_ = m.hand.Apply(poker.Action{Type: poker.Fold})
-			return m, m.advance()
+			cmd := m.advance()
+			return m, cmd
 		}
 	case "c":
 		if legal[poker.Call] {
 			_ = m.hand.Apply(poker.Action{Type: poker.Call})
-			return m, m.advance()
+			cmd := m.advance()
+			return m, cmd
 		}
 		if legal[poker.Check] {
 			_ = m.hand.Apply(poker.Action{Type: poker.Check})
-			return m, m.advance()
+			cmd := m.advance()
+			return m, cmd
 		}
 	case "r", "b":
 		if legal[poker.Bet] || legal[poker.Raise] {
@@ -293,7 +312,8 @@ func (m Model) humanAction(k string) (tea.Model, tea.Cmd) {
 				t = poker.Bet
 			}
 			_ = m.hand.Apply(poker.Action{Type: t, To: m.hand.MaxRaiseTo()})
-			return m, m.advance()
+			cmd := m.advance()
+			return m, cmd
 		}
 	case "t":
 		m.phase = phaseTalkInput
@@ -332,7 +352,8 @@ func (m Model) confirmInput() (tea.Model, tea.Cmd) {
 		m.phase = phaseHumanTurn
 		return m, nil
 	}
-	return m, m.advance()
+	cmd := m.advance()
+	return m, cmd
 }
 
 func joinActions(as []poker.ActionType) string {
