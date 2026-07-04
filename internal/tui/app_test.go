@@ -615,3 +615,31 @@ func TestKeyHintRows(t *testing.T) {
 		t.Error("banner still contains redundant 'enter for next hand'")
 	}
 }
+
+func TestMatchOverSavesAndShowsUsage(t *testing.T) {
+	m := testModel(t)
+	m2, _ := m.Update(startHandMsg{})
+	m = m2.(Model)
+	m.sessionUsage = agent.Usage{InputTokens: 1000, OutputTokens: 200, CacheRead: 500, CostUSD: 0.09}
+
+	hs, as := m.humanSeat(), m.agentSeat()
+	m.hand.Seats[hs].Stack = 3000
+	m.hand.Seats[as].Stack = 0
+	m.settleAndNext()
+
+	if m.phase != phaseMatchOver {
+		t.Fatalf("phase = %v, want phaseMatchOver", m.phase)
+	}
+	view := stripANSI(m.View())
+	if !strings.Contains(view, "tokens this match: 1500 in / 200 out · $0.09") {
+		t.Errorf("view missing usage line, got:\n%s", view)
+	}
+	saved, err := stats.Load(m.statsPath)
+	if err != nil {
+		t.Fatalf("load stats: %v", err)
+	}
+	r := saved["stub"]
+	if r.TokensIn != 1500 || r.TokensOut != 200 || r.CostUSD != 0.09 {
+		t.Errorf("saved record = %+v", r)
+	}
+}

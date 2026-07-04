@@ -223,6 +223,9 @@ func (m *Model) settleAndNext() tea.Cmd {
 			} else {
 				r.Losses++
 			}
+			r.TokensIn += int64(m.sessionUsage.TotalIn())
+			r.TokensOut += int64(m.sessionUsage.OutputTokens)
+			r.CostUSD += m.sessionUsage.CostUSD
 			m.stats[m.opp.Key] = r
 			_ = m.stats.Save(m.statsPath)
 		}
@@ -577,7 +580,12 @@ func (m Model) View() string {
 		if m.match.Winner() == 1 {
 			winner = strings.ToUpper(m.opp.DisplayName) + " WINS THE MATCH"
 		}
-		b.WriteString("\n  ═══ " + winner + " ═══\n  " + m.stats.Line(m.opp.Key) + "\n  enter/q to exit\n")
+		usageLine := ""
+		if m.sessionUsage != (agent.Usage{}) {
+			usageLine = fmt.Sprintf("\n  tokens this match: %d in / %d out · $%.2f",
+				m.sessionUsage.TotalIn(), m.sessionUsage.OutputTokens, m.sessionUsage.CostUSD)
+		}
+		b.WriteString("\n  ═══ " + winner + " ═══\n  " + m.stats.Line(m.opp.Key) + usageLine + "\n  enter/q to exit\n")
 	}
 	return b.String()
 }
