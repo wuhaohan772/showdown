@@ -50,7 +50,8 @@ flag. The `--agent` fast path bypasses the menu entirely, unchanged.
 2. **model** — cycles the selected adapter's `Models` with a
    `(default)` entry first (maps to `""`). Adapter with an empty
    `Models` list renders a fixed `(default)`; arrows no-op.
-   Changing opponent resets this row to `(default)`.
+   Changing opponent resets this row to that adapter's initial entry
+   (`(default)`, or the `--model` prefill when the flag was given).
 3. **persona** — cycles `agent.PresetNames()`. If
    `agent.PersonalityPath()` exists, a `custom` entry (maps to `""`,
    i.e. LoadPersonality's file-first default resolution) is prepended
