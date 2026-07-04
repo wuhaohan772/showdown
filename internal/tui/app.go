@@ -171,8 +171,7 @@ func (m *Model) finishHand() tea.Cmd {
 	} else {
 		m.banner = fmt.Sprintf("%s wins %d (%s)", winnerName, r.Pot, how)
 	}
-	summary := handSummary(m.match.HandNum, r, winnerName)
-	m.digest.EndHand(summary)
+	m.digest.EndHand(agentHandSummary(m.match.HandNum, r, r.Winner == m.agentSeat()))
 	m.revealed = len(m.hand.Board)
 
 	// No per-hand reaction call: each was a full CLI spawn (ADR-0003 cost
@@ -186,17 +185,23 @@ func (m *Model) finishHand() tea.Cmd {
 	return nil
 }
 
-// handSummary builds the digest-log summary line for a finished hand,
-// distinguishing split pots (no single winner) from decisive ones.
-func handSummary(handNum int, r *poker.Result, winnerName string) string {
+// agentHandSummary builds the digest entry for a finished hand from the
+// AGENT's perspective — the digest is fed back to the agent, so "you" must
+// mean the agent and the folder is named explicitly. (The human-facing
+// banner is built separately in finishHand.)
+func agentHandSummary(handNum int, r *poker.Result, agentWon bool) string {
 	if r.Split {
 		return fmt.Sprintf("Hand %d: split pot (%d) — %s.", handNum, r.Pot, r.Desc)
 	}
-	how := "opponent folded"
+	winner, loser := "the human", "you"
+	if agentWon {
+		winner, loser = "you", "the human"
+	}
+	how := loser + " folded"
 	if r.Showdown {
 		how = r.Desc
 	}
-	return fmt.Sprintf("Hand %d: %s won %d (%s).", handNum, winnerName, r.Pot, how)
+	return fmt.Sprintf("Hand %d: %s won %d (%s).", handNum, winner, r.Pot, how)
 }
 
 func runoutTick() tea.Cmd {

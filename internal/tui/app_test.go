@@ -154,27 +154,29 @@ func TestTalkInputFeedsDigest(t *testing.T) {
 	}
 }
 
-func TestHandSummarySplitPot(t *testing.T) {
+func TestAgentHandSummarySplitPot(t *testing.T) {
 	r := &poker.Result{Split: true, Pot: 40, Desc: "chopped, both had two pair"}
-	got := handSummary(3, r, "YOU")
+	got := agentHandSummary(3, r, false)
 	want := "Hand 3: split pot (40) — chopped, both had two pair."
 	if got != want {
-		t.Errorf("handSummary = %q, want %q", got, want)
+		t.Errorf("agentHandSummary = %q, want %q", got, want)
 	}
 }
 
-func TestHandSummaryDecisiveWin(t *testing.T) {
+// The digest is read by the agent, so "you" must always mean the agent and
+// the folder must be named explicitly — a bare "opponent folded" was
+// ambiguous and made the agent misattribute actions in its trash talk.
+func TestAgentHandSummaryPerspective(t *testing.T) {
 	r := &poker.Result{Showdown: true, Pot: 80, Desc: "a pair of kings"}
-	got := handSummary(5, r, "Stub")
-	want := "Hand 5: Stub won 80 (a pair of kings)."
-	if got != want {
-		t.Errorf("handSummary = %q, want %q", got, want)
+	if got := agentHandSummary(5, r, true); got != "Hand 5: you won 80 (a pair of kings)." {
+		t.Errorf("agent showdown win = %q", got)
 	}
 	r2 := &poker.Result{Showdown: false, Pot: 20}
-	got2 := handSummary(6, r2, "YOU")
-	want2 := "Hand 6: YOU won 20 (opponent folded)."
-	if got2 != want2 {
-		t.Errorf("handSummary = %q, want %q", got2, want2)
+	if got := agentHandSummary(6, r2, false); got != "Hand 6: the human won 20 (you folded)." {
+		t.Errorf("human fold win = %q", got)
+	}
+	if got := agentHandSummary(7, r2, true); got != "Hand 7: you won 20 (the human folded)." {
+		t.Errorf("agent fold win = %q", got)
 	}
 }
 
