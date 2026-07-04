@@ -1,6 +1,7 @@
 package main
 
 import (
+	"errors"
 	"flag"
 	"fmt"
 	"os"
@@ -41,6 +42,7 @@ func main() {
 
 	var opp agent.Adapter
 	var personaArg string
+	useQuiet := *quiet
 	if *agentFlag != "" {
 		if len(roster) == 0 {
 			fmt.Fprintln(os.Stderr, "no agent CLIs found on PATH (looked for: claude, codex, gemini)")
@@ -58,7 +60,10 @@ func main() {
 		opp.Model = *modelFlag
 		personaArg = *personalityFlag
 	} else {
-		opp, personaArg, err = tui.RunPicker(roster, st, os.Stdin, *modelFlag, *personalityFlag)
+		opp, personaArg, useQuiet, err = tui.RunMenu(roster, st, *modelFlag, *personalityFlag, *quiet)
+		if errors.Is(err, tui.ErrMenuQuit) {
+			os.Exit(0)
+		}
 		if err != nil {
 			fmt.Fprintln(os.Stderr, err)
 			os.Exit(1)
@@ -75,7 +80,7 @@ func main() {
 	}
 
 	dir, _ := os.Getwd()
-	m := tui.NewModel(opp, st, stats.DefaultPath(), *quiet, dir, persona, dlog)
+	m := tui.NewModel(opp, st, stats.DefaultPath(), useQuiet, dir, persona, dlog)
 	_, runErr := tea.NewProgram(m, tea.WithAltScreen()).Run()
 	// Closing here means an agent call still in flight when user quits no-ops
 	// its log write (write-after-close is a no-op); accepted tradeoff—never

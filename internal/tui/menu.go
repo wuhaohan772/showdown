@@ -1,6 +1,7 @@
 package tui
 
 import (
+	"errors"
 	"fmt"
 	"os"
 	"strings"
@@ -181,4 +182,27 @@ func (m menuModel) result() (agent.Adapter, string, bool) {
 		persona = ""
 	}
 	return ad, persona, !m.talkOn
+}
+
+// ErrMenuQuit reports the user backed out of the menu; main exits 0 silently.
+var ErrMenuQuit = errors.New("menu quit")
+
+// RunMenu shows the pre-game dashboard inline (no alt-screen) and blocks
+// until the user starts a match or quits. Preset args come from --model,
+// --personality, --quiet and pre-fill their rows.
+func RunMenu(roster []agent.Adapter, st stats.Stats, presetModel, presetPersonality string, presetQuiet bool) (agent.Adapter, string, bool, error) {
+	if len(roster) == 0 {
+		return agent.Adapter{}, "", false, errors.New("no agent CLIs found on PATH (looked for: claude, codex, gemini)")
+	}
+	m := newMenuModel(roster, st, presetModel, presetPersonality, presetQuiet, agent.PersonalityPath())
+	out, err := tea.NewProgram(m).Run()
+	if err != nil {
+		return agent.Adapter{}, "", false, err
+	}
+	final := out.(menuModel)
+	if final.quitted {
+		return agent.Adapter{}, "", false, ErrMenuQuit
+	}
+	ad, persona, quiet := final.result()
+	return ad, persona, quiet, nil
 }

@@ -221,3 +221,10 @@ func TestMenuView(t *testing.T) {
 		t.Error("unfocused opponent row should not wear arrows")
 	}
 }
+
+func TestRunMenuEmptyRoster(t *testing.T) {
+	_, _, _, err := RunMenu(nil, stats.Stats{}, "", "", false)
+	if err == nil || !strings.Contains(err.Error(), "no agent CLIs found on PATH") {
+		t.Errorf("err = %v, want no-agents error", err)
+	}
+}
