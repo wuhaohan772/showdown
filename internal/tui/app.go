@@ -271,6 +271,14 @@ func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		return m, cmd
 	case reactionMsg:
 		m.sessionUsage.Add(msg.usage)
+		if msg.usage != nil && m.phase == phaseMatchOver && m.saved {
+			r := m.stats[m.opp.Key]
+			r.TokensIn += int64(msg.usage.TotalIn())
+			r.TokensOut += int64(msg.usage.OutputTokens)
+			r.CostUSD += msg.usage.CostUSD
+			m.stats[m.opp.Key] = r
+			_ = m.stats.Save(m.statsPath)
+		}
 		if msg.say != "" && !m.quiet {
 			m.agentSay = msg.say
 		}

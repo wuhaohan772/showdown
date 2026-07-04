@@ -616,6 +616,34 @@ func TestKeyHintRows(t *testing.T) {
 	}
 }
 
+func TestLateReactionUsageReachesStats(t *testing.T) {
+	m := testModel(t)
+	m2, _ := m.Update(startHandMsg{})
+	m = m2.(Model)
+	m.sessionUsage = agent.Usage{InputTokens: 1000, OutputTokens: 200, CostUSD: 0.05}
+
+	hs, as := m.humanSeat(), m.agentSeat()
+	m.hand.Seats[hs].Stack = 3000
+	m.hand.Seats[as].Stack = 0
+	m.settleAndNext() // saves stats at match-over
+
+	// reaction from the final hand lands late, after the save
+	m2, _ = m.Update(reactionMsg{say: "gg", usage: &agent.Usage{InputTokens: 100, OutputTokens: 10, CostUSD: 0.01}})
+	m = m2.(Model)
+
+	saved, err := stats.Load(m.statsPath)
+	if err != nil {
+		t.Fatalf("load stats: %v", err)
+	}
+	r := saved["stub"]
+	if r.TokensIn != 1100 || r.TokensOut != 210 {
+		t.Errorf("late reaction usage not persisted: %+v", r)
+	}
+	if r.CostUSD < 0.059 || r.CostUSD > 0.061 {
+		t.Errorf("CostUSD = %v, want ~0.06", r.CostUSD)
+	}
+}
+
 func TestMatchOverSavesAndShowsUsage(t *testing.T) {
 	m := testModel(t)
 	m2, _ := m.Update(startHandMsg{})
