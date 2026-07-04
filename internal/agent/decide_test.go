@@ -57,7 +57,7 @@ func TestGetDecisionRetryThenFallback(t *testing.T) {
 		calls++
 		return Response{Text: "I love poker!!!"}, nil
 	}
-	a, _, fb := GetDecision(context.Background(), garbage, RequestData{}, legalFCR())
+	a, _, fb, _ := GetDecision(context.Background(), garbage, RequestData{}, legalFCR())
 	if !fb || a.Type != poker.Fold {
 		t.Errorf("garbage twice → fallback fold; got %+v fb=%v", a, fb)
 	}
@@ -75,7 +75,7 @@ func TestGetDecisionRetrySucceeds(t *testing.T) {
 		}
 		return Response{Text: `{"action": "call", "say": "fine"}`}, nil
 	}
-	a, say, fb := GetDecision(context.Background(), flaky, RequestData{}, legalFCR())
+	a, say, fb, _ := GetDecision(context.Background(), flaky, RequestData{}, legalFCR())
 	if fb || a.Type != poker.Call || say != "fine" {
 		t.Errorf("got %+v say=%q fb=%v", a, say, fb)
 	}
@@ -87,7 +87,7 @@ func TestGetDecisionErrorNoRetry(t *testing.T) {
 		calls++
 		return Response{}, errors.New("timeout")
 	}
-	a, _, fb := GetDecision(context.Background(), dead, RequestData{}, legalFCR())
+	a, _, fb, _ := GetDecision(context.Background(), dead, RequestData{}, legalFCR())
 	if !fb || a.Type != poker.Fold || calls != 1 {
 		t.Errorf("exec error → immediate fallback, 1 call; got %+v fb=%v calls=%d", a, fb, calls)
 	}
@@ -103,11 +103,37 @@ func TestFallbackPrefersCheck(t *testing.T) {
 func TestGetReactionRuneSafeTruncation(t *testing.T) {
 	long := strings.Repeat("a", 118) + "——中文" // multi-byte runes straddling the cap
 	ask := func(ctx context.Context, prompt string) (Response, error) { return Response{Text: long}, nil }
-	got := GetReaction(context.Background(), ask, "X", "d", "s")
+	got, _ := GetReaction(context.Background(), ask, "X", "d", "s")
 	if !utf8.ValidString(got) {
 		t.Errorf("truncated reaction is invalid UTF-8: %q", got)
 	}
 	if utf8.RuneCountInString(got) > 120 {
 		t.Errorf("rune count %d > 120", utf8.RuneCountInString(got))
+	}
+}
+
+func TestGetDecisionSumsUsageAcrossRetry(t *testing.T) {
+	calls := 0
+	flaky := func(ctx context.Context, prompt string) (Response, error) {
+		calls++
+		u := &Usage{InputTokens: 100, OutputTokens: 10, CostUSD: 0.01}
+		if calls == 1 {
+			return Response{Text: "hmm let me think", Usage: u}, nil
+		}
+		return Response{Text: `{"action": "call"}`, Usage: u}, nil
+	}
+	_, _, _, used := GetDecision(context.Background(), flaky, RequestData{}, legalFCR())
+	if used == nil || used.InputTokens != 200 || used.OutputTokens != 20 {
+		t.Errorf("used = %+v, want summed over 2 calls", used)
+	}
+}
+
+func TestGetDecisionNilUsageStaysNil(t *testing.T) {
+	plain := func(ctx context.Context, prompt string) (Response, error) {
+		return Response{Text: `{"action": "call"}`}, nil
+	}
+	_, _, _, used := GetDecision(context.Background(), plain, RequestData{}, legalFCR())
+	if used != nil {
+		t.Errorf("used = %+v, want nil for usage-less adapter", used)
 	}
 }

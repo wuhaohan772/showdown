@@ -93,15 +93,24 @@ func FallbackAction(legal []poker.ActionType) poker.Action {
 const retryReminder = "\n\nREMINDER: your previous reply was unusable. Reply with ONLY the JSON object, exactly as specified. Nothing else."
 
 // GetDecision asks, retries once on unusable output, and falls back to
-// check/fold so a match can never stall (ADR-0001). Returns (action, say, fallbackUsed).
-func GetDecision(ctx context.Context, ask Asker, data RequestData, legal []poker.ActionType) (poker.Action, string, bool) {
+// check/fold so a match can never stall (ADR-0001). Returns
+// (action, say, fallbackUsed, usage) — usage summed across attempts,
+// nil when the adapter reports none.
+func GetDecision(ctx context.Context, ask Asker, data RequestData, legal []poker.ActionType) (poker.Action, string, bool, *Usage) {
 	prompt := RenderPrompt(data)
+	var used *Usage
 	for attempt := 0; attempt < 2; attempt++ {
 		p := prompt
 		if attempt == 1 {
 			p += retryReminder
 		}
 		resp, err := ask(ctx, p)
+		if resp.Usage != nil {
+			if used == nil {
+				used = &Usage{}
+			}
+			used.Add(resp.Usage)
+		}
 		if err != nil {
 			break // exec error / timeout: no retry, straight to fallback
 		}
@@ -113,9 +122,9 @@ func GetDecision(ctx context.Context, ask Asker, data RequestData, legal []poker
 		if err != nil {
 			continue
 		}
-		return a, d.Say, false
+		return a, d.Say, false, used
 	}
-	return FallbackAction(legal), "", true
+	return FallbackAction(legal), "", true, used
 }
 
 // ReactionPrompt asks for a hand-end one-liner (gloat, whine, needle).
@@ -131,10 +140,10 @@ The hand that just finished:
 React in ONE short line — gloat, whine, needle, whatever fits. Plain text only, no JSON, no quotes, one line.`, agentName, digest, handSummary)
 }
 
-func GetReaction(ctx context.Context, ask Asker, agentName, digest, handSummary string) string {
+func GetReaction(ctx context.Context, ask Asker, agentName, digest, handSummary string) (string, *Usage) {
 	resp, err := ask(ctx, ReactionPrompt(agentName, digest, handSummary))
 	if err != nil {
-		return ""
+		return "", resp.Usage
 	}
 	line := strings.TrimSpace(resp.Text)
 	if i := strings.IndexByte(line, '\n'); i >= 0 {
@@ -143,5 +152,5 @@ func GetReaction(ctx context.Context, ask Asker, agentName, digest, handSummary 
 	if r := []rune(line); len(r) > 120 {
 		line = string(r[:120])
 	}
-	return line
+	return line, resp.Usage
 }

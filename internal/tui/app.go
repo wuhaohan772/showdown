@@ -37,8 +37,12 @@ type decisionMsg struct {
 	act      poker.Action
 	say      string
 	fallback bool
+	usage    *agent.Usage
 }
-type reactionMsg string
+type reactionMsg struct {
+	say   string
+	usage *agent.Usage
+}
 type runoutTickMsg struct{}
 
 type Model struct {
@@ -54,15 +58,16 @@ type Model struct {
 	hand   *poker.Hand
 	digest *agent.Digest
 
-	phase      phase
-	talkReturn phase // phase to restore when talk input closes
-	input      textinput.Model
-	spin       spinner.Model
-	agentSay   string
-	humanSay   string
-	banner     string
-	revealed   int
-	saved      bool
+	phase        phase
+	talkReturn   phase // phase to restore when talk input closes
+	input        textinput.Model
+	spin         spinner.Model
+	agentSay     string
+	humanSay     string
+	banner       string
+	revealed     int
+	saved        bool
+	sessionUsage agent.Usage
 
 	// finalHumanSeat captures humanSeat() just before NextHand() advances
 	// HandNum (which flips ButtonPlayer/SeatOf). The match-over screen still
@@ -140,8 +145,8 @@ func (m *Model) askAgentCmd() tea.Cmd {
 	legal := m.hand.LegalActions()
 	ask := debuglog.WrapAsker(m.opp.Asker(m.dir, decisionTimeout), m.log)
 	return func() tea.Msg {
-		act, say, fb := agent.GetDecision(context.Background(), ask, data, legal)
-		return decisionMsg{act: act, say: say, fallback: fb}
+		act, say, fb, u := agent.GetDecision(context.Background(), ask, data, legal)
+		return decisionMsg{act: act, say: say, fallback: fb, usage: u}
 	}
 }
 
@@ -175,7 +180,8 @@ func (m *Model) finishHand() tea.Cmd {
 		ask := debuglog.WrapAsker(m.opp.Asker(m.dir, decisionTimeout), m.log)
 		name, digest := m.opp.DisplayName, m.digest.String()
 		cmds = append(cmds, func() tea.Msg {
-			return reactionMsg(agent.GetReaction(context.Background(), ask, name, digest, summary))
+			say, u := agent.GetReaction(context.Background(), ask, name, digest, summary)
+			return reactionMsg{say: say, usage: u}
 		})
 	}
 	if r.Showdown {
@@ -235,6 +241,7 @@ func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		m.spin, cmd = m.spin.Update(msg)
 		return m, cmd
 	case decisionMsg:
+		m.sessionUsage.Add(msg.usage)
 		m.log.Log("agent_decision", map[string]any{
 			"action": string(msg.act.Type), "to": msg.act.To,
 			"say": msg.say, "fallback": msg.fallback,
@@ -260,8 +267,9 @@ func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		}
 		return m, cmd
 	case reactionMsg:
-		if string(msg) != "" && !m.quiet {
-			m.agentSay = string(msg)
+		m.sessionUsage.Add(msg.usage)
+		if msg.say != "" && !m.quiet {
+			m.agentSay = msg.say
 		}
 		return m, nil
 	case runoutTickMsg:

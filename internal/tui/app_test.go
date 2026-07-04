@@ -571,6 +571,21 @@ func TestTalkSurvivesAgentFoldToHandEnd(t *testing.T) {
 	}
 }
 
+func TestSessionUsageAccumulates(t *testing.T) {
+	m := testModel(t)
+	m2, _ := m.Update(startHandMsg{})
+	m = m2.(Model)
+	m2, _ = m.Update(decisionMsg{act: poker.Action{Type: poker.Check},
+		usage: &agent.Usage{InputTokens: 100, OutputTokens: 5, CostUSD: 0.02}})
+	m = m2.(Model)
+	m2, _ = m.Update(reactionMsg{say: "gg",
+		usage: &agent.Usage{InputTokens: 50, OutputTokens: 3, CostUSD: 0.01}})
+	m = m2.(Model)
+	if m.sessionUsage.InputTokens != 150 || m.sessionUsage.CostUSD != 0.03 {
+		t.Errorf("sessionUsage = %+v", m.sessionUsage)
+	}
+}
+
 func TestKeyHintRows(t *testing.T) {
 	m := testModel(t)
 	m2, _ := m.Update(startHandMsg{})
