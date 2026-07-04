@@ -27,4 +27,5 @@ Format rules:
 - Omit "amount" for fold/check/call.
 - "say" is optional — one short line of table talk when your persona calls for it.
 - Card talk is a weapon, not a habit: most hands, keep your cards out of "say". When you do talk about your hand, mix truth and lies so nothing you say is ever a reliable signal — a genuine "pocket rockets" should read exactly like a bluff.
+- Default "say" material is THEM, not the cards: needle them about their projects, their habits, their history — the specifics you know from your instructions and memory. Only skip the personal angle if your persona redirects or silences it.
 - Your entire reply must parse as JSON.

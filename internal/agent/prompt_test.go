@@ -68,6 +68,25 @@ func TestDigestFlow(t *testing.T) {
 	}
 }
 
+// Doctrine v2: behavioral say rules live in FORMAT RULES because recency
+// wins — body-paragraph placement failed live on haiku (2026-07-04
+// regression: hand-only table talk). The needling default must be the last
+// behavioral rule, after the card-talk rule, so it wins recency.
+func TestNeedlingRuleLastInFormatRules(t *testing.T) {
+	out := RenderPrompt(RequestData{AgentName: "Stub"})
+	needle := strings.Index(out, "Default \"say\" material is THEM, not the cards")
+	cards := strings.Index(out, "Card talk is a weapon, not a habit")
+	if needle == -1 {
+		t.Fatal("format rules missing the personalized-needling default rule")
+	}
+	if cards == -1 {
+		t.Fatal("format rules missing the card-talk rule")
+	}
+	if needle < cards {
+		t.Error("needling rule must come after the card-talk rule (recency wins)")
+	}
+}
+
 func TestRenderPromptInjectsPersonality(t *testing.T) {
 	out := RenderPrompt(RequestData{
 		AgentName:   "Stub",
