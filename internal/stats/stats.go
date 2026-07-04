@@ -8,8 +8,11 @@ import (
 )
 
 type Record struct {
-	Wins   int `json:"wins"`
-	Losses int `json:"losses"`
+	Wins      int     `json:"wins"`
+	Losses    int     `json:"losses"`
+	TokensIn  int64   `json:"tokens_in,omitempty"`
+	TokensOut int64   `json:"tokens_out,omitempty"`
+	CostUSD   float64 `json:"cost_usd,omitempty"`
 }
 
 // Stats is the Career Record (CONTEXT.md), keyed by adapter key.
@@ -51,5 +54,9 @@ func (s Stats) Save(path string) error {
 
 func (s Stats) Line(key string) string {
 	r := s[key]
-	return fmt.Sprintf("vs %s: %d–%d", key, r.Wins, r.Losses)
+	line := fmt.Sprintf("vs %s: %d–%d", key, r.Wins, r.Losses)
+	if r.CostUSD > 0 {
+		line += fmt.Sprintf(" · $%.2f", r.CostUSD)
+	}
+	return line
 }
