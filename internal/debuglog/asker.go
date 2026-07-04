@@ -25,6 +25,14 @@ func WrapAsker(ask agent.Asker, l *Logger) agent.Asker {
 		if err != nil {
 			f["error"] = err.Error()
 		}
+		if resp.Usage != nil {
+			u := resp.Usage
+			f["tokens_in"] = u.InputTokens
+			f["tokens_out"] = u.OutputTokens
+			f["cache_read"] = u.CacheRead
+			f["cache_write"] = u.CacheWrite
+			f["cost_usd"] = u.CostUSD
+		}
 		l.Log("agent_call", f)
 		return resp, err
 	}
