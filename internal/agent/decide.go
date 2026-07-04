@@ -97,7 +97,12 @@ const retryReminder = "\n\nREMINDER: your previous reply was unusable. Reply wit
 // (action, say, fallbackUsed, usage) — usage summed across attempts,
 // nil when the adapter reports none.
 func GetDecision(ctx context.Context, ask Asker, data RequestData, legal []poker.ActionType) (poker.Action, string, bool, *Usage) {
-	prompt := RenderPrompt(data)
+	return GetDecisionPrompt(ctx, ask, RenderPrompt(data), data, legal)
+}
+
+// GetDecisionPrompt is GetDecision with the prompt supplied by the caller —
+// the persistent-session path (P2) sends a delta instead of the full render.
+func GetDecisionPrompt(ctx context.Context, ask Asker, prompt string, data RequestData, legal []poker.ActionType) (poker.Action, string, bool, *Usage) {
 	var used *Usage
 	for attempt := 0; attempt < 2; attempt++ {
 		p := prompt
@@ -145,7 +150,14 @@ React in ONE short line — gloat, whine, needle, whatever fits. Plain text only
 }
 
 func GetReaction(ctx context.Context, ask Asker, agentName, personality, digest, summary string) (string, *Usage) {
-	resp, err := ask(ctx, ReactionPrompt(agentName, personality, digest, summary))
+	return GetReactionPrompt(ctx, ask, ReactionPrompt(agentName, personality, digest, summary))
+}
+
+// GetReactionPrompt is GetReaction with a caller-built prompt — the session
+// path sends a short in-conversation line instead of the full standalone
+// reaction prompt.
+func GetReactionPrompt(ctx context.Context, ask Asker, prompt string) (string, *Usage) {
+	resp, err := ask(ctx, prompt)
 	if err != nil {
 		return "", resp.Usage
 	}

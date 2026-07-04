@@ -144,3 +144,33 @@ func TestReactionPromptCarriesPersonality(t *testing.T) {
 		t.Error("reaction prompt missing personality")
 	}
 }
+
+func TestGetDecisionPromptUsesGivenPrompt(t *testing.T) {
+	var seen []string
+	ask := func(ctx context.Context, p string) (Response, error) {
+		seen = append(seen, p)
+		return Response{Text: `{"action":"check"}`}, nil
+	}
+	data := RequestData{LegalActions: "check"}
+	act, _, fb, _ := GetDecisionPrompt(context.Background(), ask, "DELTA-PROMPT", data,
+		[]poker.ActionType{poker.Check})
+	if fb || act.Type != poker.Check {
+		t.Fatalf("decision failed: %v fb=%v", act, fb)
+	}
+	if len(seen) != 1 || seen[0] != "DELTA-PROMPT" {
+		t.Errorf("ask saw %q, want the given prompt verbatim", seen)
+	}
+}
+
+func TestGetReactionPromptUsesGivenPrompt(t *testing.T) {
+	ask := func(ctx context.Context, p string) (Response, error) {
+		if p != "REACT-PROMPT" {
+			t.Errorf("prompt = %q", p)
+		}
+		return Response{Text: "one line\nsecond"}, nil
+	}
+	line, _ := GetReactionPrompt(context.Background(), ask, "REACT-PROMPT")
+	if line != "one line" {
+		t.Errorf("line = %q", line)
+	}
+}

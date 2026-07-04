@@ -106,3 +106,34 @@ func TestRenderPromptInjectsPersonality(t *testing.T) {
 		t.Error("unsubstituted {personality} placeholder")
 	}
 }
+
+func TestRenderDelta(t *testing.T) {
+	d := RequestData{
+		HandState:    "STATE-MARKER",
+		TalkLog:      "HUMAN: gl",
+		LegalActions: "check, bet",
+		MinRaise:     40, MaxAmount: 990,
+	}
+	out := RenderDelta(d, []string{"Hand 3: you won 220 (the human folded)."})
+	for _, want := range []string{
+		"Hand 3: you won 220",
+		"=== CURRENT HAND ===", "STATE-MARKER",
+		"=== TABLE TALK THIS HAND ===", "HUMAN: gl",
+		"Legal actions: check, bet", "40", "990",
+		"ONLY the JSON object",
+	} {
+		if !strings.Contains(out, want) {
+			t.Errorf("delta missing %q:\n%s", want, out)
+		}
+	}
+	// no hand-result lines when none pending
+	if strings.Contains(RenderDelta(d, nil), "Hand 3") {
+		t.Error("delta with nil results must not carry hand lines")
+	}
+	// delta must NOT re-send the big static blocks
+	for _, absent := range []string{"=== YOUR TABLE PERSONA ===", "=== THE MATCH ===", "Format rules:"} {
+		if strings.Contains(out, absent) {
+			t.Errorf("delta must not contain %q", absent)
+		}
+	}
+}

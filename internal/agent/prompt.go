@@ -92,3 +92,22 @@ func BuildHandState(h *poker.Hand, agentSeat int, sb, bb int) string {
 	}
 	return b.String()
 }
+
+// RenderDelta is the per-decision message for an already-primed session:
+// only what changed since the last turn. handResults are digest summary
+// lines for hands finished since the previous agent turn. The static
+// blocks (persona, match intro, format rules) live in the session's
+// priming turn and must not be repeated here — the conversation carries
+// them, which is what keeps the prompt cache warm.
+func RenderDelta(d RequestData, handResults []string) string {
+	var b strings.Builder
+	for _, r := range handResults {
+		b.WriteString(r + "\n")
+	}
+	b.WriteString("\n=== CURRENT HAND ===\n" + d.HandState + "\n")
+	b.WriteString("\n=== TABLE TALK THIS HAND ===\n" + d.TalkLog + "\n")
+	fmt.Fprintf(&b, "\n=== YOUR MOVE ===\nLegal actions: %s\n", d.LegalActions)
+	fmt.Fprintf(&b, "Reply with ONLY the JSON object — same format and rules as before. "+
+		"Minimum raise-to %d, maximum %d (all-in).\n", d.MinRaise, d.MaxAmount)
+	return b.String()
+}
