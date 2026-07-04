@@ -12,7 +12,7 @@ And yes, it trash talks.
 
 Detects `claude`, `codex`, and `gemini` on your PATH. Multiple found →
 you choose your opponent. Force one with `--agent codex`. Pick the
-model with `--model haiku` (cheaper and faster than the default). Match
+model with `--model haiku` (cheaper and faster than the default). Pick a table persona with `--personality unhinged` (needler, unhinged, polite, silent, degen) or write your own at `~/.showdown/personality.md` (capped at 2,000 chars). Match
 cost shows on the match-over screen and accumulates in your career
 stats. Career cost counts completed matches only; the `--debug` transcript records every call's cost either way. Silence the table talk with `--quiet`. Debugging something? `--debug` (or
 `SHOWDOWN_DEBUG=1`) writes a full JSONL transcript — prompts, replies,

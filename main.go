@@ -16,6 +16,7 @@ import (
 func main() {
 	agentFlag := flag.String("agent", "", "opponent agent key (claude, codex, gemini)")
 	modelFlag := flag.String("model", "", "model for the agent CLI (claude: haiku/sonnet/opus; codex/gemini: passed through)")
+	personalityFlag := flag.String("personality", "", "table persona: preset name (needler, unhinged, polite, silent, degen) or path to a .md file; default ~/.showdown/personality.md if present, else needler")
 	quiet := flag.Bool("quiet", false, "disable table talk")
 	debug := flag.Bool("debug", false, "write a JSONL debug transcript to ~/.showdown/")
 	flag.Parse()
@@ -39,6 +40,7 @@ func main() {
 	roster := agent.DetectRoster()
 
 	var opp agent.Adapter
+	var personaArg string
 	if *agentFlag != "" {
 		if len(roster) == 0 {
 			fmt.Fprintln(os.Stderr, "no agent CLIs found on PATH (looked for: claude, codex, gemini)")
@@ -54,16 +56,26 @@ func main() {
 			os.Exit(1)
 		}
 		opp.Model = *modelFlag
+		personaArg = *personalityFlag
 	} else {
-		opp, err = tui.RunPicker(roster, st, os.Stdin, *modelFlag)
+		opp, personaArg, err = tui.RunPicker(roster, st, os.Stdin, *modelFlag, *personalityFlag)
 		if err != nil {
 			fmt.Fprintln(os.Stderr, err)
 			os.Exit(1)
 		}
 	}
 
+	persona, truncated, err := agent.LoadPersonality(personaArg, agent.PersonalityPath())
+	if err != nil {
+		fmt.Fprintln(os.Stderr, err)
+		os.Exit(1)
+	}
+	if truncated {
+		fmt.Fprintf(os.Stderr, "personality file truncated to %d chars\n", agent.PersonalityCap)
+	}
+
 	dir, _ := os.Getwd()
-	m := tui.NewModel(opp, st, stats.DefaultPath(), *quiet, dir, "", dlog)
+	m := tui.NewModel(opp, st, stats.DefaultPath(), *quiet, dir, persona, dlog)
 	_, runErr := tea.NewProgram(m, tea.WithAltScreen()).Run()
 	// Closing here means an agent call still in flight when user quits no-ops
 	// its log write (write-after-close is a no-op); accepted tradeoff—never

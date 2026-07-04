@@ -15,7 +15,7 @@ func pickerRoster() []agent.Adapter {
 }
 
 func TestPickerModelSelection(t *testing.T) {
-	a, err := RunPicker(pickerRoster(), stats.Stats{}, strings.NewReader("2\n"), "")
+	a, _, err := RunPicker(pickerRoster(), stats.Stats{}, strings.NewReader("2\n"), "", "")
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -25,22 +25,56 @@ func TestPickerModelSelection(t *testing.T) {
 }
 
 func TestPickerModelDefaultOnEmpty(t *testing.T) {
-	a, err := RunPicker(pickerRoster(), stats.Stats{}, strings.NewReader("\n"), "")
+	a, persona, err := RunPicker(pickerRoster(), stats.Stats{}, strings.NewReader("\n\n"), "", "")
 	if err != nil {
 		t.Fatal(err)
 	}
 	if a.Model != "" {
 		t.Errorf("Model = %q, want CLI default (empty)", a.Model)
 	}
+	if persona != "" {
+		t.Errorf("persona = %q, want empty (default resolution in main)", persona)
+	}
 }
 
 func TestPickerPresetModelSkipsPrompt(t *testing.T) {
 	// no input available at all — preset must short-circuit before any Scan
-	a, err := RunPicker(pickerRoster(), stats.Stats{}, strings.NewReader(""), "opus")
+	a, _, err := RunPicker(pickerRoster(), stats.Stats{}, strings.NewReader(""), "opus", "")
 	if err != nil {
 		t.Fatal(err)
 	}
 	if a.Model != "opus" {
 		t.Errorf("Model = %q, want opus", a.Model)
+	}
+}
+
+func TestPickerPersonalitySelection(t *testing.T) {
+	// single claude-like roster: model step then persona step
+	_, persona, err := RunPicker(pickerRoster(), stats.Stats{}, strings.NewReader("\n3\n"), "", "")
+	if err != nil {
+		t.Fatal(err)
+	}
+	if persona != "polite" {
+		t.Errorf("persona = %q, want polite (3rd preset)", persona)
+	}
+}
+
+func TestPickerPersonalityDefaultOnEmpty(t *testing.T) {
+	_, persona, err := RunPicker(pickerRoster(), stats.Stats{}, strings.NewReader("\n\n"), "", "")
+	if err != nil {
+		t.Fatal(err)
+	}
+	if persona != "" {
+		t.Errorf("persona = %q, want empty (default resolution in main)", persona)
+	}
+}
+
+func TestPickerPresetPersonalitySkipsPrompt(t *testing.T) {
+	_, persona, err := RunPicker(pickerRoster(), stats.Stats{}, strings.NewReader("\n"), "", "degen")
+	if err != nil {
+		t.Fatal(err)
+	}
+	if persona != "degen" {
+		t.Errorf("persona = %q, want degen", persona)
 	}
 }
