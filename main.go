@@ -57,7 +57,9 @@ func main() {
 			fmt.Fprintf(os.Stderr, "agent %q not found (have: %v)\n", *agentFlag, keys(roster))
 			os.Exit(1)
 		}
-		opp.Model = *modelFlag
+		if *modelFlag != "" {
+			opp.Model = *modelFlag
+		}
 		personaArg = *personalityFlag
 	} else {
 		opp, personaArg, useQuiet, err = tui.RunMenu(roster, st, *modelFlag, *personalityFlag, *quiet)

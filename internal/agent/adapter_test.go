@@ -66,6 +66,16 @@ func TestClaudeAdapterHasModelPresets(t *testing.T) {
 	}
 }
 
+// Sonnet is the claude default (2026-07-04): haiku flips fold-attribution
+// in table talk ~50% after its own fold; sonnet was 0/9 on the same prompts.
+func TestClaudeAdapterDefaultsToSonnet(t *testing.T) {
+	for _, a := range knownAdapters {
+		if a.Key == "claude" && a.Model != "sonnet" {
+			t.Errorf("claude default model = %q, want sonnet", a.Model)
+		}
+	}
+}
+
 func TestWhitespaceCustomCmdFallsBack(t *testing.T) {
 	t.Setenv("SHOWDOWN_AGENT_CMD", "   ")
 	roster := DetectRoster() // must not panic

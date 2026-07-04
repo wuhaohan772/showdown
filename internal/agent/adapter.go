@@ -32,6 +32,11 @@ const claudeSystemPrompt = "You are a poker-playing AI opponent in a terminal ga
 
 var knownAdapters = []Adapter{
 	{Key: "claude", DisplayName: "Claude Code", Bin: "claude",
+		// Sonnet default: haiku garbles table-talk facts (blames the human
+		// for its own folds ~50% of the time; sonnet 0/9 on the same
+		// prompts) and costs only ~6x more stateless ($0.015 vs $0.0025
+		// per decision). Menu "(default)" and an empty --model keep this.
+		Model:  "sonnet",
 		Models: []string{"haiku", "sonnet", "opus"},
 		Args: func(m, p string) []string {
 			args := []string{"-p", p, "--output-format", "json",
