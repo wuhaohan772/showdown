@@ -74,16 +74,20 @@ func TestDigestFlow(t *testing.T) {
 // behavioral rule, after the card-talk rule, so it wins recency.
 func TestNeedlingRuleLastInFormatRules(t *testing.T) {
 	out := RenderPrompt(RequestData{AgentName: "Stub"})
-	needle := strings.Index(out, "Default \"say\" material is THEM, not the cards")
+	needle := strings.Index(out, "Needle them with what you know")
+	truth := strings.Index(out, "Trash talk must be true to the table")
 	cards := strings.Index(out, "Card talk is a weapon, not a habit")
 	if needle == -1 {
 		t.Fatal("format rules missing the personalized-needling default rule")
 	}
+	if truth == -1 {
+		t.Fatal("format rules missing the table-truth rule (2026-07-04: haiku invented human folds)")
+	}
 	if cards == -1 {
 		t.Fatal("format rules missing the card-talk rule")
 	}
-	if needle < cards {
-		t.Error("needling rule must come after the card-talk rule (recency wins)")
+	if !(cards < truth && truth < needle) {
+		t.Error("behavioral rule order must be card-talk < table-truth < needling (recency wins; needling last)")
 	}
 }
 
