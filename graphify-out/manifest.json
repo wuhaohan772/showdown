@@ -5,22 +5,22 @@
     "semantic_hash": "5794ef6e0e6549c668c1362a87c25efc"
   },
   "internal/agent/adapter.go": {
-    "mtime": 1783149502.2530038,
-    "ast_hash": "e507e9cbbe1ff923a4fde8f37a33ecb8",
-    "semantic_hash": "e507e9cbbe1ff923a4fde8f37a33ecb8"
+    "mtime": 1783151791.2542481,
+    "ast_hash": "6b9ad00fe80247cd4df57309f0c592cc",
+    "semantic_hash": "6b9ad00fe80247cd4df57309f0c592cc"
   },
   "internal/agent/adapter_test.go": {
-    "mtime": 1783149472.3474214,
-    "ast_hash": "4ddc47ac0538a02996ab309b0dd2eb32",
-    "semantic_hash": "4ddc47ac0538a02996ab309b0dd2eb32"
+    "mtime": 1783151791.2543736,
+    "ast_hash": "6bdf4e9fd446ee17dcfcad371fe8b546",
+    "semantic_hash": "6bdf4e9fd446ee17dcfcad371fe8b546"
   },
   "internal/agent/decide.go": {
-    "mtime": 1783133646.9200447,
+    "mtime": 1783150738.159355,
     "ast_hash": "7e1e02b753f46f3f069e107ce66ccde9",
     "semantic_hash": "7e1e02b753f46f3f069e107ce66ccde9"
   },
   "internal/agent/decide_test.go": {
-    "mtime": 1783133685.3887017,
+    "mtime": 1783150738.1594896,
     "ast_hash": "16315971032fc975cf72031bfaebef5e",
     "semantic_hash": "16315971032fc975cf72031bfaebef5e"
   },
@@ -85,27 +85,27 @@
     "semantic_hash": "ef12ae1992a8230ebb307b7e084f43f4"
   },
   "internal/stats/stats.go": {
-    "mtime": 1783134097.9109242,
+    "mtime": 1783150738.1600852,
     "ast_hash": "511f4412b847c8d4da98c3c5daeee5a5",
     "semantic_hash": "511f4412b847c8d4da98c3c5daeee5a5"
   },
   "internal/stats/stats_test.go": {
-    "mtime": 1783134090.5093088,
+    "mtime": 1783150738.1602247,
     "ast_hash": "bc1fe897dd88791a22d3ad354763586c",
     "semantic_hash": "bc1fe897dd88791a22d3ad354763586c"
   },
   "internal/tui/app.go": {
-    "mtime": 1783150381.0538235,
+    "mtime": 1783150738.1603785,
     "ast_hash": "e47dcd59dbe9f4c05a2bc681cc7448e5",
     "semantic_hash": "e47dcd59dbe9f4c05a2bc681cc7448e5"
   },
   "internal/tui/app_test.go": {
-    "mtime": 1783150372.10298,
+    "mtime": 1783150738.1605408,
     "ast_hash": "0894e42847cedbefe47f8ff21fae92ae",
     "semantic_hash": "0894e42847cedbefe47f8ff21fae92ae"
   },
   "internal/tui/picker.go": {
-    "mtime": 1783149516.1723762,
+    "mtime": 1783150738.160687,
     "ast_hash": "0611ea2959eb640b60adac9b829b07ad",
     "semantic_hash": "0611ea2959eb640b60adac9b829b07ad"
   },
@@ -120,7 +120,7 @@
     "semantic_hash": "12f38a1b8888465bd4c8a8085d2b01b0"
   },
   "main.go": {
-    "mtime": 1783149527.0887222,
+    "mtime": 1783150738.1609385,
     "ast_hash": "927b85eb1b04d74a49f78a727e8865cb",
     "semantic_hash": "927b85eb1b04d74a49f78a727e8865cb"
   },
@@ -150,7 +150,7 @@
     "semantic_hash": "c9678cccdaba217fd852c60d03ad1b18"
   },
   "README.md": {
-    "mtime": 1783150393.8497508,
+    "mtime": 1783150738.1535685,
     "ast_hash": "b1b82cb293e6d24a5b6cde174defcb0b",
     "semantic_hash": "b1b82cb293e6d24a5b6cde174defcb0b"
   },
@@ -180,12 +180,12 @@
     "semantic_hash": "6ae2f537662ed42441acc5aef4920d0d"
   },
   "internal/debuglog/asker.go": {
-    "mtime": 1783133975.7496028,
+    "mtime": 1783150738.1598125,
     "ast_hash": "ae7a266194cbf3d8802457f43760fb2f",
     "semantic_hash": "ae7a266194cbf3d8802457f43760fb2f"
   },
   "internal/debuglog/asker_test.go": {
-    "mtime": 1783133971.5812855,
+    "mtime": 1783150738.1599357,
     "ast_hash": "91f446aa8cff4dd84b5c637eb88e467a",
     "semantic_hash": "91f446aa8cff4dd84b5c637eb88e467a"
   },
@@ -230,17 +230,17 @@
     "semantic_hash": "e07f0e0c17e421f4654af86c5fee976f"
   },
   "internal/agent/response.go": {
-    "mtime": 1783133165.7374415,
+    "mtime": 1783150738.1595876,
     "ast_hash": "f8dc031a365905e22db4651cb7ffdaec",
     "semantic_hash": "f8dc031a365905e22db4651cb7ffdaec"
   },
   "internal/agent/response_test.go": {
-    "mtime": 1783133157.2883,
+    "mtime": 1783150738.1596851,
     "ast_hash": "45a8b586782dbb3cd74ae6f01049c424",
     "semantic_hash": "45a8b586782dbb3cd74ae6f01049c424"
   },
   "internal/tui/picker_test.go": {
-    "mtime": 1783149480.5966303,
+    "mtime": 1783150738.160796,
     "ast_hash": "0eea5ba40494b46170c6306aeef76d5d",
     "semantic_hash": "0eea5ba40494b46170c6306aeef76d5d"
   },
@@ -320,7 +320,7 @@
     "semantic_hash": "4a5b13436dc008e6fc0f53598178221a"
   },
   "docs/superpowers/plans/2026-07-03-token-cost-and-model-choice.md": {
-    "mtime": 1783133002.8669915,
+    "mtime": 1783150738.1538064,
     "ast_hash": "f8db9e13f7d6d3ec785e6285437db106",
     "semantic_hash": "f8db9e13f7d6d3ec785e6285437db106"
   },
@@ -328,5 +328,10 @@
     "mtime": 1783150418.5415294,
     "ast_hash": "cffc292a0cf496188da556a089457fa9",
     "semantic_hash": "cffc292a0cf496188da556a089457fa9"
+  },
+  "docs/adr/0003-lean-opponent-sessions.md": {
+    "mtime": 1783151791.254102,
+    "ast_hash": "78251050f3d597065a0b19c32c9367b8",
+    "semantic_hash": "78251050f3d597065a0b19c32c9367b8"
   }
 }
