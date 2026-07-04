@@ -76,6 +76,30 @@ func TestWhitespaceCustomCmdFallsBack(t *testing.T) {
 	}
 }
 
+func TestClaudeAdapterLeanSession(t *testing.T) {
+	for _, a := range knownAdapters {
+		if a.Key != "claude" {
+			continue
+		}
+		args := a.Args("", "PROMPT")
+		joined := strings.Join(args, "\x00")
+		if !strings.Contains(joined, "--disallowedTools\x00*") {
+			t.Errorf("claude args must disallow all tools, got %v", args)
+		}
+		sysIdx := -1
+		for i, x := range args {
+			if x == "--system-prompt" {
+				sysIdx = i
+			}
+		}
+		if sysIdx == -1 || sysIdx+1 >= len(args) || args[sysIdx+1] == "" {
+			t.Errorf("claude args must carry a non-empty --system-prompt, got %v", args)
+		}
+		return
+	}
+	t.Fatal("no claude adapter in knownAdapters")
+}
+
 func TestClaudeAdapterUsesJSONOutput(t *testing.T) {
 	for _, a := range knownAdapters {
 		if a.Key != "claude" {

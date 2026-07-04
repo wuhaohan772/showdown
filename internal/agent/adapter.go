@@ -19,11 +19,23 @@ type Adapter struct {
 	Parse       func(raw string) Response // nil = plain-text output
 }
 
+// claudeSystemPrompt replaces Claude Code's default system prompt (~8k
+// tokens); with --disallowedTools '*' dropping tool schemas (~11k more),
+// a decision call shrinks from ~20k to ~2k context tokens. The opponent
+// only ever answers with text/JSON, so both are dead weight. Must stay a
+// static string: an identical prefix every call keeps the prompt cache
+// warm. CLAUDE.md/memory still load via dynamic sections (ADR-0002).
+const claudeSystemPrompt = "You are a poker-playing AI opponent in a terminal game. " +
+	"Follow the prompt's instructions exactly. Be terse: output ONLY what the prompt " +
+	"asks for — no preamble, no explanation, no markdown fences, no thinking out loud."
+
 var knownAdapters = []Adapter{
 	{Key: "claude", DisplayName: "Claude Code", Bin: "claude",
 		Models: []string{"haiku", "sonnet", "opus"},
 		Args: func(m, p string) []string {
-			args := []string{"-p", p, "--output-format", "json"}
+			args := []string{"-p", p, "--output-format", "json",
+				"--disallowedTools", "*",
+				"--system-prompt", claudeSystemPrompt}
 			if m != "" {
 				args = append(args, "--model", m)
 			}
