@@ -18,7 +18,7 @@ import (
 func testModel(t *testing.T) Model {
 	t.Helper()
 	ad := agent.Adapter{Key: "stub", DisplayName: "Stub", Bin: "true",
-		Args: func(p string) []string { return nil }}
+		Args: func(m, p string) []string { return nil }}
 	return NewModel(ad, stats.Stats{}, t.TempDir()+"/stats.json", false, ".", nil)
 }
 
@@ -196,7 +196,7 @@ func TestSessionStartLogged(t *testing.T) {
 		t.Fatalf("debuglog.New: %v", err)
 	}
 	ad := agent.Adapter{Key: "stub", DisplayName: "Stub", Bin: "true",
-		Args: func(p string) []string { return nil }}
+		Args: func(m, p string) []string { return nil }}
 	NewModel(ad, stats.Stats{}, t.TempDir()+"/stats.json", true, ".", l)
 	l.Close()
 
@@ -219,7 +219,7 @@ func TestDebugLogCapturesHandFlow(t *testing.T) {
 		t.Fatalf("debuglog.New: %v", err)
 	}
 	ad := agent.Adapter{Key: "stub", DisplayName: "Stub", Bin: "true",
-		Args: func(p string) []string { return nil }}
+		Args: func(m, p string) []string { return nil }}
 	m := NewModel(ad, stats.Stats{}, t.TempDir()+"/stats.json", true, ".", l)
 
 	m2, _ := m.Update(startHandMsg{})
@@ -287,7 +287,7 @@ func TestAgentDecisionLogged(t *testing.T) {
 		t.Fatalf("debuglog.New: %v", err)
 	}
 	ad := agent.Adapter{Key: "stub", DisplayName: "Stub", Bin: "true",
-		Args: func(p string) []string { return nil }}
+		Args: func(m, p string) []string { return nil }}
 	m := NewModel(ad, stats.Stats{}, t.TempDir()+"/stats.json", true, ".", l)
 
 	m2, _ := m.Update(startHandMsg{})
@@ -314,7 +314,7 @@ func TestAgentDecisionLogged(t *testing.T) {
 
 func TestFallbackNoticeVisibleInQuietMode(t *testing.T) {
 	ad := agent.Adapter{Key: "stub", DisplayName: "Stub", Bin: "true",
-		Args: func(p string) []string { return nil }}
+		Args: func(m, p string) []string { return nil }}
 	m := NewModel(ad, stats.Stats{}, t.TempDir()+"/stats.json", true, ".", nil)
 	m2, _ := m.Update(startHandMsg{})
 	m = m2.(Model)
@@ -372,7 +372,7 @@ func TestTalkEchoRendersAndClearsNextHand(t *testing.T) {
 
 func TestTalkEchoHiddenInQuietMode(t *testing.T) {
 	ad := agent.Adapter{Key: "stub", DisplayName: "Stub", Bin: "true",
-		Args: func(p string) []string { return nil }}
+		Args: func(m, p string) []string { return nil }}
 	m := NewModel(ad, stats.Stats{}, t.TempDir()+"/stats.json", true, ".", nil)
 	m2, _ := m.Update(startHandMsg{})
 	m = m2.(Model)

@@ -13,18 +13,39 @@ type Adapter struct {
 	Key         string
 	DisplayName string
 	Bin         string
-	Args        func(prompt string) []string
+	Model       string   // empty = CLI default
+	Models      []string // suggested presets for the picker; empty = flag-only
+	Args        func(model, prompt string) []string
 	Parse       func(raw string) Response // nil = plain-text output
 }
 
 var knownAdapters = []Adapter{
 	{Key: "claude", DisplayName: "Claude Code", Bin: "claude",
-		Args:  func(p string) []string { return []string{"-p", p, "--output-format", "json"} },
+		Models: []string{"haiku", "sonnet", "opus"},
+		Args: func(m, p string) []string {
+			args := []string{"-p", p, "--output-format", "json"}
+			if m != "" {
+				args = append(args, "--model", m)
+			}
+			return args
+		},
 		Parse: ParseClaudeJSON},
 	{Key: "codex", DisplayName: "Codex", Bin: "codex",
-		Args: func(p string) []string { return []string{"exec", p} }},
+		Args: func(m, p string) []string {
+			args := []string{"exec"}
+			if m != "" {
+				args = append(args, "-m", m)
+			}
+			return append(args, p)
+		}},
 	{Key: "gemini", DisplayName: "Gemini CLI", Bin: "gemini",
-		Args: func(p string) []string { return []string{"-p", p} }},
+		Args: func(m, p string) []string {
+			var args []string
+			if m != "" {
+				args = append(args, "-m", m)
+			}
+			return append(args, "-p", p)
+		}},
 }
 
 // Asker runs the CLI with cwd=dir so it loads its own memory files (ADR-0002).
@@ -32,7 +53,7 @@ func (a Adapter) Asker(dir string, timeout time.Duration) Asker {
 	return func(ctx context.Context, prompt string) (Response, error) {
 		cctx, cancel := context.WithTimeout(ctx, timeout)
 		defer cancel()
-		cmd := exec.CommandContext(cctx, a.Bin, a.Args(prompt)...)
+		cmd := exec.CommandContext(cctx, a.Bin, a.Args(a.Model, prompt)...)
 		cmd.Dir = dir
 		// Guard against a grandchild process holding the stdout pipe open: on
 		// context cancellation, exec only signals the direct child, and
@@ -61,7 +82,7 @@ func DetectRoster() []Adapter {
 		} else {
 			return []Adapter{{
 				Key: "custom", DisplayName: parts[0], Bin: parts[0],
-				Args: func(p string) []string { return append(append([]string{}, parts[1:]...), p) },
+				Args: func(_, p string) []string { return append(append([]string{}, parts[1:]...), p) },
 			}}
 		}
 	}

@@ -83,7 +83,7 @@ func NewModel(opp agent.Adapter, st stats.Stats, statsPath string, quiet bool, d
 	seed := time.Now().UnixNano()
 	log.Log("session_start", map[string]any{
 		"agent_key": opp.Key, "agent_name": opp.DisplayName,
-		"quiet": quiet, "dir": dir, "seed": seed,
+		"model": opp.Model, "quiet": quiet, "dir": dir, "seed": seed,
 	})
 	return Model{
 		opp: opp, stats: st, statsPath: statsPath, quiet: quiet, dir: dir, log: log,

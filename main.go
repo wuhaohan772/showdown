@@ -15,6 +15,7 @@ import (
 
 func main() {
 	agentFlag := flag.String("agent", "", "opponent agent key (claude, codex, gemini)")
+	modelFlag := flag.String("model", "", "model for the agent CLI (claude: haiku/sonnet/opus; codex/gemini: passed through)")
 	quiet := flag.Bool("quiet", false, "disable table talk")
 	debug := flag.Bool("debug", false, "write a JSONL debug transcript to ~/.showdown/")
 	flag.Parse()
@@ -52,8 +53,9 @@ func main() {
 			fmt.Fprintf(os.Stderr, "agent %q not found (have: %v)\n", *agentFlag, keys(roster))
 			os.Exit(1)
 		}
+		opp.Model = *modelFlag
 	} else {
-		opp, err = tui.RunPicker(roster, st)
+		opp, err = tui.RunPicker(roster, st, os.Stdin, *modelFlag)
 		if err != nil {
 			fmt.Fprintln(os.Stderr, err)
 			os.Exit(1)

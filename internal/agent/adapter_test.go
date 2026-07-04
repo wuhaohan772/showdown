@@ -42,15 +42,26 @@ func TestAskerTimeout(t *testing.T) {
 
 func TestKnownAdapterArgs(t *testing.T) {
 	for _, a := range knownAdapters {
-		args := a.Args("PROMPT")
-		found := false
-		for _, x := range args {
-			if x == "PROMPT" {
-				found = true
+		for _, model := range []string{"", "test-model"} {
+			args := a.Args(model, "PROMPT")
+			joined := strings.Join(args, " ")
+			if !strings.Contains(joined, "PROMPT") {
+				t.Errorf("%s(model=%q): prompt not in args %v", a.Key, model, args)
+			}
+			if model != "" && !strings.Contains(joined, "test-model") {
+				t.Errorf("%s: model not in args %v", a.Key, args)
+			}
+			if model == "" && strings.Contains(joined, "--model") || model == "" && strings.Contains(joined, "-m ") {
+				t.Errorf("%s: model flag present with empty model: %v", a.Key, args)
 			}
 		}
-		if !found {
-			t.Errorf("%s: prompt not in args %v", a.Key, args)
+	}
+}
+
+func TestClaudeAdapterHasModelPresets(t *testing.T) {
+	for _, a := range knownAdapters {
+		if a.Key == "claude" && len(a.Models) == 0 {
+			t.Error("claude adapter should suggest model presets")
 		}
 	}
 }
@@ -70,7 +81,7 @@ func TestClaudeAdapterUsesJSONOutput(t *testing.T) {
 		if a.Key != "claude" {
 			continue
 		}
-		args := strings.Join(a.Args("PROMPT"), " ")
+		args := strings.Join(a.Args("", "PROMPT"), " ")
 		if !strings.Contains(args, "--output-format json") {
 			t.Errorf("claude args = %q, want --output-format json", args)
 		}
@@ -84,7 +95,7 @@ func TestClaudeAdapterUsesJSONOutput(t *testing.T) {
 
 func TestAskerAppliesParse(t *testing.T) {
 	a := Adapter{Key: "x", Bin: "echo",
-		Args:  func(p string) []string { return []string{sampleEnvelope} },
+		Args:  func(m, p string) []string { return []string{sampleEnvelope} },
 		Parse: ParseClaudeJSON}
 	resp, err := a.Asker(".", 10*time.Second)(context.Background(), "ignored")
 	if err != nil {
