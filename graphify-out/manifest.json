@@ -170,9 +170,9 @@
     "semantic_hash": "4329594ebdec282d8d4d1cf8bdea5c9d"
   },
   "internal/agent/prompt_template.md": {
-    "mtime": 1783186478.228869,
-    "ast_hash": "186fc60a72295ec6478da72f78b7e881",
-    "semantic_hash": "186fc60a72295ec6478da72f78b7e881"
+    "mtime": 1783187147.5911899,
+    "ast_hash": "a014517cdc9550816ead181abc8b1135",
+    "semantic_hash": "a014517cdc9550816ead181abc8b1135"
   },
   "spike/prompt_template.md": {
     "mtime": 1783061320.348709,
@@ -335,9 +335,9 @@
     "semantic_hash": "78251050f3d597065a0b19c32c9367b8"
   },
   "internal/agent/personality.go": {
-    "mtime": 1783186478.2287395,
-    "ast_hash": "d4eaa9e6f546a8553a08b272ceb6a7e6",
-    "semantic_hash": "d4eaa9e6f546a8553a08b272ceb6a7e6"
+    "mtime": 1783187147.5910306,
+    "ast_hash": "74603a1bf107a99ef20c00f033506957",
+    "semantic_hash": "74603a1bf107a99ef20c00f033506957"
   },
   "internal/agent/personality_test.go": {
     "mtime": 1783173186.0464318,

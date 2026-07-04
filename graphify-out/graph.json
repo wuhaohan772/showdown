@@ -108,7 +108,7 @@
       "source_file": "go.mod",
       "source_location": "L1",
       "_origin": "ast",
-      "community": 38,
+      "community": 39,
       "norm_label": "github.com/haohanwu/showdown",
       "community_name": "github.com/haohanwu/showdown",
       "id": "pkg_github_com_haohanwu_showdown"
@@ -141,7 +141,7 @@
       "source_file": "",
       "source_location": "",
       "_origin": "ast",
-      "community": 3,
+      "community": 2,
       "norm_label": "context",
       "community_name": "GetDecision",
       "id": "context"
@@ -152,7 +152,7 @@
       "source_file": "",
       "source_location": "",
       "_origin": "ast",
-      "community": 3,
+      "community": 2,
       "norm_label": "t",
       "community_name": "GetDecision",
       "id": "internal_agent_decide_test_go_t"
@@ -163,7 +163,7 @@
       "source_file": "internal/agent/digest.go",
       "source_location": "L1",
       "_origin": "ast",
-      "community": 21,
+      "community": 20,
       "norm_label": "digest.go",
       "community_name": "Digest",
       "id": "internal_agent_digest"
@@ -174,7 +174,7 @@
       "source_file": "internal/agent/digest.go",
       "source_location": "L6",
       "_origin": "ast",
-      "community": 21,
+      "community": 20,
       "norm_label": "digest",
       "community_name": "Digest",
       "id": "agent_digest"
@@ -185,7 +185,7 @@
       "source_file": "internal/agent/digest.go",
       "source_location": "L11",
       "_origin": "ast",
-      "community": 21,
+      "community": 20,
       "norm_label": "newdigest()",
       "community_name": "Digest",
       "id": "internal_agent_digest_newdigest"
@@ -196,7 +196,7 @@
       "source_file": "internal/agent/digest.go",
       "source_location": "L13",
       "_origin": "ast",
-      "community": 21,
+      "community": 20,
       "norm_label": ".addevent()",
       "community_name": "Digest",
       "id": "agent_digest_addevent"
@@ -207,7 +207,7 @@
       "source_file": "internal/agent/digest.go",
       "source_location": "L15",
       "_origin": "ast",
-      "community": 21,
+      "community": 20,
       "norm_label": ".addtalk()",
       "community_name": "Digest",
       "id": "agent_digest_addtalk"
@@ -218,7 +218,7 @@
       "source_file": "internal/agent/digest.go",
       "source_location": "L19",
       "_origin": "ast",
-      "community": 21,
+      "community": 20,
       "norm_label": ".handtalk()",
       "community_name": "Digest",
       "id": "agent_digest_handtalk"
@@ -229,7 +229,7 @@
       "source_file": "internal/agent/digest.go",
       "source_location": "L27",
       "_origin": "ast",
-      "community": 21,
+      "community": 20,
       "norm_label": ".endhand()",
       "community_name": "Digest",
       "id": "agent_digest_endhand"
@@ -240,7 +240,7 @@
       "source_file": "internal/agent/digest.go",
       "source_location": "L35",
       "_origin": "ast",
-      "community": 21,
+      "community": 20,
       "norm_label": ".string()",
       "community_name": "Digest",
       "id": "agent_digest_string"
@@ -1271,7 +1271,7 @@
       "source_file": "",
       "source_location": "",
       "_origin": "ast",
-      "community": 35,
+      "community": 36,
       "norm_label": "rand",
       "community_name": "Rand",
       "id": "internal_tui_app_go_rand"
@@ -1315,7 +1315,7 @@
       "source_file": "",
       "source_location": "",
       "_origin": "ast",
-      "community": 2,
+      "community": 3,
       "norm_label": "t",
       "community_name": "app_test.go",
       "id": "internal_tui_app_test_go_t"
@@ -1326,7 +1326,7 @@
       "source_file": "",
       "source_location": "",
       "_origin": "ast",
-      "community": 2,
+      "community": 3,
       "norm_label": "keymsg",
       "community_name": "app_test.go",
       "id": "internal_tui_app_test_go_keymsg"
@@ -1729,9 +1729,9 @@
       "source_file": "",
       "source_location": "",
       "_origin": "ast",
-      "community": 20,
+      "community": 2,
       "norm_label": "t",
-      "community_name": "WrapAsker",
+      "community_name": "GetDecision",
       "id": "internal_debuglog_asker_test_go_t"
     },
     {
@@ -1949,7 +1949,7 @@
       "source_file": "",
       "source_location": "",
       "_origin": "ast",
-      "community": 40,
+      "community": 41,
       "norm_label": "stats",
       "community_name": "Stats",
       "id": "stats"
@@ -2417,7 +2417,7 @@
       "source_file": "",
       "source_location": "",
       "_origin": "ast",
-      "community": 3,
+      "community": 2,
       "norm_label": "actiontype",
       "community_name": "GetDecision",
       "id": "internal_agent_decide_go_actiontype"
@@ -2428,7 +2428,7 @@
       "source_file": "",
       "source_location": "",
       "_origin": "ast",
-      "community": 3,
+      "community": 2,
       "norm_label": "action",
       "community_name": "GetDecision",
       "id": "internal_agent_decide_go_action"
@@ -2439,7 +2439,7 @@
       "source_file": "",
       "source_location": "",
       "_origin": "ast",
-      "community": 39,
+      "community": 40,
       "norm_label": "requestdata",
       "community_name": "RequestData",
       "id": "requestdata"
@@ -2450,7 +2450,7 @@
       "source_file": "",
       "source_location": "",
       "_origin": "ast",
-      "community": 3,
+      "community": 2,
       "norm_label": "actiontype",
       "community_name": "GetDecision",
       "id": "internal_agent_decide_test_go_actiontype"
@@ -2593,9 +2593,9 @@
       "source_file": "internal/debuglog/asker.go",
       "source_location": "L1",
       "_origin": "ast",
-      "community": 20,
+      "community": 2,
       "norm_label": "asker.go",
-      "community_name": "WrapAsker",
+      "community_name": "GetDecision",
       "id": "internal_debuglog_asker"
     },
     {
@@ -2604,9 +2604,9 @@
       "source_file": "internal/debuglog/asker.go",
       "source_location": "L13",
       "_origin": "ast",
-      "community": 20,
+      "community": 2,
       "norm_label": "wrapasker()",
-      "community_name": "WrapAsker",
+      "community_name": "GetDecision",
       "id": "internal_debuglog_asker_wrapasker"
     },
     {
@@ -2615,9 +2615,9 @@
       "source_file": "",
       "source_location": "",
       "_origin": "ast",
-      "community": 20,
+      "community": 2,
       "norm_label": "logger",
-      "community_name": "WrapAsker",
+      "community_name": "GetDecision",
       "id": "internal_debuglog_asker_go_logger"
     },
     {
@@ -2626,9 +2626,9 @@
       "source_file": "internal/debuglog/asker_test.go",
       "source_location": "L1",
       "_origin": "ast",
-      "community": 20,
+      "community": 2,
       "norm_label": "asker_test.go",
-      "community_name": "WrapAsker",
+      "community_name": "GetDecision",
       "id": "internal_debuglog_asker_test"
     },
     {
@@ -2637,9 +2637,9 @@
       "source_file": "internal/debuglog/asker_test.go",
       "source_location": "L12",
       "_origin": "ast",
-      "community": 20,
+      "community": 2,
       "norm_label": "testwrapaskerpassthroughandlog()",
-      "community_name": "WrapAsker",
+      "community_name": "GetDecision",
       "id": "internal_debuglog_asker_test_testwrapaskerpassthroughandlog"
     },
     {
@@ -2648,9 +2648,9 @@
       "source_file": "internal/debuglog/asker_test.go",
       "source_location": "L45",
       "_origin": "ast",
-      "community": 20,
+      "community": 2,
       "norm_label": "testwrapaskerlogserror()",
-      "community_name": "WrapAsker",
+      "community_name": "GetDecision",
       "id": "internal_debuglog_asker_test_testwrapaskerlogserror"
     },
     {
@@ -2659,9 +2659,9 @@
       "source_file": "internal/debuglog/asker_test.go",
       "source_location": "L67",
       "_origin": "ast",
-      "community": 20,
+      "community": 2,
       "norm_label": "testwrapaskernillogger()",
-      "community_name": "WrapAsker",
+      "community_name": "GetDecision",
       "id": "internal_debuglog_asker_test_testwrapaskernillogger"
     },
     {
@@ -2670,9 +2670,9 @@
       "source_file": "internal/debuglog/asker_test.go",
       "source_location": "L77",
       "_origin": "ast",
-      "community": 20,
+      "community": 2,
       "norm_label": "testwrapaskerlogsusage()",
-      "community_name": "WrapAsker",
+      "community_name": "GetDecision",
       "id": "internal_debuglog_asker_test_testwrapaskerlogsusage"
     },
     {
@@ -2835,7 +2835,7 @@
       "source_file": "",
       "source_location": "",
       "_origin": "ast",
-      "community": 34,
+      "community": 35,
       "norm_label": "logger",
       "community_name": "Logger",
       "id": "internal_tui_app_go_logger"
@@ -2868,7 +2868,7 @@
       "source_file": "",
       "source_location": "",
       "_origin": "ast",
-      "community": 37,
+      "community": 38,
       "norm_label": "t",
       "community_name": "T",
       "id": "internal_tui_picker_test_go_t"
@@ -3106,7 +3106,7 @@
       "source_file": "",
       "source_location": "",
       "_origin": "ast",
-      "community": 41,
+      "community": 42,
       "norm_label": "usage",
       "community_name": "Usage",
       "id": "usage"
@@ -3400,7 +3400,7 @@
       "source_file": "",
       "source_location": "",
       "_origin": "ast",
-      "community": 3,
+      "community": 2,
       "norm_label": "usage",
       "community_name": "GetDecision",
       "id": "internal_agent_decide_go_usage"
@@ -3587,7 +3587,7 @@
       "source_file": "internal/agent/decide.go",
       "source_location": "L1",
       "_origin": "ast",
-      "community": 3,
+      "community": 2,
       "norm_label": "decide.go",
       "community_name": "GetDecision",
       "id": "internal_agent_decide"
@@ -3598,7 +3598,7 @@
       "source_file": "internal/agent/decide.go",
       "source_location": "L12",
       "_origin": "ast",
-      "community": 3,
+      "community": 2,
       "norm_label": "decision",
       "community_name": "GetDecision",
       "id": "agent_decision"
@@ -3609,7 +3609,7 @@
       "source_file": "internal/agent/decide.go",
       "source_location": "L18",
       "_origin": "ast",
-      "community": 3,
+      "community": 2,
       "norm_label": "asker",
       "community_name": "GetDecision",
       "id": "agent_asker"
@@ -3620,7 +3620,7 @@
       "source_file": "internal/agent/decide.go",
       "source_location": "L21",
       "_origin": "ast",
-      "community": 3,
+      "community": 2,
       "norm_label": "extractdecision()",
       "community_name": "GetDecision",
       "id": "internal_agent_decide_extractdecision"
@@ -3631,7 +3631,7 @@
       "source_file": "internal/agent/decide.go",
       "source_location": "L63",
       "_origin": "ast",
-      "community": 3,
+      "community": 2,
       "norm_label": "validatedecision()",
       "community_name": "GetDecision",
       "id": "internal_agent_decide_validatedecision"
@@ -3642,7 +3642,7 @@
       "source_file": "internal/agent/decide.go",
       "source_location": "L84",
       "_origin": "ast",
-      "community": 3,
+      "community": 2,
       "norm_label": "fallbackaction()",
       "community_name": "GetDecision",
       "id": "internal_agent_decide_fallbackaction"
@@ -3653,7 +3653,7 @@
       "source_file": "internal/agent/decide.go",
       "source_location": "L99",
       "_origin": "ast",
-      "community": 3,
+      "community": 2,
       "norm_label": "getdecision()",
       "community_name": "GetDecision",
       "id": "internal_agent_decide_getdecision"
@@ -3664,7 +3664,7 @@
       "source_file": "internal/agent/decide.go",
       "source_location": "L132",
       "_origin": "ast",
-      "community": 3,
+      "community": 2,
       "norm_label": "reactionprompt()",
       "community_name": "GetDecision",
       "id": "internal_agent_decide_reactionprompt"
@@ -3675,7 +3675,7 @@
       "source_file": "internal/agent/decide.go",
       "source_location": "L147",
       "_origin": "ast",
-      "community": 3,
+      "community": 2,
       "norm_label": "getreaction()",
       "community_name": "GetDecision",
       "id": "internal_agent_decide_getreaction"
@@ -3686,7 +3686,7 @@
       "source_file": "internal/agent/decide_test.go",
       "source_location": "L1",
       "_origin": "ast",
-      "community": 3,
+      "community": 2,
       "norm_label": "decide_test.go",
       "community_name": "GetDecision",
       "id": "internal_agent_decide_test"
@@ -3697,7 +3697,7 @@
       "source_file": "internal/agent/decide_test.go",
       "source_location": "L13",
       "_origin": "ast",
-      "community": 3,
+      "community": 2,
       "norm_label": "testextractdecision()",
       "community_name": "GetDecision",
       "id": "internal_agent_decide_test_testextractdecision"
@@ -3708,7 +3708,7 @@
       "source_file": "internal/agent/decide_test.go",
       "source_location": "L39",
       "_origin": "ast",
-      "community": 3,
+      "community": 2,
       "norm_label": "legalfcr()",
       "community_name": "GetDecision",
       "id": "internal_agent_decide_test_legalfcr"
@@ -3719,7 +3719,7 @@
       "source_file": "internal/agent/decide_test.go",
       "source_location": "L41",
       "_origin": "ast",
-      "community": 3,
+      "community": 2,
       "norm_label": "testvalidatedecision()",
       "community_name": "GetDecision",
       "id": "internal_agent_decide_test_testvalidatedecision"
@@ -3730,7 +3730,7 @@
       "source_file": "internal/agent/decide_test.go",
       "source_location": "L54",
       "_origin": "ast",
-      "community": 3,
+      "community": 2,
       "norm_label": "testgetdecisionretrythenfallback()",
       "community_name": "GetDecision",
       "id": "internal_agent_decide_test_testgetdecisionretrythenfallback"
@@ -3741,7 +3741,7 @@
       "source_file": "internal/agent/decide_test.go",
       "source_location": "L69",
       "_origin": "ast",
-      "community": 3,
+      "community": 2,
       "norm_label": "testgetdecisionretrysucceeds()",
       "community_name": "GetDecision",
       "id": "internal_agent_decide_test_testgetdecisionretrysucceeds"
@@ -3752,7 +3752,7 @@
       "source_file": "internal/agent/decide_test.go",
       "source_location": "L84",
       "_origin": "ast",
-      "community": 3,
+      "community": 2,
       "norm_label": "testgetdecisionerrornoretry()",
       "community_name": "GetDecision",
       "id": "internal_agent_decide_test_testgetdecisionerrornoretry"
@@ -3763,7 +3763,7 @@
       "source_file": "internal/agent/decide_test.go",
       "source_location": "L96",
       "_origin": "ast",
-      "community": 3,
+      "community": 2,
       "norm_label": "testfallbackpreferscheck()",
       "community_name": "GetDecision",
       "id": "internal_agent_decide_test_testfallbackpreferscheck"
@@ -3774,7 +3774,7 @@
       "source_file": "internal/agent/decide_test.go",
       "source_location": "L103",
       "_origin": "ast",
-      "community": 3,
+      "community": 2,
       "norm_label": "testgetreactionrunesafetruncation()",
       "community_name": "GetDecision",
       "id": "internal_agent_decide_test_testgetreactionrunesafetruncation"
@@ -3785,7 +3785,7 @@
       "source_file": "internal/agent/decide_test.go",
       "source_location": "L115",
       "_origin": "ast",
-      "community": 3,
+      "community": 2,
       "norm_label": "testgetdecisionsumsusageacrossretry()",
       "community_name": "GetDecision",
       "id": "internal_agent_decide_test_testgetdecisionsumsusageacrossretry"
@@ -3796,7 +3796,7 @@
       "source_file": "internal/agent/decide_test.go",
       "source_location": "L131",
       "_origin": "ast",
-      "community": 3,
+      "community": 2,
       "norm_label": "testgetdecisionnilusagestaysnil()",
       "community_name": "GetDecision",
       "id": "internal_agent_decide_test_testgetdecisionnilusagestaysnil"
@@ -3807,7 +3807,7 @@
       "source_file": "internal/agent/decide_test.go",
       "source_location": "L141",
       "_origin": "ast",
-      "community": 3,
+      "community": 2,
       "norm_label": "testreactionpromptcarriespersonality()",
       "community_name": "GetDecision",
       "id": "internal_agent_decide_test_testreactionpromptcarriespersonality"
@@ -4115,7 +4115,7 @@
       "source_file": "internal/tui/app.go",
       "source_location": "L80",
       "_origin": "ast",
-      "community": 2,
+      "community": 3,
       "norm_label": "newmodel()",
       "community_name": "app_test.go",
       "id": "internal_tui_app_newmodel"
@@ -4357,7 +4357,7 @@
       "source_file": "internal/tui/app_test.go",
       "source_location": "L1",
       "_origin": "ast",
-      "community": 2,
+      "community": 3,
       "norm_label": "app_test.go",
       "community_name": "app_test.go",
       "id": "internal_tui_app_test"
@@ -4368,7 +4368,7 @@
       "source_file": "internal/tui/app_test.go",
       "source_location": "L18",
       "_origin": "ast",
-      "community": 2,
+      "community": 3,
       "norm_label": "testmodel()",
       "community_name": "app_test.go",
       "id": "internal_tui_app_test_testmodel"
@@ -4379,7 +4379,7 @@
       "source_file": "internal/tui/app_test.go",
       "source_location": "L25",
       "_origin": "ast",
-      "community": 2,
+      "community": 3,
       "norm_label": "key()",
       "community_name": "app_test.go",
       "id": "internal_tui_app_test_key"
@@ -4390,7 +4390,7 @@
       "source_file": "internal/tui/app_test.go",
       "source_location": "L29",
       "_origin": "ast",
-      "community": 2,
+      "community": 3,
       "norm_label": "testhandstartswithhumanoragentturn()",
       "community_name": "app_test.go",
       "id": "internal_tui_app_test_testhandstartswithhumanoragentturn"
@@ -4401,7 +4401,7 @@
       "source_file": "internal/tui/app_test.go",
       "source_location": "L44",
       "_origin": "ast",
-      "community": 2,
+      "community": 3,
       "norm_label": "testnoreactionspawnathandend()",
       "community_name": "app_test.go",
       "id": "internal_tui_app_test_testnoreactionspawnathandend"
@@ -4412,7 +4412,7 @@
       "source_file": "internal/tui/app_test.go",
       "source_location": "L58",
       "_origin": "ast",
-      "community": 2,
+      "community": 3,
       "norm_label": "testmatchendreactionfired()",
       "community_name": "app_test.go",
       "id": "internal_tui_app_test_testmatchendreactionfired"
@@ -4423,7 +4423,7 @@
       "source_file": "internal/tui/app_test.go",
       "source_location": "L81",
       "_origin": "ast",
-      "community": 2,
+      "community": 3,
       "norm_label": "testhumanfoldendshand()",
       "community_name": "app_test.go",
       "id": "internal_tui_app_test_testhumanfoldendshand"
@@ -4434,7 +4434,7 @@
       "source_file": "internal/tui/app_test.go",
       "source_location": "L95",
       "_origin": "ast",
-      "community": 2,
+      "community": 3,
       "norm_label": "testagentdecisionmsgapplies()",
       "community_name": "app_test.go",
       "id": "internal_tui_app_test_testagentdecisionmsgapplies"
@@ -4445,7 +4445,7 @@
       "source_file": "internal/tui/app_test.go",
       "source_location": "L114",
       "_origin": "ast",
-      "community": 2,
+      "community": 3,
       "norm_label": "testraiseinputflow()",
       "community_name": "app_test.go",
       "id": "internal_tui_app_test_testraiseinputflow"
@@ -4456,7 +4456,7 @@
       "source_file": "internal/tui/app_test.go",
       "source_location": "L137",
       "_origin": "ast",
-      "community": 2,
+      "community": 3,
       "norm_label": "testtalkinputfeedsdigest()",
       "community_name": "app_test.go",
       "id": "internal_tui_app_test_testtalkinputfeedsdigest"
@@ -4467,7 +4467,7 @@
       "source_file": "internal/tui/app_test.go",
       "source_location": "L157",
       "_origin": "ast",
-      "community": 2,
+      "community": 3,
       "norm_label": "testagenthandsummarysplitpot()",
       "community_name": "app_test.go",
       "id": "internal_tui_app_test_testagenthandsummarysplitpot"
@@ -4478,7 +4478,7 @@
       "source_file": "internal/tui/app_test.go",
       "source_location": "L169",
       "_origin": "ast",
-      "community": 2,
+      "community": 3,
       "norm_label": "testagenthandsummaryperspective()",
       "community_name": "app_test.go",
       "id": "internal_tui_app_test_testagenthandsummaryperspective"
@@ -4489,7 +4489,7 @@
       "source_file": "internal/tui/app_test.go",
       "source_location": "L188",
       "_origin": "ast",
-      "community": 2,
+      "community": 3,
       "norm_label": "testmatchovershowscorrectstacks()",
       "community_name": "app_test.go",
       "id": "internal_tui_app_test_testmatchovershowscorrectstacks"
@@ -4500,7 +4500,7 @@
       "source_file": "internal/tui/app_test.go",
       "source_location": "L213",
       "_origin": "ast",
-      "community": 2,
+      "community": 3,
       "norm_label": "readlogevents()",
       "community_name": "app_test.go",
       "id": "internal_tui_app_test_readlogevents"
@@ -4511,7 +4511,7 @@
       "source_file": "internal/tui/app_test.go",
       "source_location": "L233",
       "_origin": "ast",
-      "community": 2,
+      "community": 3,
       "norm_label": "testsessionstartlogged()",
       "community_name": "app_test.go",
       "id": "internal_tui_app_test_testsessionstartlogged"
@@ -4522,7 +4522,7 @@
       "source_file": "internal/tui/app_test.go",
       "source_location": "L256",
       "_origin": "ast",
-      "community": 2,
+      "community": 3,
       "norm_label": "testdebuglogcaptureshandflow()",
       "community_name": "app_test.go",
       "id": "internal_tui_app_test_testdebuglogcaptureshandflow"
@@ -4533,7 +4533,7 @@
       "source_file": "internal/tui/app_test.go",
       "source_location": "L324",
       "_origin": "ast",
-      "community": 2,
+      "community": 3,
       "norm_label": "testagentdecisionlogged()",
       "community_name": "app_test.go",
       "id": "internal_tui_app_test_testagentdecisionlogged"
@@ -4544,7 +4544,7 @@
       "source_file": "internal/tui/app_test.go",
       "source_location": "L356",
       "_origin": "ast",
-      "community": 2,
+      "community": 3,
       "norm_label": "testfallbacknoticevisibleinquietmode()",
       "community_name": "app_test.go",
       "id": "internal_tui_app_test_testfallbacknoticevisibleinquietmode"
@@ -4555,7 +4555,7 @@
       "source_file": "internal/tui/app_test.go",
       "source_location": "L374",
       "_origin": "ast",
-      "community": 2,
+      "community": 3,
       "norm_label": "typestring()",
       "community_name": "app_test.go",
       "id": "internal_tui_app_test_typestring"
@@ -4566,7 +4566,7 @@
       "source_file": "internal/tui/app_test.go",
       "source_location": "L383",
       "_origin": "ast",
-      "community": 2,
+      "community": 3,
       "norm_label": "testtalkechorendersandclearsnexthand()",
       "community_name": "app_test.go",
       "id": "internal_tui_app_test_testtalkechorendersandclearsnexthand"
@@ -4577,7 +4577,7 @@
       "source_file": "internal/tui/app_test.go",
       "source_location": "L414",
       "_origin": "ast",
-      "community": 2,
+      "community": 3,
       "norm_label": "testtalkechohiddeninquietmode()",
       "community_name": "app_test.go",
       "id": "internal_tui_app_test_testtalkechohiddeninquietmode"
@@ -4588,7 +4588,7 @@
       "source_file": "internal/tui/app_test.go",
       "source_location": "L430",
       "_origin": "ast",
-      "community": 2,
+      "community": 3,
       "norm_label": "testtalkathandendreturnstohandend()",
       "community_name": "app_test.go",
       "id": "internal_tui_app_test_testtalkathandendreturnstohandend"
@@ -4599,7 +4599,7 @@
       "source_file": "internal/tui/app_test.go",
       "source_location": "L455",
       "_origin": "ast",
-      "community": 2,
+      "community": 3,
       "norm_label": "testtalkescrestoresoriginphase()",
       "community_name": "app_test.go",
       "id": "internal_tui_app_test_testtalkescrestoresoriginphase"
@@ -4610,7 +4610,7 @@
       "source_file": "internal/tui/app_test.go",
       "source_location": "L470",
       "_origin": "ast",
-      "community": 2,
+      "community": 3,
       "norm_label": "testtalkduringagentturnsurvivesdecision()",
       "community_name": "app_test.go",
       "id": "internal_tui_app_test_testtalkduringagentturnsurvivesdecision"
@@ -4621,7 +4621,7 @@
       "source_file": "internal/tui/app_test.go",
       "source_location": "L504",
       "_origin": "ast",
-      "community": 2,
+      "community": 3,
       "norm_label": "testtalksurvivesshowdownrunout()",
       "community_name": "app_test.go",
       "id": "internal_tui_app_test_testtalksurvivesshowdownrunout"
@@ -4632,7 +4632,7 @@
       "source_file": "internal/tui/app_test.go",
       "source_location": "L547",
       "_origin": "ast",
-      "community": 2,
+      "community": 3,
       "norm_label": "testviewhidesrunoutwhiletyping()",
       "community_name": "app_test.go",
       "id": "internal_tui_app_test_testviewhidesrunoutwhiletyping"
@@ -4643,7 +4643,7 @@
       "source_file": "internal/tui/app_test.go",
       "source_location": "L594",
       "_origin": "ast",
-      "community": 2,
+      "community": 3,
       "norm_label": "testtalksurvivesagentfoldtohandend()",
       "community_name": "app_test.go",
       "id": "internal_tui_app_test_testtalksurvivesagentfoldtohandend"
@@ -4654,7 +4654,7 @@
       "source_file": "internal/tui/app_test.go",
       "source_location": "L615",
       "_origin": "ast",
-      "community": 2,
+      "community": 3,
       "norm_label": "testsessionusageaccumulates()",
       "community_name": "app_test.go",
       "id": "internal_tui_app_test_testsessionusageaccumulates"
@@ -4665,7 +4665,7 @@
       "source_file": "internal/tui/app_test.go",
       "source_location": "L630",
       "_origin": "ast",
-      "community": 2,
+      "community": 3,
       "norm_label": "testkeyhintrows()",
       "community_name": "app_test.go",
       "id": "internal_tui_app_test_testkeyhintrows"
@@ -4676,7 +4676,7 @@
       "source_file": "internal/tui/app_test.go",
       "source_location": "L660",
       "_origin": "ast",
-      "community": 2,
+      "community": 3,
       "norm_label": "testlatereactionusagereachesstats()",
       "community_name": "app_test.go",
       "id": "internal_tui_app_test_testlatereactionusagereachesstats"
@@ -4687,7 +4687,7 @@
       "source_file": "internal/tui/app_test.go",
       "source_location": "L688",
       "_origin": "ast",
-      "community": 2,
+      "community": 3,
       "norm_label": "testmatchoversavesandshowsusage()",
       "community_name": "app_test.go",
       "id": "internal_tui_app_test_testmatchoversavesandshowsusage"
@@ -4698,7 +4698,7 @@
       "source_file": "internal/tui/app_test.go",
       "source_location": "L716",
       "_origin": "ast",
-      "community": 2,
+      "community": 3,
       "norm_label": "testdecisionpromptcarriespersonality()",
       "community_name": "app_test.go",
       "id": "internal_tui_app_test_testdecisionpromptcarriespersonality"
@@ -4753,7 +4753,7 @@
       "source_file": "",
       "source_location": "",
       "_origin": "ast",
-      "community": 36,
+      "community": 37,
       "norm_label": "adapter",
       "community_name": "Adapter",
       "id": "internal_tui_picker_test_go_adapter"
@@ -5058,6 +5058,94 @@
       "id": "docs_superpowers_plans_2026_07_04_personality_system_main_go"
     },
     {
+      "label": "picker_test.go",
+      "file_type": "code",
+      "source_file": "internal/tui/picker_test.go",
+      "source_location": "L1",
+      "_origin": "ast",
+      "community": 19,
+      "norm_label": "picker_test.go",
+      "community_name": "pickerRoster",
+      "id": "internal_tui_picker_test"
+    },
+    {
+      "label": "pickerRoster()",
+      "file_type": "code",
+      "source_file": "internal/tui/picker_test.go",
+      "source_location": "L11",
+      "_origin": "ast",
+      "community": 19,
+      "norm_label": "pickerroster()",
+      "community_name": "pickerRoster",
+      "id": "internal_tui_picker_test_pickerroster"
+    },
+    {
+      "label": "TestPickerModelSelection()",
+      "file_type": "code",
+      "source_file": "internal/tui/picker_test.go",
+      "source_location": "L17",
+      "_origin": "ast",
+      "community": 19,
+      "norm_label": "testpickermodelselection()",
+      "community_name": "pickerRoster",
+      "id": "internal_tui_picker_test_testpickermodelselection"
+    },
+    {
+      "label": "TestPickerModelDefaultOnEmpty()",
+      "file_type": "code",
+      "source_file": "internal/tui/picker_test.go",
+      "source_location": "L27",
+      "_origin": "ast",
+      "community": 19,
+      "norm_label": "testpickermodeldefaultonempty()",
+      "community_name": "pickerRoster",
+      "id": "internal_tui_picker_test_testpickermodeldefaultonempty"
+    },
+    {
+      "label": "TestPickerPresetModelSkipsPrompt()",
+      "file_type": "code",
+      "source_file": "internal/tui/picker_test.go",
+      "source_location": "L40",
+      "_origin": "ast",
+      "community": 19,
+      "norm_label": "testpickerpresetmodelskipsprompt()",
+      "community_name": "pickerRoster",
+      "id": "internal_tui_picker_test_testpickerpresetmodelskipsprompt"
+    },
+    {
+      "label": "TestPickerPersonalitySelection()",
+      "file_type": "code",
+      "source_file": "internal/tui/picker_test.go",
+      "source_location": "L51",
+      "_origin": "ast",
+      "community": 19,
+      "norm_label": "testpickerpersonalityselection()",
+      "community_name": "pickerRoster",
+      "id": "internal_tui_picker_test_testpickerpersonalityselection"
+    },
+    {
+      "label": "TestPickerPersonalityDefaultOnEmpty()",
+      "file_type": "code",
+      "source_file": "internal/tui/picker_test.go",
+      "source_location": "L62",
+      "_origin": "ast",
+      "community": 19,
+      "norm_label": "testpickerpersonalitydefaultonempty()",
+      "community_name": "pickerRoster",
+      "id": "internal_tui_picker_test_testpickerpersonalitydefaultonempty"
+    },
+    {
+      "label": "TestPickerPresetPersonalitySkipsPrompt()",
+      "file_type": "code",
+      "source_file": "internal/tui/picker_test.go",
+      "source_location": "L72",
+      "_origin": "ast",
+      "community": 19,
+      "norm_label": "testpickerpresetpersonalityskipsprompt()",
+      "community_name": "pickerRoster",
+      "id": "internal_tui_picker_test_testpickerpresetpersonalityskipsprompt"
+    },
+    {
       "label": "personality.go",
       "file_type": "code",
       "source_file": "internal/agent/personality.go",
@@ -5072,7 +5160,7 @@
       "label": "PresetNames()",
       "file_type": "code",
       "source_file": "internal/agent/personality.go",
-      "source_location": "L37",
+      "source_location": "L35",
       "_origin": "ast",
       "community": 6,
       "norm_label": "presetnames()",
@@ -5083,7 +5171,7 @@
       "label": "PersonalityPath()",
       "file_type": "code",
       "source_file": "internal/agent/personality.go",
-      "source_location": "L42",
+      "source_location": "L40",
       "_origin": "ast",
       "community": 6,
       "norm_label": "personalitypath()",
@@ -5094,7 +5182,7 @@
       "label": "LoadPersonality()",
       "file_type": "code",
       "source_file": "internal/agent/personality.go",
-      "source_location": "L54",
+      "source_location": "L52",
       "_origin": "ast",
       "community": 6,
       "norm_label": "loadpersonality()",
@@ -5105,7 +5193,7 @@
       "label": "loadFile()",
       "file_type": "code",
       "source_file": "internal/agent/personality.go",
-      "source_location": "L73",
+      "source_location": "L71",
       "_origin": "ast",
       "community": 6,
       "norm_label": "loadfile()",
@@ -5113,95 +5201,7 @@
       "community_name": "LoadPersonality"
     },
     {
-      "label": "picker_test.go",
-      "file_type": "code",
-      "source_file": "internal/tui/picker_test.go",
-      "source_location": "L1",
-      "_origin": "ast",
-      "community": 19,
-      "norm_label": "picker_test.go",
-      "id": "internal_tui_picker_test",
-      "community_name": "pickerRoster"
-    },
-    {
-      "label": "pickerRoster()",
-      "file_type": "code",
-      "source_file": "internal/tui/picker_test.go",
-      "source_location": "L11",
-      "_origin": "ast",
-      "community": 19,
-      "norm_label": "pickerroster()",
-      "id": "internal_tui_picker_test_pickerroster",
-      "community_name": "pickerRoster"
-    },
-    {
-      "label": "TestPickerModelSelection()",
-      "file_type": "code",
-      "source_file": "internal/tui/picker_test.go",
-      "source_location": "L17",
-      "_origin": "ast",
-      "community": 19,
-      "norm_label": "testpickermodelselection()",
-      "id": "internal_tui_picker_test_testpickermodelselection",
-      "community_name": "pickerRoster"
-    },
-    {
-      "label": "TestPickerModelDefaultOnEmpty()",
-      "file_type": "code",
-      "source_file": "internal/tui/picker_test.go",
-      "source_location": "L27",
-      "_origin": "ast",
-      "community": 19,
-      "norm_label": "testpickermodeldefaultonempty()",
-      "id": "internal_tui_picker_test_testpickermodeldefaultonempty",
-      "community_name": "pickerRoster"
-    },
-    {
-      "label": "TestPickerPresetModelSkipsPrompt()",
-      "file_type": "code",
-      "source_file": "internal/tui/picker_test.go",
-      "source_location": "L40",
-      "_origin": "ast",
-      "community": 19,
-      "norm_label": "testpickerpresetmodelskipsprompt()",
-      "id": "internal_tui_picker_test_testpickerpresetmodelskipsprompt",
-      "community_name": "pickerRoster"
-    },
-    {
-      "label": "TestPickerPersonalitySelection()",
-      "file_type": "code",
-      "source_file": "internal/tui/picker_test.go",
-      "source_location": "L51",
-      "_origin": "ast",
-      "community": 19,
-      "norm_label": "testpickerpersonalityselection()",
-      "id": "internal_tui_picker_test_testpickerpersonalityselection",
-      "community_name": "pickerRoster"
-    },
-    {
-      "label": "TestPickerPersonalityDefaultOnEmpty()",
-      "file_type": "code",
-      "source_file": "internal/tui/picker_test.go",
-      "source_location": "L62",
-      "_origin": "ast",
-      "community": 19,
-      "norm_label": "testpickerpersonalitydefaultonempty()",
-      "id": "internal_tui_picker_test_testpickerpersonalitydefaultonempty",
-      "community_name": "pickerRoster"
-    },
-    {
-      "label": "TestPickerPresetPersonalitySkipsPrompt()",
-      "file_type": "code",
-      "source_file": "internal/tui/picker_test.go",
-      "source_location": "L72",
-      "_origin": "ast",
-      "community": 19,
-      "norm_label": "testpickerpresetpersonalityskipsprompt()",
-      "id": "internal_tui_picker_test_testpickerpresetpersonalityskipsprompt",
-      "community_name": "pickerRoster"
-    },
-    {
-      "label": "Agent",
+      "label": "Coding Agent",
       "file_type": "concept",
       "source_file": "internal/agent/prompt_template.md",
       "source_location": "line 1",
@@ -5210,12 +5210,12 @@
       "author": null,
       "contributor": null,
       "community": 15,
-      "norm_label": "agent",
-      "id": "internal_agent_prompt_template_agent",
-      "community_name": "Agent"
+      "norm_label": "coding agent",
+      "id": "internal_agent_prompt_template_coding_agent",
+      "community_name": "Poker Strategy"
     },
     {
-      "label": "No-Limit Texas Hold'em Poker",
+      "label": "No-Limit Texas Hold'em",
       "file_type": "concept",
       "source_file": "internal/agent/prompt_template.md",
       "source_location": "line 1",
@@ -5224,24 +5224,9 @@
       "author": null,
       "contributor": null,
       "community": 15,
-      "norm_label": "no-limit texas hold'em poker",
-      "id": "internal_agent_prompt_template_poker_game",
-      "community_name": "Agent"
-    },
-    {
-      "label": "Hidden Information Doctrine",
-      "file_type": "concept",
-      "source_file": "internal/agent/prompt_template.md",
-      "source_location": "line 5",
-      "source_url": null,
-      "captured_at": null,
-      "author": null,
-      "contributor": null,
-      "rationale": "In poker, never truthfully reveal hole cards; mislead if mentioning cards at all",
-      "community": 15,
-      "norm_label": "hidden information doctrine",
-      "id": "internal_agent_prompt_template_hidden_information_doctrine",
-      "community_name": "Agent"
+      "norm_label": "no-limit texas hold'em",
+      "id": "internal_agent_prompt_template_no_limit_texas_holdem",
+      "community_name": "Poker Strategy"
     },
     {
       "label": "Table Persona",
@@ -5252,38 +5237,110 @@
       "captured_at": null,
       "author": null,
       "contributor": null,
+      "rationale": "Agent's persona at the table shapes all interactions and communication",
       "community": 15,
       "norm_label": "table persona",
       "id": "internal_agent_prompt_template_table_persona",
-      "community_name": "Agent"
+      "community_name": "Poker Strategy"
     },
     {
-      "label": "Match Digest",
+      "label": "Poker Strategy",
       "file_type": "concept",
       "source_file": "internal/agent/prompt_template.md",
-      "source_location": "line 10-11",
+      "source_location": "line 5",
       "source_url": null,
       "captured_at": null,
       "author": null,
       "contributor": null,
       "community": 15,
-      "norm_label": "match digest",
-      "id": "internal_agent_prompt_template_match_digest",
-      "community_name": "Agent"
+      "norm_label": "poker strategy",
+      "id": "internal_agent_prompt_template_poker_strategy",
+      "community_name": "Poker Strategy"
     },
     {
-      "label": "Hand State",
+      "label": "Pot Odds",
       "file_type": "concept",
       "source_file": "internal/agent/prompt_template.md",
-      "source_location": "line 13-14",
+      "source_location": "line 5",
       "source_url": null,
       "captured_at": null,
       "author": null,
       "contributor": null,
       "community": 15,
-      "norm_label": "hand state",
-      "id": "internal_agent_prompt_template_hand_state",
-      "community_name": "Agent"
+      "norm_label": "pot odds",
+      "id": "internal_agent_prompt_template_pot_odds",
+      "community_name": "Poker Strategy"
+    },
+    {
+      "label": "Position",
+      "file_type": "concept",
+      "source_file": "internal/agent/prompt_template.md",
+      "source_location": "line 5",
+      "source_url": null,
+      "captured_at": null,
+      "author": null,
+      "contributor": null,
+      "community": 15,
+      "norm_label": "position",
+      "id": "internal_agent_prompt_template_position",
+      "community_name": "Poker Strategy"
+    },
+    {
+      "label": "Ranges",
+      "file_type": "concept",
+      "source_file": "internal/agent/prompt_template.md",
+      "source_location": "line 5",
+      "source_url": null,
+      "captured_at": null,
+      "author": null,
+      "contributor": null,
+      "community": 15,
+      "norm_label": "ranges",
+      "id": "internal_agent_prompt_template_ranges",
+      "community_name": "Poker Strategy"
+    },
+    {
+      "label": "Stack Depth",
+      "file_type": "concept",
+      "source_file": "internal/agent/prompt_template.md",
+      "source_location": "line 5",
+      "source_url": null,
+      "captured_at": null,
+      "author": null,
+      "contributor": null,
+      "community": 15,
+      "norm_label": "stack depth",
+      "id": "internal_agent_prompt_template_stack_depth",
+      "community_name": "Poker Strategy"
+    },
+    {
+      "label": "Betting History",
+      "file_type": "concept",
+      "source_file": "internal/agent/prompt_template.md",
+      "source_location": "line 5",
+      "source_url": null,
+      "captured_at": null,
+      "author": null,
+      "contributor": null,
+      "community": 15,
+      "norm_label": "betting history",
+      "id": "internal_agent_prompt_template_betting_history",
+      "community_name": "Poker Strategy"
+    },
+    {
+      "label": "Card Talk Doctrine",
+      "file_type": "concept",
+      "source_file": "internal/agent/prompt_template.md",
+      "source_location": "lines 29-30",
+      "source_url": null,
+      "captured_at": null,
+      "author": null,
+      "contributor": null,
+      "rationale": "Card talk is a strategic weapon: mix truth and lies so nothing said is ever a reliable signal. Genuine hands should read exactly like bluffs.",
+      "community": 15,
+      "norm_label": "card talk doctrine",
+      "id": "internal_agent_prompt_template_card_talk_doctrine",
+      "community_name": "Poker Strategy"
     },
     {
       "label": "Table Talk",
@@ -5297,38 +5354,10 @@
       "community": 15,
       "norm_label": "table talk",
       "id": "internal_agent_prompt_template_table_talk",
-      "community_name": "Agent"
+      "community_name": "Poker Strategy"
     },
     {
-      "label": "Legal Actions",
-      "file_type": "concept",
-      "source_file": "internal/agent/prompt_template.md",
-      "source_location": "line 19-20",
-      "source_url": null,
-      "captured_at": null,
-      "author": null,
-      "contributor": null,
-      "community": 15,
-      "norm_label": "legal actions",
-      "id": "internal_agent_prompt_template_legal_actions",
-      "community_name": "Agent"
-    },
-    {
-      "label": "JSON Response Format",
-      "file_type": "concept",
-      "source_file": "internal/agent/prompt_template.md",
-      "source_location": "line 21-29",
-      "source_url": null,
-      "captured_at": null,
-      "author": null,
-      "contributor": null,
-      "community": 15,
-      "norm_label": "json response format",
-      "id": "internal_agent_prompt_template_json_response_format",
-      "community_name": "Agent"
-    },
-    {
-      "label": "Poker Strategy Principles",
+      "label": "Personal Needling",
       "file_type": "concept",
       "source_file": "internal/agent/prompt_template.md",
       "source_location": "line 3",
@@ -5336,11 +5365,94 @@
       "captured_at": null,
       "author": null,
       "contributor": null,
-      "rationale": "Think about pot odds, position, ranges, stack depth, betting history; fold trash, punish weakness, protect stack",
       "community": 15,
-      "norm_label": "poker strategy principles",
-      "id": "internal_agent_prompt_template_poker_strategy",
-      "community_name": "Agent"
+      "norm_label": "personal needling",
+      "id": "internal_agent_prompt_template_personal_needling",
+      "community_name": "Poker Strategy"
+    },
+    {
+      "label": "Bluffing",
+      "file_type": "concept",
+      "source_file": "internal/agent/prompt_template.md",
+      "source_location": "line 29",
+      "source_url": null,
+      "captured_at": null,
+      "author": null,
+      "contributor": null,
+      "community": 15,
+      "norm_label": "bluffing",
+      "id": "internal_agent_prompt_template_bluffing",
+      "community_name": "Poker Strategy"
+    },
+    {
+      "label": "Legal Actions",
+      "file_type": "concept",
+      "source_file": "internal/agent/prompt_template.md",
+      "source_location": "line 20",
+      "source_url": null,
+      "captured_at": null,
+      "author": null,
+      "contributor": null,
+      "community": 21,
+      "norm_label": "legal actions",
+      "id": "internal_agent_prompt_template_legal_actions",
+      "community_name": "JSON Response Format"
+    },
+    {
+      "label": "Match Digest",
+      "file_type": "concept",
+      "source_file": "internal/agent/prompt_template.md",
+      "source_location": "line 11",
+      "source_url": null,
+      "captured_at": null,
+      "author": null,
+      "contributor": null,
+      "community": 21,
+      "norm_label": "match digest",
+      "id": "internal_agent_prompt_template_match_digest",
+      "community_name": "JSON Response Format"
+    },
+    {
+      "label": "Hand State",
+      "file_type": "concept",
+      "source_file": "internal/agent/prompt_template.md",
+      "source_location": "line 14",
+      "source_url": null,
+      "captured_at": null,
+      "author": null,
+      "contributor": null,
+      "community": 21,
+      "norm_label": "hand state",
+      "id": "internal_agent_prompt_template_hand_state",
+      "community_name": "JSON Response Format"
+    },
+    {
+      "label": "Talk Log",
+      "file_type": "concept",
+      "source_file": "internal/agent/prompt_template.md",
+      "source_location": "line 17",
+      "source_url": null,
+      "captured_at": null,
+      "author": null,
+      "contributor": null,
+      "community": 21,
+      "norm_label": "talk log",
+      "id": "internal_agent_prompt_template_talk_log",
+      "community_name": "JSON Response Format"
+    },
+    {
+      "label": "JSON Response Format",
+      "file_type": "concept",
+      "source_file": "internal/agent/prompt_template.md",
+      "source_location": "line 21-30",
+      "source_url": null,
+      "captured_at": null,
+      "author": null,
+      "contributor": null,
+      "community": 21,
+      "norm_label": "json response format",
+      "id": "internal_agent_prompt_template_json_response_format",
+      "community_name": "JSON Response Format"
     },
     {
       "label": "Action Field",
@@ -5351,10 +5463,10 @@
       "captured_at": null,
       "author": null,
       "contributor": null,
-      "community": 15,
+      "community": 21,
       "norm_label": "action field",
       "id": "internal_agent_prompt_template_action_field",
-      "community_name": "Agent"
+      "community_name": "JSON Response Format"
     },
     {
       "label": "Amount Field",
@@ -5365,11 +5477,10 @@
       "captured_at": null,
       "author": null,
       "contributor": null,
-      "rationale": "Total chips being bet/raised TO (not increment); required for bet/raise; omitted for fold/check/call",
-      "community": 15,
+      "community": 21,
       "norm_label": "amount field",
       "id": "internal_agent_prompt_template_amount_field",
-      "community_name": "Agent"
+      "community_name": "JSON Response Format"
     },
     {
       "label": "Say Field",
@@ -5380,11 +5491,24 @@
       "captured_at": null,
       "author": null,
       "contributor": null,
-      "rationale": "Optional one-line table talk; must not reveal actual hole cards",
-      "community": 15,
+      "community": 21,
       "norm_label": "say field",
       "id": "internal_agent_prompt_template_say_field",
-      "community_name": "Agent"
+      "community_name": "JSON Response Format"
+    },
+    {
+      "label": "Chip Management",
+      "file_type": "concept",
+      "source_file": "internal/agent/prompt_template.md",
+      "source_location": "line 5",
+      "source_url": null,
+      "captured_at": null,
+      "author": null,
+      "contributor": null,
+      "community": 34,
+      "norm_label": "chip management",
+      "id": "internal_agent_prompt_template_chip_management",
+      "community_name": "Chip Management"
     }
   ],
   "links": [
@@ -13831,57 +13955,6 @@
     {
       "relation": "contains",
       "confidence": "EXTRACTED",
-      "source_file": "internal/agent/personality.go",
-      "source_location": "L73",
-      "weight": 1.0,
-      "confidence_score": 1.0,
-      "source": "internal_agent_personality",
-      "target": "internal_agent_personality_loadfile"
-    },
-    {
-      "relation": "contains",
-      "confidence": "EXTRACTED",
-      "source_file": "internal/agent/personality.go",
-      "source_location": "L54",
-      "weight": 1.0,
-      "confidence_score": 1.0,
-      "source": "internal_agent_personality",
-      "target": "internal_agent_personality_loadpersonality"
-    },
-    {
-      "relation": "contains",
-      "confidence": "EXTRACTED",
-      "source_file": "internal/agent/personality.go",
-      "source_location": "L42",
-      "weight": 1.0,
-      "confidence_score": 1.0,
-      "source": "internal_agent_personality",
-      "target": "internal_agent_personality_personalitypath"
-    },
-    {
-      "relation": "contains",
-      "confidence": "EXTRACTED",
-      "source_file": "internal/agent/personality.go",
-      "source_location": "L37",
-      "weight": 1.0,
-      "confidence_score": 1.0,
-      "source": "internal_agent_personality",
-      "target": "internal_agent_personality_presetnames"
-    },
-    {
-      "relation": "calls",
-      "context": "call",
-      "confidence": "EXTRACTED",
-      "source_file": "internal/agent/personality.go",
-      "source_location": "L58",
-      "weight": 1.0,
-      "confidence_score": 1.0,
-      "source": "internal_agent_personality_loadpersonality",
-      "target": "internal_agent_personality_loadfile"
-    },
-    {
-      "relation": "contains",
-      "confidence": "EXTRACTED",
       "source_file": "internal/tui/picker_test.go",
       "source_location": "L11",
       "weight": 1.0,
@@ -14016,83 +14089,164 @@
       "target": "internal_tui_picker_test_pickerroster"
     },
     {
-      "relation": "references",
+      "relation": "contains",
       "confidence": "EXTRACTED",
-      "confidence_score": 1.0,
-      "source_file": "internal/agent/prompt_template.md",
-      "source_location": "line 13-14",
+      "source_file": "internal/agent/personality.go",
+      "source_location": "L71",
       "weight": 1.0,
-      "source": "internal_agent_prompt_template_agent",
-      "target": "internal_agent_prompt_template_hand_state"
+      "confidence_score": 1.0,
+      "source": "internal_agent_personality",
+      "target": "internal_agent_personality_loadfile"
     },
     {
-      "relation": "implements",
+      "relation": "contains",
       "confidence": "EXTRACTED",
-      "confidence_score": 1.0,
-      "source_file": "internal/agent/prompt_template.md",
-      "source_location": "line 21",
+      "source_file": "internal/agent/personality.go",
+      "source_location": "L52",
       "weight": 1.0,
-      "source": "internal_agent_prompt_template_agent",
-      "target": "internal_agent_prompt_template_json_response_format"
+      "confidence_score": 1.0,
+      "source": "internal_agent_personality",
+      "target": "internal_agent_personality_loadpersonality"
     },
     {
-      "relation": "references",
+      "relation": "contains",
       "confidence": "EXTRACTED",
-      "confidence_score": 1.0,
-      "source_file": "internal/agent/prompt_template.md",
-      "source_location": "line 19-20",
+      "source_file": "internal/agent/personality.go",
+      "source_location": "L40",
       "weight": 1.0,
-      "source": "internal_agent_prompt_template_agent",
-      "target": "internal_agent_prompt_template_legal_actions"
+      "confidence_score": 1.0,
+      "source": "internal_agent_personality",
+      "target": "internal_agent_personality_personalitypath"
     },
     {
-      "relation": "references",
+      "relation": "contains",
       "confidence": "EXTRACTED",
-      "confidence_score": 1.0,
-      "source_file": "internal/agent/prompt_template.md",
-      "source_location": "line 10-11",
+      "source_file": "internal/agent/personality.go",
+      "source_location": "L35",
       "weight": 1.0,
-      "source": "internal_agent_prompt_template_agent",
-      "target": "internal_agent_prompt_template_match_digest"
+      "confidence_score": 1.0,
+      "source": "internal_agent_personality",
+      "target": "internal_agent_personality_presetnames"
     },
     {
-      "relation": "implements",
+      "relation": "calls",
+      "context": "call",
+      "confidence": "EXTRACTED",
+      "source_file": "internal/agent/personality.go",
+      "source_location": "L56",
+      "weight": 1.0,
+      "confidence_score": 1.0,
+      "source": "internal_agent_personality_loadpersonality",
+      "target": "internal_agent_personality_loadfile"
+    },
+    {
+      "relation": "plays",
       "confidence": "EXTRACTED",
       "confidence_score": 1.0,
       "source_file": "internal/agent/prompt_template.md",
       "source_location": "line 1",
       "weight": 1.0,
-      "source": "internal_agent_prompt_template_agent",
-      "target": "internal_agent_prompt_template_poker_game"
+      "source": "internal_agent_prompt_template_coding_agent",
+      "target": "internal_agent_prompt_template_no_limit_texas_holdem"
+    },
+    {
+      "relation": "uses",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "internal/agent/prompt_template.md",
+      "source_location": "line 5",
+      "weight": 1.0,
+      "source": "internal_agent_prompt_template_coding_agent",
+      "target": "internal_agent_prompt_template_poker_strategy"
     },
     {
       "relation": "implements",
       "confidence": "EXTRACTED",
       "confidence_score": 1.0,
       "source_file": "internal/agent/prompt_template.md",
-      "source_location": "line 3",
-      "weight": 1.0,
-      "source": "internal_agent_prompt_template_agent",
-      "target": "internal_agent_prompt_template_poker_strategy"
-    },
-    {
-      "relation": "references",
-      "confidence": "EXTRACTED",
-      "confidence_score": 1.0,
-      "source_file": "internal/agent/prompt_template.md",
       "source_location": "line 7-8",
       "weight": 1.0,
-      "source": "internal_agent_prompt_template_agent",
+      "source": "internal_agent_prompt_template_coding_agent",
       "target": "internal_agent_prompt_template_table_persona"
     },
     {
-      "relation": "references",
+      "relation": "shapes",
       "confidence": "EXTRACTED",
       "confidence_score": 1.0,
       "source_file": "internal/agent/prompt_template.md",
-      "source_location": "line 16-17",
+      "source_location": "line 3-4,7-8",
       "weight": 1.0,
-      "source": "internal_agent_prompt_template_agent",
+      "source": "internal_agent_prompt_template_table_persona",
+      "target": "internal_agent_prompt_template_table_talk"
+    },
+    {
+      "relation": "includes",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "internal/agent/prompt_template.md",
+      "source_location": "line 5",
+      "weight": 1.0,
+      "source": "internal_agent_prompt_template_poker_strategy",
+      "target": "internal_agent_prompt_template_betting_history"
+    },
+    {
+      "relation": "includes",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "internal/agent/prompt_template.md",
+      "source_location": "line 5",
+      "weight": 1.0,
+      "source": "internal_agent_prompt_template_poker_strategy",
+      "target": "internal_agent_prompt_template_position"
+    },
+    {
+      "relation": "includes",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "internal/agent/prompt_template.md",
+      "source_location": "line 5",
+      "weight": 1.0,
+      "source": "internal_agent_prompt_template_poker_strategy",
+      "target": "internal_agent_prompt_template_pot_odds"
+    },
+    {
+      "relation": "includes",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "internal/agent/prompt_template.md",
+      "source_location": "line 5",
+      "weight": 1.0,
+      "source": "internal_agent_prompt_template_poker_strategy",
+      "target": "internal_agent_prompt_template_ranges"
+    },
+    {
+      "relation": "includes",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "internal/agent/prompt_template.md",
+      "source_location": "line 5",
+      "weight": 1.0,
+      "source": "internal_agent_prompt_template_poker_strategy",
+      "target": "internal_agent_prompt_template_stack_depth"
+    },
+    {
+      "relation": "rationale_for",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "internal/agent/prompt_template.md",
+      "source_location": "line 29-30",
+      "weight": 1.0,
+      "source": "internal_agent_prompt_template_card_talk_doctrine",
+      "target": "internal_agent_prompt_template_bluffing"
+    },
+    {
+      "relation": "guides",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "internal/agent/prompt_template.md",
+      "source_location": "line 29",
+      "weight": 1.0,
+      "source": "internal_agent_prompt_template_card_talk_doctrine",
       "target": "internal_agent_prompt_template_table_talk"
     },
     {
@@ -14100,33 +14254,73 @@
       "confidence": "EXTRACTED",
       "confidence_score": 1.0,
       "source_file": "internal/agent/prompt_template.md",
-      "source_location": "line 5",
+      "source_location": "line 3",
       "weight": 1.0,
-      "source": "internal_agent_prompt_template_poker_game",
-      "target": "internal_agent_prompt_template_hidden_information_doctrine"
+      "source": "internal_agent_prompt_template_personal_needling",
+      "target": "internal_agent_prompt_template_table_talk"
     },
     {
-      "relation": "conceptually_related_to",
+      "relation": "semantically_similar_to",
+      "confidence": "INFERRED",
+      "confidence_score": 0.85,
+      "source_file": "internal/agent/prompt_template.md",
+      "source_location": "line 3,29",
+      "weight": 1.0,
+      "source": "internal_agent_prompt_template_bluffing",
+      "target": "internal_agent_prompt_template_personal_needling"
+    },
+    {
+      "relation": "references",
       "confidence": "EXTRACTED",
       "confidence_score": 1.0,
       "source_file": "internal/agent/prompt_template.md",
-      "source_location": "line 29",
-      "weight": 1.0,
-      "source": "internal_agent_prompt_template_say_field",
-      "target": "internal_agent_prompt_template_hidden_information_doctrine"
-    },
-    {
-      "relation": "conceptually_related_to",
-      "confidence": "EXTRACTED",
-      "confidence_score": 1.0,
-      "source_file": "internal/agent/prompt_template.md",
-      "source_location": "line 23",
+      "source_location": "line 20,23",
       "weight": 1.0,
       "source": "internal_agent_prompt_template_action_field",
       "target": "internal_agent_prompt_template_legal_actions"
     },
     {
-      "relation": "shares_data_with",
+      "relation": "references",
+      "confidence": "INFERRED",
+      "confidence_score": 0.85,
+      "source_file": "internal/agent/prompt_template.md",
+      "source_location": "line 20,21",
+      "weight": 1.0,
+      "source": "internal_agent_prompt_template_legal_actions",
+      "target": "internal_agent_prompt_template_json_response_format"
+    },
+    {
+      "relation": "references",
+      "confidence": "INFERRED",
+      "confidence_score": 0.85,
+      "source_file": "internal/agent/prompt_template.md",
+      "source_location": "line 11,21",
+      "weight": 1.0,
+      "source": "internal_agent_prompt_template_match_digest",
+      "target": "internal_agent_prompt_template_json_response_format"
+    },
+    {
+      "relation": "references",
+      "confidence": "INFERRED",
+      "confidence_score": 0.85,
+      "source_file": "internal/agent/prompt_template.md",
+      "source_location": "line 14,21",
+      "weight": 1.0,
+      "source": "internal_agent_prompt_template_hand_state",
+      "target": "internal_agent_prompt_template_json_response_format"
+    },
+    {
+      "relation": "references",
+      "confidence": "INFERRED",
+      "confidence_score": 0.85,
+      "source_file": "internal/agent/prompt_template.md",
+      "source_location": "line 17,21",
+      "weight": 1.0,
+      "source": "internal_agent_prompt_template_talk_log",
+      "target": "internal_agent_prompt_template_json_response_format"
+    },
+    {
+      "relation": "includes",
       "confidence": "EXTRACTED",
       "confidence_score": 1.0,
       "source_file": "internal/agent/prompt_template.md",
@@ -14136,7 +14330,7 @@
       "target": "internal_agent_prompt_template_action_field"
     },
     {
-      "relation": "shares_data_with",
+      "relation": "includes",
       "confidence": "EXTRACTED",
       "confidence_score": 1.0,
       "source_file": "internal/agent/prompt_template.md",
@@ -14146,7 +14340,7 @@
       "target": "internal_agent_prompt_template_amount_field"
     },
     {
-      "relation": "shares_data_with",
+      "relation": "includes",
       "confidence": "EXTRACTED",
       "confidence_score": 1.0,
       "source_file": "internal/agent/prompt_template.md",
@@ -14154,6 +14348,16 @@
       "weight": 1.0,
       "source": "internal_agent_prompt_template_json_response_format",
       "target": "internal_agent_prompt_template_say_field"
+    },
+    {
+      "relation": "depends_on",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "internal/agent/prompt_template.md",
+      "source_location": "line 26",
+      "weight": 1.0,
+      "source": "internal_agent_prompt_template_amount_field",
+      "target": "internal_agent_prompt_template_action_field"
     }
   ],
   "hyperedges": [
@@ -14252,5 +14456,5 @@
       "source_file": "docs/adr/0001-stateless-decision-requests.md"
     }
   ],
-  "built_at_commit": "9c4218b711e2358460a14f7c20c04703e76cb826"
+  "built_at_commit": "a688375e4be0ccdf6945935280b8b9271858366d"
 }

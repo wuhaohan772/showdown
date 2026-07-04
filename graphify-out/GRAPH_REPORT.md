@@ -4,20 +4,20 @@
 - cluster-only mode — file stats not available
 
 ## Summary
-- 456 nodes · 833 edges · 42 communities (26 shown, 16 thin omitted)
-- Extraction: 88% EXTRACTED · 12% INFERRED · 0% AMBIGUOUS · INFERRED: 96 edges (avg confidence: 0.81)
+- 465 nodes · 841 edges · 43 communities (26 shown, 17 thin omitted)
+- Extraction: 88% EXTRACTED · 12% INFERRED · 0% AMBIGUOUS · INFERRED: 101 edges (avg confidence: 0.81)
 - Token cost: 0 input · 0 output
 
 ## Graph Freshness
-- Built from commit: `9c4218b7`
+- Built from commit: `a688375e`
 - Run `git rev-parse HEAD` and compare to check if the graph is stale.
 - Run `graphify update .` after code changes (no API cost).
 
 ## Community Hubs (Navigation)
 - [[_COMMUNITY_Model|Model]]
 - [[_COMMUNITY_Card|Card]]
-- [[_COMMUNITY_app_test.go|app_test.go]]
 - [[_COMMUNITY_GetDecision|GetDecision]]
+- [[_COMMUNITY_app_test.go|app_test.go]]
 - [[_COMMUNITY_Hand|Hand]]
 - [[_COMMUNITY_hand_test.go|hand_test.go]]
 - [[_COMMUNITY_LoadPersonality|LoadPersonality]]
@@ -29,13 +29,13 @@
 - [[_COMMUNITY_Match|Match]]
 - [[_COMMUNITY_Lean opponent sessions|Lean opponent sessions]]
 - [[_COMMUNITY_Load|Load]]
-- [[_COMMUNITY_Agent|Agent]]
+- [[_COMMUNITY_Poker Strategy|Poker Strategy]]
 - [[_COMMUNITY_Usage|Usage]]
 - [[_COMMUNITY_RenderPrompt|RenderPrompt]]
 - [[_COMMUNITY_Usage Struct|Usage Struct]]
 - [[_COMMUNITY_pickerRoster|pickerRoster]]
-- [[_COMMUNITY_WrapAsker|WrapAsker]]
 - [[_COMMUNITY_Digest|Digest]]
+- [[_COMMUNITY_JSON Response Format|JSON Response Format]]
 - [[_COMMUNITY_Key Hint Row|Key Hint Row]]
 - [[_COMMUNITY_run_spike.py|run_spike.py]]
 - [[_COMMUNITY_TokenCost Measurement + Model Choice Implementation Plan|Token/Cost Measurement + Model Choice Implementation Plan]]
@@ -48,6 +48,7 @@
 - [[_COMMUNITY_ActionType|ActionType]]
 - [[_COMMUNITY_Roster|Roster]]
 - [[_COMMUNITY_Hand|Hand]]
+- [[_COMMUNITY_Chip Management|Chip Management]]
 - [[_COMMUNITY_Logger|Logger]]
 - [[_COMMUNITY_Rand|Rand]]
 - [[_COMMUNITY_Adapter|Adapter]]
@@ -93,7 +94,7 @@
 - **Decision Pipeline: Request → Decision → Action** — context_md_decision_request, context_md_decision, context_md_fallback_action [INFERRED 0.85]
 - **ADR Implementation in Code** — docs_adr_0001_stateless_decision_requests, docs_adr_0002_native_memory_loading, superpowers_sdd_task_9_report_get_decision, superpowers_sdd_task_10_brief_asker_method [INFERRED 0.75]
 
-## Communities (42 total, 16 thin omitted)
+## Communities (43 total, 17 thin omitted)
 
 ### Community 0 - "Model"
 Cohesion: 0.10
@@ -103,13 +104,13 @@ Nodes (27): Card, Cmd, Digest, agentHandSummary(), cardStrings(), Action, Action
 Cohesion: 0.12
 Nodes (30): Rand, NewDeck(), ParseCard(), T, TestCardString(), TestDeckDeals52Unique(), TestDeckShuffled(), TestParseCardRoundTrip() (+22 more)
 
-### Community 2 - "app_test.go"
+### Community 2 - "GetDecision"
+Cohesion: 0.13
+Nodes (32): Asker, Decision, Context, ExtractDecision(), FallbackAction(), GetDecision(), GetReaction(), Action (+24 more)
+
+### Community 3 - "app_test.go"
 Cohesion: 0.19
 Nodes (34): NewModel(), KeyMsg, T, key(), readLogEvents(), TestAgentDecisionLogged(), TestAgentDecisionMsgApplies(), TestAgentHandSummaryPerspective() (+26 more)
-
-### Community 3 - "GetDecision"
-Cohesion: 0.18
-Nodes (25): Asker, Decision, Context, ExtractDecision(), FallbackAction(), GetDecision(), GetReaction(), Action (+17 more)
 
 ### Community 4 - "Hand"
 Cohesion: 0.18
@@ -155,9 +156,9 @@ Nodes (14): ADR-0003: Lean opponent sessions, Claude adapter, Codex adapters, Co
 Cohesion: 0.22
 Nodes (9): Load(), T, TestLine(), TestLineIncludesCost(), TestLoadMissingFileIsEmpty(), TestRecordUsageRoundTrip(), TestSaveLoadRoundTrip(), Record (+1 more)
 
-### Community 15 - "Agent"
-Cohesion: 0.18
-Nodes (13): Action Field, Agent, Amount Field, Hand State, Hidden Information Doctrine, JSON Response Format, Legal Actions, Match Digest (+5 more)
+### Community 15 - "Poker Strategy"
+Cohesion: 0.17
+Nodes (13): Betting History, Bluffing, Card Talk Doctrine, Coding Agent, No-Limit Texas Hold'em, Personal Needling, Poker Strategy, Position (+5 more)
 
 ### Community 16 - "Usage"
 Cohesion: 0.24
@@ -175,9 +176,9 @@ Nodes (12): Adapter Struct, Asker Type, Claude CLI, Debug Log Usage, GetDecision
 Cohesion: 0.44
 Nodes (9): Adapter, pickerRoster(), TestPickerModelDefaultOnEmpty(), TestPickerModelSelection(), TestPickerPersonalityDefaultOnEmpty(), TestPickerPersonalitySelection(), TestPickerPresetModelSkipsPrompt(), TestPickerPresetPersonalitySkipsPrompt() (+1 more)
 
-### Community 20 - "WrapAsker"
-Cohesion: 0.39
-Nodes (7): Logger, T, TestWrapAskerLogsError(), TestWrapAskerLogsUsage(), TestWrapAskerNilLogger(), TestWrapAskerPassthroughAndLog(), WrapAsker()
+### Community 21 - "JSON Response Format"
+Cohesion: 0.32
+Nodes (8): Action Field, Amount Field, Hand State, JSON Response Format, Legal Actions, Match Digest, Say Field, Talk Log
 
 ### Community 22 - "Key Hint Row"
 Cohesion: 0.29
@@ -200,24 +201,24 @@ Cohesion: 0.67
 Nodes (3): ADR-0003 Prompt Cache, Claude System Prompt Cache Constraint, Personality Template Slot
 
 ## Knowledge Gaps
-- **50 isolated node(s):** `github.com/haohanwu/showdown`, `stub.sh script`, `stub-agent.sh script`, `Game`, `Roster` (+45 more)
+- **55 isolated node(s):** `github.com/haohanwu/showdown`, `stub.sh script`, `stub-agent.sh script`, `Game`, `Roster` (+50 more)
   These have ≤1 connection - possible missing edges or undocumented components.
-- **16 thin communities (<3 nodes) omitted from report** — run `graphify query` to explore isolated nodes.
+- **17 thin communities (<3 nodes) omitted from report** — run `graphify query` to explore isolated nodes.
 
 ## Suggested Questions
 _Questions this graph is uniquely positioned to answer:_
 
 - **Why does `Model` connect `Model` to `app_test.go`?**
-  _High betweenness centrality (0.044) - this node is a cross-community bridge._
+  _High betweenness centrality (0.043) - this node is a cross-community bridge._
 - **Why does `NewModel()` connect `app_test.go` to `Model`, `LoadPersonality`?**
-  _High betweenness centrality (0.031) - this node is a cross-community bridge._
-- **Why does `GetDecision()` connect `GetDecision` to `Model`, `RenderPrompt`?**
   _High betweenness centrality (0.029) - this node is a cross-community bridge._
+- **Why does `GetDecision()` connect `GetDecision` to `Model`, `RenderPrompt`?**
+  _High betweenness centrality (0.028) - this node is a cross-community bridge._
 - **What connects `github.com/haohanwu/showdown`, `stub.sh script`, `stub-agent.sh script` to the rest of the system?**
-  _57 weakly-connected nodes found - possible documentation gaps or missing edges._
+  _62 weakly-connected nodes found - possible documentation gaps or missing edges._
 - **Should `Model` be split into smaller, more focused modules?**
   _Cohesion score 0.10188261351052048 - nodes in this community are weakly interconnected._
 - **Should `Card` be split into smaller, more focused modules?**
   _Cohesion score 0.11522048364153627 - nodes in this community are weakly interconnected._
-- **Should `Personality System Implementation Plan` be split into smaller, more focused modules?**
-  _Cohesion score 0.13333333333333333 - nodes in this community are weakly interconnected._
+- **Should `GetDecision` be split into smaller, more focused modules?**
+  _Cohesion score 0.1253968253968254 - nodes in this community are weakly interconnected._
