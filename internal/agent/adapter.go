@@ -2,6 +2,7 @@ package agent
 
 import (
 	"context"
+	"fmt"
 	"os"
 	"os/exec"
 	"strings"
@@ -18,6 +19,9 @@ type Adapter struct {
 	Args        func(model, prompt string) []string
 	Parse       func(raw string) Response // nil = plain-text output
 	Env         []string                  // extra env for the CLI process
+	// SessionArgs builds the CLI args for a persistent stream-json session
+	// (P2). nil = adapter is stateless-only.
+	SessionArgs func(model string) []string
 }
 
 // claudeSystemPrompt replaces Claude Code's default system prompt (~8k
@@ -52,7 +56,17 @@ var knownAdapters = []Adapter{
 		// thinking: ~1k hidden tokens per decision, 40s+ decode — past the
 		// 45s timeout, so every call died to fallback. Thinking off →
 		// ~1-2s decisions and the "say" line survives.
-		Env: []string{"MAX_THINKING_TOKENS=0"}},
+		Env: []string{"MAX_THINKING_TOKENS=0"},
+		SessionArgs: func(m string) []string {
+			args := []string{"-p", "--verbose",
+				"--input-format", "stream-json", "--output-format", "stream-json",
+				"--disallowedTools", "*",
+				"--system-prompt", claudeSystemPrompt}
+			if m != "" {
+				args = append(args, "--model", m)
+			}
+			return args
+		}},
 	{Key: "codex", DisplayName: "Codex", Bin: "codex",
 		Args: func(m, p string) []string {
 			args := []string{"exec"}
@@ -119,4 +133,15 @@ func DetectRoster() []Adapter {
 		}
 	}
 	return out
+}
+
+func (a Adapter) SupportsSession() bool { return a.SessionArgs != nil }
+
+// StartSession launches a persistent session for this adapter with
+// cwd=dir (ADR-0002) and the adapter's Env, mirroring Asker.
+func (a Adapter) StartSession(dir string, timeout time.Duration) (*Session, error) {
+	if a.SessionArgs == nil {
+		return nil, fmt.Errorf("adapter %s does not support sessions", a.Key)
+	}
+	return StartSession(a.Bin, a.SessionArgs(a.Model), a.Env, dir, timeout)
 }

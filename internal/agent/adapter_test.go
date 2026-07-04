@@ -170,3 +170,37 @@ func TestAskerAppliesParse(t *testing.T) {
 		t.Errorf("Usage = %+v", resp.Usage)
 	}
 }
+
+func TestClaudeSessionArgs(t *testing.T) {
+	var claude Adapter
+	for _, a := range knownAdapters {
+		if a.Key == "claude" {
+			claude = a
+		} else if a.SessionArgs != nil {
+			t.Errorf("%s must not support sessions", a.Key)
+		}
+	}
+	if !claude.SupportsSession() {
+		t.Fatal("claude must support sessions")
+	}
+	joined := strings.Join(claude.SessionArgs("sonnet"), " ")
+	for _, w := range []string{
+		"-p", "--verbose",
+		"--input-format stream-json", "--output-format stream-json",
+		"--disallowedTools *", "--system-prompt", "--model sonnet",
+	} {
+		if !strings.Contains(joined, w) {
+			t.Errorf("session args missing %q in %q", w, joined)
+		}
+	}
+	if strings.Contains(strings.Join(claude.SessionArgs(""), " "), "--model") {
+		t.Error("empty model must not add --model")
+	}
+}
+
+func TestStartSessionUnsupportedAdapter(t *testing.T) {
+	a := Adapter{Key: "codex", Bin: "true"}
+	if _, err := a.StartSession(t.TempDir(), time.Second); err == nil {
+		t.Error("StartSession on session-less adapter must error")
+	}
+}
