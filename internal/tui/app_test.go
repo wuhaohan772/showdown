@@ -39,6 +39,45 @@ func TestHandStartsWithHumanOrAgentTurn(t *testing.T) {
 	}
 }
 
+// Per-hand reactions were removed (each was a full CLI spawn); the only
+// reaction call now fires once, at match end.
+func TestNoReactionSpawnAtHandEnd(t *testing.T) {
+	m := testModel(t) // quiet=false: the per-hand reaction used to fire here
+	m2, _ := m.Update(startHandMsg{})
+	m = m2.(Model)
+	m2, cmd := m.Update(key("f")) // human folds, hand ends without showdown
+	m = m2.(Model)
+	if m.phase != phaseHandEnd {
+		t.Fatalf("phase = %v, want phaseHandEnd", m.phase)
+	}
+	if cmd != nil {
+		t.Error("fold-end hand should not spawn any command (reaction call removed)")
+	}
+}
+
+func TestMatchEndReactionFired(t *testing.T) {
+	m := testModel(t)
+	m2, _ := m.Update(startHandMsg{})
+	m = m2.(Model)
+	hs, as := m.humanSeat(), m.agentSeat()
+	m.hand.Seats[hs].Stack = 3000
+	m.hand.Seats[as].Stack = 0
+	if cmd := m.settleAndNext(); cmd == nil {
+		t.Error("match over should fire one reaction command")
+	}
+
+	q := testModel(t)
+	q.quiet = true
+	m2, _ = q.Update(startHandMsg{})
+	q = m2.(Model)
+	hs, as = q.humanSeat(), q.agentSeat()
+	q.hand.Seats[hs].Stack = 3000
+	q.hand.Seats[as].Stack = 0
+	if cmd := q.settleAndNext(); cmd != nil {
+		t.Error("quiet mode must not fire a match-end reaction")
+	}
+}
+
 func TestHumanFoldEndsHand(t *testing.T) {
 	m := testModel(t)
 	m2, _ := m.Update(startHandMsg{})

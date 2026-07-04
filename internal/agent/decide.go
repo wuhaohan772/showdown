@@ -127,17 +127,18 @@ func GetDecision(ctx context.Context, ask Asker, data RequestData, legal []poker
 	return FallbackAction(legal), "", true, used
 }
 
-// ReactionPrompt asks for a hand-end one-liner (gloat, whine, needle).
-func ReactionPrompt(agentName, digest, handSummary string) string {
+// ReactionPrompt asks for a one-liner (gloat, whine, needle) about what
+// just happened — fired once per match, at match end.
+func ReactionPrompt(agentName, digest, summary string) string {
 	return fmt.Sprintf(`You are %s, playing heads-up poker in the terminal against the human you work for every day.
 
 Match so far:
 %s
 
-The hand that just finished:
+What just happened:
 %s
 
-React in ONE short line — gloat, whine, needle, whatever fits. Plain text only, no JSON, no quotes, one line.`, agentName, digest, handSummary)
+React in ONE short line — gloat, whine, needle, whatever fits. Plain text only, no JSON, no quotes, one line.`, agentName, digest, summary)
 }
 
 func GetReaction(ctx context.Context, ask Asker, agentName, digest, handSummary string) (string, *Usage) {

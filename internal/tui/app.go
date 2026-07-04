@@ -175,21 +175,15 @@ func (m *Model) finishHand() tea.Cmd {
 	m.digest.EndHand(summary)
 	m.revealed = len(m.hand.Board)
 
-	var cmds []tea.Cmd
-	if !m.quiet {
-		ask := debuglog.WrapAsker(m.opp.Asker(m.dir, decisionTimeout), m.log)
-		name, digest := m.opp.DisplayName, m.digest.String()
-		cmds = append(cmds, func() tea.Msg {
-			say, u := agent.GetReaction(context.Background(), ask, name, digest, summary)
-			return reactionMsg{say: say, usage: u}
-		})
-	}
+	// No per-hand reaction call: each was a full CLI spawn (ADR-0003 cost
+	// posture). Table talk flows through the decision's "say" field; the
+	// single reaction call fires at match end (settleAndNext).
 	if r.Showdown {
 		m.phase = phaseRunout
 		m.revealed = 0
-		cmds = append(cmds, runoutTick())
+		return runoutTick()
 	}
-	return tea.Batch(cmds...)
+	return nil
 }
 
 // handSummary builds the digest-log summary line for a finished hand,
@@ -228,6 +222,20 @@ func (m *Model) settleAndNext() tea.Cmd {
 			r.CostUSD += m.sessionUsage.CostUSD
 			m.stats[m.opp.Key] = r
 			_ = m.stats.Save(m.statsPath)
+		}
+		if !m.quiet {
+			outcome := "MATCH OVER: you LOST the match to your human. They took every chip."
+			if m.match.Winner() == 1 {
+				outcome = "MATCH OVER: you WON the match. Your human is busted."
+			}
+			ask := debuglog.WrapAsker(m.opp.Asker(m.dir, decisionTimeout), m.log)
+			name, digest := m.opp.DisplayName, m.digest.String()
+			// Late usage from this call is folded into stats by the
+			// reactionMsg handler (post-save re-save path).
+			return func() tea.Msg {
+				say, u := agent.GetReaction(context.Background(), ask, name, digest, outcome)
+				return reactionMsg{say: say, usage: u}
+			}
 		}
 		return nil
 	}
