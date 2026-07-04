@@ -76,6 +76,34 @@ func TestWhitespaceCustomCmdFallsBack(t *testing.T) {
 	}
 }
 
+func TestClaudeAdapterDisablesThinking(t *testing.T) {
+	for _, a := range knownAdapters {
+		if a.Key != "claude" {
+			continue
+		}
+		for _, e := range a.Env {
+			if e == "MAX_THINKING_TOKENS=0" {
+				return
+			}
+		}
+		t.Fatalf("claude adapter Env = %v, want MAX_THINKING_TOKENS=0", a.Env)
+	}
+	t.Fatal("no claude adapter in knownAdapters")
+}
+
+func TestAskerAppliesEnv(t *testing.T) {
+	a := Adapter{Key: "x", Bin: "sh",
+		Env:  []string{"SHOWDOWN_TEST_ENV=marker"},
+		Args: func(m, p string) []string { return []string{"-c", `printf %s "$SHOWDOWN_TEST_ENV"`} }}
+	resp, err := a.Asker(".", 10*time.Second)(context.Background(), "ignored")
+	if err != nil {
+		t.Fatalf("ask: %v", err)
+	}
+	if resp.Text != "marker" {
+		t.Errorf("Text = %q, want env var passed to child", resp.Text)
+	}
+}
+
 func TestClaudeAdapterLeanSession(t *testing.T) {
 	for _, a := range knownAdapters {
 		if a.Key != "claude" {

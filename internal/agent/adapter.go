@@ -17,6 +17,7 @@ type Adapter struct {
 	Models      []string // suggested presets for the picker; empty = flag-only
 	Args        func(model, prompt string) []string
 	Parse       func(raw string) Response // nil = plain-text output
+	Env         []string                  // extra env for the CLI process
 }
 
 // claudeSystemPrompt replaces Claude Code's default system prompt (~8k
@@ -41,7 +42,12 @@ var knownAdapters = []Adapter{
 			}
 			return args
 		},
-		Parse: ParseClaudeJSON},
+		Parse: ParseClaudeJSON,
+		// The poker prompt's "think about pot odds" triggers extended
+		// thinking: ~1k hidden tokens per decision, 40s+ decode — past the
+		// 45s timeout, so every call died to fallback. Thinking off →
+		// ~1-2s decisions and the "say" line survives.
+		Env: []string{"MAX_THINKING_TOKENS=0"}},
 	{Key: "codex", DisplayName: "Codex", Bin: "codex",
 		Args: func(m, p string) []string {
 			args := []string{"exec"}
@@ -67,6 +73,9 @@ func (a Adapter) Asker(dir string, timeout time.Duration) Asker {
 		defer cancel()
 		cmd := exec.CommandContext(cctx, a.Bin, a.Args(a.Model, prompt)...)
 		cmd.Dir = dir
+		if len(a.Env) > 0 {
+			cmd.Env = append(os.Environ(), a.Env...)
+		}
 		// Guard against a grandchild process holding the stdout pipe open: on
 		// context cancellation, exec only signals the direct child, and
 		// cmd.Output() would otherwise block forever waiting for stdout to
