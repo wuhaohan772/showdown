@@ -15,7 +15,7 @@ type Decision struct {
 	Say    string `json:"say"`
 }
 
-type Asker func(ctx context.Context, prompt string) (string, error)
+type Asker func(ctx context.Context, prompt string) (Response, error)
 
 // ExtractDecision finds the last balanced JSON object containing an "action" key.
 func ExtractDecision(raw string) (Decision, error) {
@@ -101,11 +101,11 @@ func GetDecision(ctx context.Context, ask Asker, data RequestData, legal []poker
 		if attempt == 1 {
 			p += retryReminder
 		}
-		raw, err := ask(ctx, p)
+		resp, err := ask(ctx, p)
 		if err != nil {
 			break // exec error / timeout: no retry, straight to fallback
 		}
-		d, err := ExtractDecision(raw)
+		d, err := ExtractDecision(resp.Text)
 		if err != nil {
 			continue
 		}
@@ -132,11 +132,11 @@ React in ONE short line — gloat, whine, needle, whatever fits. Plain text only
 }
 
 func GetReaction(ctx context.Context, ask Asker, agentName, digest, handSummary string) string {
-	raw, err := ask(ctx, ReactionPrompt(agentName, digest, handSummary))
+	resp, err := ask(ctx, ReactionPrompt(agentName, digest, handSummary))
 	if err != nil {
 		return ""
 	}
-	line := strings.TrimSpace(raw)
+	line := strings.TrimSpace(resp.Text)
 	if i := strings.IndexByte(line, '\n'); i >= 0 {
 		line = strings.TrimSpace(line[:i])
 	}

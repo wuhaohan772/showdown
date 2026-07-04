@@ -14,18 +14,18 @@ func WrapAsker(ask agent.Asker, l *Logger) agent.Asker {
 	if l == nil {
 		return ask
 	}
-	return func(ctx context.Context, prompt string) (string, error) {
+	return func(ctx context.Context, prompt string) (agent.Response, error) {
 		start := time.Now()
-		raw, err := ask(ctx, prompt)
+		resp, err := ask(ctx, prompt)
 		f := map[string]any{
 			"prompt":      prompt,
-			"raw":         raw,
+			"raw":         resp.Text,
 			"duration_ms": time.Since(start).Milliseconds(),
 		}
 		if err != nil {
 			f["error"] = err.Error()
 		}
 		l.Log("agent_call", f)
-		return raw, err
+		return resp, err
 	}
 }

@@ -18,8 +18,11 @@ func TestCustomAdapterViaEnv(t *testing.T) {
 	if err != nil {
 		t.Fatalf("ask: %v", err)
 	}
-	if !strings.Contains(out, `"action": "call"`) {
-		t.Errorf("out = %q", out)
+	if !strings.Contains(out.Text, `"action": "call"`) {
+		t.Errorf("out.Text = %q", out.Text)
+	}
+	if out.Usage != nil {
+		t.Errorf("custom adapter Usage = %+v, want nil", out.Usage)
 	}
 }
 
@@ -59,5 +62,38 @@ func TestWhitespaceCustomCmdFallsBack(t *testing.T) {
 		if a.Key == "custom" {
 			t.Errorf("whitespace-only SHOWDOWN_AGENT_CMD produced custom adapter")
 		}
+	}
+}
+
+func TestClaudeAdapterUsesJSONOutput(t *testing.T) {
+	for _, a := range knownAdapters {
+		if a.Key != "claude" {
+			continue
+		}
+		args := strings.Join(a.Args("PROMPT"), " ")
+		if !strings.Contains(args, "--output-format json") {
+			t.Errorf("claude args = %q, want --output-format json", args)
+		}
+		if a.Parse == nil {
+			t.Error("claude adapter must set Parse")
+		}
+		return
+	}
+	t.Fatal("no claude adapter in knownAdapters")
+}
+
+func TestAskerAppliesParse(t *testing.T) {
+	a := Adapter{Key: "x", Bin: "echo",
+		Args:  func(p string) []string { return []string{sampleEnvelope} },
+		Parse: ParseClaudeJSON}
+	resp, err := a.Asker(".", 10*time.Second)(context.Background(), "ignored")
+	if err != nil {
+		t.Fatalf("ask: %v", err)
+	}
+	if resp.Text != `{"action": "call"}` {
+		t.Errorf("Text = %q, want unwrapped result", resp.Text)
+	}
+	if resp.Usage == nil || resp.Usage.OutputTokens != 479 {
+		t.Errorf("Usage = %+v", resp.Usage)
 	}
 }

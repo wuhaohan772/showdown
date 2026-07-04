@@ -14,11 +14,13 @@ type Adapter struct {
 	DisplayName string
 	Bin         string
 	Args        func(prompt string) []string
+	Parse       func(raw string) Response // nil = plain-text output
 }
 
 var knownAdapters = []Adapter{
 	{Key: "claude", DisplayName: "Claude Code", Bin: "claude",
-		Args: func(p string) []string { return []string{"-p", p} }},
+		Args:  func(p string) []string { return []string{"-p", p, "--output-format", "json"} },
+		Parse: ParseClaudeJSON},
 	{Key: "codex", DisplayName: "Codex", Bin: "codex",
 		Args: func(p string) []string { return []string{"exec", p} }},
 	{Key: "gemini", DisplayName: "Gemini CLI", Bin: "gemini",
@@ -27,7 +29,7 @@ var knownAdapters = []Adapter{
 
 // Asker runs the CLI with cwd=dir so it loads its own memory files (ADR-0002).
 func (a Adapter) Asker(dir string, timeout time.Duration) Asker {
-	return func(ctx context.Context, prompt string) (string, error) {
+	return func(ctx context.Context, prompt string) (Response, error) {
 		cctx, cancel := context.WithTimeout(ctx, timeout)
 		defer cancel()
 		cmd := exec.CommandContext(cctx, a.Bin, a.Args(prompt)...)
@@ -39,9 +41,12 @@ func (a Adapter) Asker(dir string, timeout time.Duration) Asker {
 		cmd.WaitDelay = 5 * time.Second
 		out, err := cmd.Output()
 		if err != nil {
-			return "", err
+			return Response{}, err
 		}
-		return string(out), nil
+		if a.Parse != nil {
+			return a.Parse(string(out)), nil
+		}
+		return Response{Text: string(out)}, nil
 	}
 }
 

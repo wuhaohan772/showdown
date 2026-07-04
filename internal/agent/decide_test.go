@@ -53,9 +53,9 @@ func TestValidateDecision(t *testing.T) {
 
 func TestGetDecisionRetryThenFallback(t *testing.T) {
 	calls := 0
-	garbage := func(ctx context.Context, prompt string) (string, error) {
+	garbage := func(ctx context.Context, prompt string) (Response, error) {
 		calls++
-		return "I love poker!!!", nil
+		return Response{Text: "I love poker!!!"}, nil
 	}
 	a, _, fb := GetDecision(context.Background(), garbage, RequestData{}, legalFCR())
 	if !fb || a.Type != poker.Fold {
@@ -68,12 +68,12 @@ func TestGetDecisionRetryThenFallback(t *testing.T) {
 
 func TestGetDecisionRetrySucceeds(t *testing.T) {
 	calls := 0
-	flaky := func(ctx context.Context, prompt string) (string, error) {
+	flaky := func(ctx context.Context, prompt string) (Response, error) {
 		calls++
 		if calls == 1 {
-			return "hmm let me think", nil
+			return Response{Text: "hmm let me think"}, nil
 		}
-		return `{"action": "call", "say": "fine"}`, nil
+		return Response{Text: `{"action": "call", "say": "fine"}`}, nil
 	}
 	a, say, fb := GetDecision(context.Background(), flaky, RequestData{}, legalFCR())
 	if fb || a.Type != poker.Call || say != "fine" {
@@ -83,9 +83,9 @@ func TestGetDecisionRetrySucceeds(t *testing.T) {
 
 func TestGetDecisionErrorNoRetry(t *testing.T) {
 	calls := 0
-	dead := func(ctx context.Context, prompt string) (string, error) {
+	dead := func(ctx context.Context, prompt string) (Response, error) {
 		calls++
-		return "", errors.New("timeout")
+		return Response{}, errors.New("timeout")
 	}
 	a, _, fb := GetDecision(context.Background(), dead, RequestData{}, legalFCR())
 	if !fb || a.Type != poker.Fold || calls != 1 {
@@ -102,7 +102,7 @@ func TestFallbackPrefersCheck(t *testing.T) {
 
 func TestGetReactionRuneSafeTruncation(t *testing.T) {
 	long := strings.Repeat("a", 118) + "——中文" // multi-byte runes straddling the cap
-	ask := func(ctx context.Context, prompt string) (string, error) { return long, nil }
+	ask := func(ctx context.Context, prompt string) (Response, error) { return Response{Text: long}, nil }
 	got := GetReaction(context.Background(), ask, "X", "d", "s")
 	if !utf8.ValidString(got) {
 		t.Errorf("truncated reaction is invalid UTF-8: %q", got)

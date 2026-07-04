@@ -5,6 +5,8 @@ import (
 	"errors"
 	"path/filepath"
 	"testing"
+
+	"github.com/haohanwu/showdown/internal/agent"
 )
 
 func TestWrapAskerPassthroughAndLog(t *testing.T) {
@@ -13,12 +15,12 @@ func TestWrapAskerPassthroughAndLog(t *testing.T) {
 	if err != nil {
 		t.Fatalf("New: %v", err)
 	}
-	inner := func(ctx context.Context, prompt string) (string, error) {
-		return "reply:" + prompt, nil
+	inner := func(ctx context.Context, prompt string) (agent.Response, error) {
+		return agent.Response{Text: "reply:" + prompt}, nil
 	}
-	raw, err := WrapAsker(inner, l)(context.Background(), "hello")
-	if err != nil || raw != "reply:hello" {
-		t.Fatalf("passthrough = (%q, %v), want (reply:hello, nil)", raw, err)
+	resp, err := WrapAsker(inner, l)(context.Background(), "hello")
+	if err != nil || resp.Text != "reply:hello" {
+		t.Fatalf("passthrough = (%q, %v), want (reply:hello, nil)", resp.Text, err)
 	}
 	l.Close()
 
@@ -44,8 +46,8 @@ func TestWrapAskerLogsError(t *testing.T) {
 		t.Fatalf("New: %v", err)
 	}
 	boom := errors.New("exec failed")
-	inner := func(ctx context.Context, prompt string) (string, error) {
-		return "", boom
+	inner := func(ctx context.Context, prompt string) (agent.Response, error) {
+		return agent.Response{}, boom
 	}
 	_, err = WrapAsker(inner, l)(context.Background(), "p")
 	if !errors.Is(err, boom) {
@@ -60,11 +62,11 @@ func TestWrapAskerLogsError(t *testing.T) {
 }
 
 func TestWrapAskerNilLogger(t *testing.T) {
-	inner := func(ctx context.Context, prompt string) (string, error) {
-		return "ok", nil
+	inner := func(ctx context.Context, prompt string) (agent.Response, error) {
+		return agent.Response{Text: "ok"}, nil
 	}
-	raw, err := WrapAsker(inner, nil)(context.Background(), "p")
-	if err != nil || raw != "ok" {
-		t.Fatalf("nil-logger passthrough = (%q, %v), want (ok, nil)", raw, err)
+	resp, err := WrapAsker(inner, nil)(context.Background(), "p")
+	if err != nil || resp.Text != "ok" {
+		t.Fatalf("nil-logger passthrough = (%q, %v), want (ok, nil)", resp.Text, err)
 	}
 }
