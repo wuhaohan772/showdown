@@ -14,6 +14,7 @@ var promptTemplate string
 
 type RequestData struct {
 	AgentName    string
+	Personality  string
 	MatchDigest  string
 	HandState    string
 	TalkLog      string
@@ -25,6 +26,7 @@ type RequestData struct {
 func RenderPrompt(d RequestData) string {
 	r := strings.NewReplacer(
 		"{agent_name}", d.AgentName,
+		"{personality}", d.Personality,
 		"{match_digest}", d.MatchDigest,
 		"{hand_state}", d.HandState,
 		"{talk_log}", d.TalkLog,

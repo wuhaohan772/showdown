@@ -67,3 +67,19 @@ func TestDigestFlow(t *testing.T) {
 		t.Errorf("digest should keep hand summaries and old talk:\n%s", full)
 	}
 }
+
+func TestRenderPromptInjectsPersonality(t *testing.T) {
+	out := RenderPrompt(RequestData{
+		AgentName:   "Stub",
+		Personality: "PERSONA-MARKER: gracious, never curses",
+	})
+	if !strings.Contains(out, "PERSONA-MARKER: gracious, never curses") {
+		t.Error("rendered prompt missing personality text")
+	}
+	if !strings.Contains(out, "=== YOUR TABLE PERSONA ===") {
+		t.Error("rendered prompt missing persona section header")
+	}
+	if strings.Contains(out, "{personality}") {
+		t.Error("unsubstituted {personality} placeholder")
+	}
+}
