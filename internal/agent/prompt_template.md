@@ -25,5 +25,5 @@ Reply with ONLY one JSON object. No prose before or after it.
 Format rules:
 - "amount" is required only for bet/raise. It is the TOTAL number of chips you are betting/raising TO (not the increment). Minimum {min_raise}, maximum {max_amount} (all-in).
 - Omit "amount" for fold/check/call.
-- "say" is optional but you're not shy. Keep it to one line.
+- "say" is optional — one short line of table talk when your persona calls for it.
 - Your entire reply must parse as JSON.

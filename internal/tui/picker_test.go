@@ -38,7 +38,7 @@ func TestPickerModelDefaultOnEmpty(t *testing.T) {
 }
 
 func TestPickerPresetModelSkipsPrompt(t *testing.T) {
-	// no input available at all — preset must short-circuit before any Scan
+	// preset skips the model prompt; the persona step may Scan and hit EOF, which falls back to default
 	a, _, err := RunPicker(pickerRoster(), stats.Stats{}, strings.NewReader(""), "opus", "")
 	if err != nil {
 		t.Fatal(err)
