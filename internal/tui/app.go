@@ -198,11 +198,11 @@ func (m *Model) ensureSession() *agent.Session {
 	}
 	s, err := m.opp.StartSession(m.dir, decisionTimeout)
 	if err != nil {
-		m.log.Log("session_start_failed", map[string]any{"error": err.Error()})
+		m.log.Log("agent_session_start_failed", map[string]any{"error": err.Error()})
 		m.session = nil
 		return nil
 	}
-	m.log.Log("session_start", map[string]any{"restart": m.session != nil})
+	m.log.Log("agent_session_start", map[string]any{"restart": m.session != nil})
 	m.session = s
 	return s
 }
