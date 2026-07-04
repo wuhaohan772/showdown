@@ -4,54 +4,57 @@
 - cluster-only mode — file stats not available
 
 ## Summary
-- 446 nodes · 829 edges · 39 communities (23 shown, 16 thin omitted)
-- Extraction: 87% EXTRACTED · 13% INFERRED · 0% AMBIGUOUS · INFERRED: 104 edges (avg confidence: 0.81)
+- 456 nodes · 833 edges · 42 communities (26 shown, 16 thin omitted)
+- Extraction: 88% EXTRACTED · 12% INFERRED · 0% AMBIGUOUS · INFERRED: 96 edges (avg confidence: 0.81)
 - Token cost: 0 input · 0 output
 
 ## Graph Freshness
-- Built from commit: `6e76aaf7`
+- Built from commit: `9c4218b7`
 - Run `git rev-parse HEAD` and compare to check if the graph is stale.
 - Run `graphify update .` after code changes (no API cost).
 
 ## Community Hubs (Navigation)
-- [[_COMMUNITY_Hand|Hand]]
 - [[_COMMUNITY_Model|Model]]
 - [[_COMMUNITY_Card|Card]]
 - [[_COMMUNITY_app_test.go|app_test.go]]
 - [[_COMMUNITY_GetDecision|GetDecision]]
-- [[_COMMUNITY_Personality System|Personality System]]
+- [[_COMMUNITY_Hand|Hand]]
+- [[_COMMUNITY_hand_test.go|hand_test.go]]
+- [[_COMMUNITY_LoadPersonality|LoadPersonality]]
 - [[_COMMUNITY_adapter_test.go|adapter_test.go]]
 - [[_COMMUNITY_Logger|Logger]]
 - [[_COMMUNITY_Debug Transcript Log Design|Debug Transcript Log Design]]
 - [[_COMMUNITY_Decision Request|Decision Request]]
-- [[_COMMUNITY_LoadPersonality|LoadPersonality]]
+- [[_COMMUNITY_Personality System Implementation Plan|Personality System Implementation Plan]]
 - [[_COMMUNITY_Match|Match]]
-- [[_COMMUNITY_RunPicker|RunPicker]]
 - [[_COMMUNITY_Lean opponent sessions|Lean opponent sessions]]
 - [[_COMMUNITY_Load|Load]]
+- [[_COMMUNITY_Agent|Agent]]
 - [[_COMMUNITY_Usage|Usage]]
 - [[_COMMUNITY_RenderPrompt|RenderPrompt]]
 - [[_COMMUNITY_Usage Struct|Usage Struct]]
+- [[_COMMUNITY_pickerRoster|pickerRoster]]
 - [[_COMMUNITY_WrapAsker|WrapAsker]]
 - [[_COMMUNITY_Digest|Digest]]
 - [[_COMMUNITY_Key Hint Row|Key Hint Row]]
 - [[_COMMUNITY_run_spike.py|run_spike.py]]
 - [[_COMMUNITY_TokenCost Measurement + Model Choice Implementation Plan|Token/Cost Measurement + Model Choice Implementation Plan]]
 - [[_COMMUNITY_CLAUDE|CLAUDE.md]]
+- [[_COMMUNITY_Claude System Prompt Cache Constraint|Claude System Prompt Cache Constraint]]
 - [[_COMMUNITY_Claude Code persona|Claude Code persona]]
 - [[_COMMUNITY_stub.sh|stub.sh]]
 - [[_COMMUNITY_stub-agent.sh|stub-agent.sh]]
 - [[_COMMUNITY_Action|Action]]
 - [[_COMMUNITY_ActionType|ActionType]]
-- [[_COMMUNITY_Adapter|Adapter]]
 - [[_COMMUNITY_Roster|Roster]]
 - [[_COMMUNITY_Hand|Hand]]
 - [[_COMMUNITY_Logger|Logger]]
 - [[_COMMUNITY_Rand|Rand]]
+- [[_COMMUNITY_Adapter|Adapter]]
+- [[_COMMUNITY_T|T]]
 - [[_COMMUNITY_github.comhaohanwushowdown|github.com/haohanwu/showdown]]
 - [[_COMMUNITY_RequestData|RequestData]]
 - [[_COMMUNITY_Stats|Stats]]
-- [[_COMMUNITY_T|T]]
 - [[_COMMUNITY_Usage|Usage]]
 
 ## God Nodes (most connected - your core abstractions)
@@ -67,16 +70,16 @@
 10. `NewModel()` - 12 edges
 
 ## Surprising Connections (you probably didn't know these)
-- `main()` --calls--> `PersonalityPath()`  [INFERRED]
-  main.go → internal/agent/personality.go
 - `main()` --calls--> `NewModel()`  [INFERRED]
   main.go → internal/tui/app.go
+- `main()` --calls--> `PersonalityPath()`  [INFERRED]
+  main.go → internal/agent/personality.go
 - `main()` --calls--> `RunPicker()`  [INFERRED]
   main.go → internal/tui/picker.go
-- `Poker Decision Template` --conceptually_related_to--> `Personality System`  [INFERRED]
-  internal/agent/prompt_template.md → README.md
 - `main()` --calls--> `LoadPersonality()`  [INFERRED]
   main.go → internal/agent/personality.go
+- `PersonalityCap Constant` --references--> `User Personality File`  [INFERRED]
+  docs/superpowers/plans/2026-07-04-personality-system.md → README.md
 
 ## Import Cycles
 - None detected.
@@ -90,59 +93,59 @@
 - **Decision Pipeline: Request → Decision → Action** — context_md_decision_request, context_md_decision, context_md_fallback_action [INFERRED 0.85]
 - **ADR Implementation in Code** — docs_adr_0001_stateless_decision_requests, docs_adr_0002_native_memory_loading, superpowers_sdd_task_9_report_get_decision, superpowers_sdd_task_10_brief_asker_method [INFERRED 0.75]
 
-## Communities (39 total, 16 thin omitted)
+## Communities (42 total, 16 thin omitted)
 
-### Community 0 - "Hand"
-Cohesion: 0.11
-Nodes (29): Rand, NewHand(), T, hasAction(), mustApply(), newTestHand(), TestAllInActorHasNoActions(), TestAllInCallRunsOutBoard() (+21 more)
-
-### Community 1 - "Model"
+### Community 0 - "Model"
 Cohesion: 0.10
 Nodes (27): Card, Cmd, Digest, agentHandSummary(), cardStrings(), Action, ActionType, Adapter (+19 more)
 
-### Community 2 - "Card"
+### Community 1 - "Card"
 Cohesion: 0.12
 Nodes (30): Rand, NewDeck(), ParseCard(), T, TestCardString(), TestDeckDeals52Unique(), TestDeckShuffled(), TestParseCardRoundTrip() (+22 more)
 
-### Community 3 - "app_test.go"
+### Community 2 - "app_test.go"
 Cohesion: 0.19
 Nodes (34): NewModel(), KeyMsg, T, key(), readLogEvents(), TestAgentDecisionLogged(), TestAgentDecisionMsgApplies(), TestAgentHandSummaryPerspective() (+26 more)
 
-### Community 4 - "GetDecision"
+### Community 3 - "GetDecision"
 Cohesion: 0.18
 Nodes (25): Asker, Decision, Context, ExtractDecision(), FallbackAction(), GetDecision(), GetReaction(), Action (+17 more)
 
-### Community 5 - "Personality System"
-Cohesion: 0.10
-Nodes (22): ADR-0003 Prompt Cache, Claude System Prompt Cache Constraint, LoadPersonality Function, main.go Integration, PersonalityCap Constant, personality.go File, PersonalityPath Function, Personality System Implementation Plan (+14 more)
+### Community 4 - "Hand"
+Cohesion: 0.18
+Nodes (7): Action, ActionType, Hand, LogItem, Result, SeatState, Street
 
-### Community 6 - "adapter_test.go"
+### Community 5 - "hand_test.go"
+Cohesion: 0.26
+Nodes (22): Rand, NewHand(), T, hasAction(), mustApply(), newTestHand(), TestAllInActorHasNoActions(), TestAllInCallRunsOutBoard() (+14 more)
+
+### Community 6 - "LoadPersonality"
+Cohesion: 0.16
+Nodes (17): loadFile(), LoadPersonality(), PersonalityPath(), PresetNames(), T, TestLoadPersonalityDefaultFileWins(), TestLoadPersonalityDefaultsToNeedler(), TestLoadPersonalityErrors() (+9 more)
+
+### Community 7 - "adapter_test.go"
 Cohesion: 0.18
 Nodes (16): Adapter, Asker, Duration, DetectRoster(), T, TestAskerAppliesEnv(), TestAskerAppliesParse(), TestAskerTimeout() (+8 more)
 
-### Community 7 - "Logger"
+### Community 8 - "Logger"
 Cohesion: 0.20
 Nodes (13): Logger, File, DefaultPath(), New(), T, readEvents(), TestDefaultPath(), TestLogAfterCloseIsNoop() (+5 more)
 
-### Community 8 - "Debug Transcript Log Design"
+### Community 9 - "Debug Transcript Log Design"
 Cohesion: 0.17
 Nodes (17): Debug Transcript Log Implementation Plan, Trash-Talk Echo & Phase Widening Implementation Plan, apply Helper, Bug Report Protocol, Debug Transcript Log Design, internal/debuglog Package, JSONL Format, Logger (+9 more)
 
-### Community 9 - "Decision Request"
+### Community 10 - "Decision Request"
 Cohesion: 0.15
 Nodes (16): Agent Adapter, Career Record, Decision, Decision Request, Fallback Action, Game, Hand-End Reaction, Match (+8 more)
 
-### Community 10 - "LoadPersonality"
-Cohesion: 0.23
-Nodes (13): loadFile(), LoadPersonality(), PersonalityPath(), PresetNames(), T, TestLoadPersonalityDefaultFileWins(), TestLoadPersonalityDefaultsToNeedler(), TestLoadPersonalityErrors() (+5 more)
+### Community 11 - "Personality System Implementation Plan"
+Cohesion: 0.13
+Nodes (16): LoadPersonality Function, main.go Integration, PersonalityCap Constant, personality.go File, PersonalityPath Function, Personality System Implementation Plan, PresetNames Function, Match-end Reaction Prompt (+8 more)
 
-### Community 11 - "Match"
+### Community 12 - "Match"
 Cohesion: 0.22
 Nodes (6): NewMatch(), T, TestBlindSchedule(), TestButtonAlternates(), TestNextHandAndBust(), Match
-
-### Community 12 - "RunPicker"
-Cohesion: 0.29
-Nodes (13): Adapter, Stats, RunPicker(), Adapter, T, pickerRoster(), TestPickerModelDefaultOnEmpty(), TestPickerModelSelection() (+5 more)
 
 ### Community 13 - "Lean opponent sessions"
 Cohesion: 0.15
@@ -152,40 +155,52 @@ Nodes (14): ADR-0003: Lean opponent sessions, Claude adapter, Codex adapters, Co
 Cohesion: 0.22
 Nodes (9): Load(), T, TestLine(), TestLineIncludesCost(), TestLoadMissingFileIsEmpty(), TestRecordUsageRoundTrip(), TestSaveLoadRoundTrip(), Record (+1 more)
 
-### Community 15 - "Usage"
+### Community 15 - "Agent"
+Cohesion: 0.18
+Nodes (13): Action Field, Agent, Amount Field, Hand State, Hidden Information Doctrine, JSON Response Format, Legal Actions, Match Digest (+5 more)
+
+### Community 16 - "Usage"
 Cohesion: 0.24
 Nodes (8): claudeEnvelope, Response, Usage, ParseClaudeJSON(), T, TestParseClaudeJSON(), TestParseClaudeJSONMalformedFallsBackToRaw(), TestUsageAdd()
 
-### Community 16 - "RenderPrompt"
+### Community 17 - "RenderPrompt"
 Cohesion: 0.29
 Nodes (10): RequestData, BuildHandState(), Hand, RenderPrompt(), T, TestBuildHandState(), TestBuildHandStatePerspectiveIndependentOfActor(), TestDigestFlow() (+2 more)
 
-### Community 17 - "Usage Struct"
+### Community 18 - "Usage Struct"
 Cohesion: 0.23
 Nodes (12): Adapter Struct, Asker Type, Claude CLI, Debug Log Usage, GetDecision Function, GetReaction Function, JSON Output Format, ParseClaudeJSON Function (+4 more)
 
-### Community 18 - "WrapAsker"
+### Community 19 - "pickerRoster"
+Cohesion: 0.44
+Nodes (9): Adapter, pickerRoster(), TestPickerModelDefaultOnEmpty(), TestPickerModelSelection(), TestPickerPersonalityDefaultOnEmpty(), TestPickerPersonalitySelection(), TestPickerPresetModelSkipsPrompt(), TestPickerPresetPersonalitySkipsPrompt() (+1 more)
+
+### Community 20 - "WrapAsker"
 Cohesion: 0.39
 Nodes (7): Logger, T, TestWrapAskerLogsError(), TestWrapAskerLogsUsage(), TestWrapAskerNilLogger(), TestWrapAskerPassthroughAndLog(), WrapAsker()
 
-### Community 20 - "Key Hint Row"
+### Community 22 - "Key Hint Row"
 Cohesion: 0.29
 Nodes (7): Key Hint Rows Implementation Plan, TestKeyHintRows, Banner Cleanup, Discoverability Gap, Key Hint Row, Phase Agent Turn Hint Case, Phase Hand End Hint Case
 
-### Community 21 - "run_spike.py"
+### Community 23 - "run_spike.py"
 Cohesion: 0.53
 Nodes (5): build_prompt(), extract_json(), main(), Find the last parseable JSON object with an 'action' key., run_one()
 
-### Community 22 - "Token/Cost Measurement + Model Choice Implementation Plan"
+### Community 24 - "Token/Cost Measurement + Model Choice Implementation Plan"
 Cohesion: 0.50
 Nodes (4): ADR-0001 Invariant, Model Choice, Token/Cost Measurement + Model Choice Implementation Plan, Token/Cost Measurement
 
-### Community 23 - "CLAUDE.md"
+### Community 25 - "CLAUDE.md"
 Cohesion: 0.67
 Nodes (3): ADR-0002, CLAUDE.md, Memory files
 
+### Community 26 - "Claude System Prompt Cache Constraint"
+Cohesion: 0.67
+Nodes (3): ADR-0003 Prompt Cache, Claude System Prompt Cache Constraint, Personality Template Slot
+
 ## Knowledge Gaps
-- **43 isolated node(s):** `github.com/haohanwu/showdown`, `stub.sh script`, `stub-agent.sh script`, `Game`, `Roster` (+38 more)
+- **50 isolated node(s):** `github.com/haohanwu/showdown`, `stub.sh script`, `stub-agent.sh script`, `Game`, `Roster` (+45 more)
   These have ≤1 connection - possible missing edges or undocumented components.
 - **16 thin communities (<3 nodes) omitted from report** — run `graphify query` to explore isolated nodes.
 
@@ -193,16 +208,16 @@ Nodes (3): ADR-0002, CLAUDE.md, Memory files
 _Questions this graph is uniquely positioned to answer:_
 
 - **Why does `Model` connect `Model` to `app_test.go`?**
-  _High betweenness centrality (0.053) - this node is a cross-community bridge._
+  _High betweenness centrality (0.044) - this node is a cross-community bridge._
 - **Why does `NewModel()` connect `app_test.go` to `Model`, `LoadPersonality`?**
-  _High betweenness centrality (0.045) - this node is a cross-community bridge._
-- **Why does `main()` connect `LoadPersonality` to `app_test.go`, `RunPicker`?**
-  _High betweenness centrality (0.040) - this node is a cross-community bridge._
+  _High betweenness centrality (0.031) - this node is a cross-community bridge._
+- **Why does `GetDecision()` connect `GetDecision` to `Model`, `RenderPrompt`?**
+  _High betweenness centrality (0.029) - this node is a cross-community bridge._
 - **What connects `github.com/haohanwu/showdown`, `stub.sh script`, `stub-agent.sh script` to the rest of the system?**
-  _50 weakly-connected nodes found - possible documentation gaps or missing edges._
-- **Should `Hand` be split into smaller, more focused modules?**
-  _Cohesion score 0.1147086031452359 - nodes in this community are weakly interconnected._
+  _57 weakly-connected nodes found - possible documentation gaps or missing edges._
 - **Should `Model` be split into smaller, more focused modules?**
   _Cohesion score 0.10188261351052048 - nodes in this community are weakly interconnected._
 - **Should `Card` be split into smaller, more focused modules?**
   _Cohesion score 0.11522048364153627 - nodes in this community are weakly interconnected._
+- **Should `Personality System Implementation Plan` be split into smaller, more focused modules?**
+  _Cohesion score 0.13333333333333333 - nodes in this community are weakly interconnected._
