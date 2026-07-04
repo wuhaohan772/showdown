@@ -4,12 +4,12 @@
 - cluster-only mode — file stats not available
 
 ## Summary
-- 416 nodes · 776 edges · 33 communities (20 shown, 13 thin omitted)
-- Extraction: 88% EXTRACTED · 12% INFERRED · 0% AMBIGUOUS · INFERRED: 92 edges (avg confidence: 0.81)
+- 420 nodes · 786 edges · 34 communities (20 shown, 14 thin omitted)
+- Extraction: 88% EXTRACTED · 12% INFERRED · 0% AMBIGUOUS · INFERRED: 95 edges (avg confidence: 0.81)
 - Token cost: 0 input · 0 output
 
 ## Graph Freshness
-- Built from commit: `07931880`
+- Built from commit: `5f9b2e2d`
 - Run `git rev-parse HEAD` and compare to check if the graph is stale.
 - Run `graphify update .` after code changes (no API cost).
 
@@ -37,28 +37,29 @@
 - [[_COMMUNITY_Claude Code persona|Claude Code persona]]
 - [[_COMMUNITY_stub.sh|stub.sh]]
 - [[_COMMUNITY_stub-agent.sh|stub-agent.sh]]
-- [[_COMMUNITY_Roster|Roster]]
-- [[_COMMUNITY_T|T]]
 - [[_COMMUNITY_Action|Action]]
 - [[_COMMUNITY_ActionType|ActionType]]
+- [[_COMMUNITY_Roster|Roster]]
+- [[_COMMUNITY_T|T]]
 - [[_COMMUNITY_Adapter|Adapter]]
 - [[_COMMUNITY_Logger|Logger]]
 - [[_COMMUNITY_Rand|Rand]]
 - [[_COMMUNITY_T|T]]
 - [[_COMMUNITY_Adapter|Adapter]]
 - [[_COMMUNITY_github.comhaohanwushowdown|github.com/haohanwu/showdown]]
+- [[_COMMUNITY_Usage|Usage]]
 
 ## God Nodes (most connected - your core abstractions)
 1. `Model` - 28 edges
 2. `Hand` - 25 edges
-3. `testModel()` - 21 edges
-4. `NewHand()` - 18 edges
-5. `key()` - 18 edges
-6. `Card` - 15 edges
-7. `GetDecision()` - 15 edges
+3. `testModel()` - 23 edges
+4. `key()` - 19 edges
+5. `NewHand()` - 18 edges
+6. `GetDecision()` - 16 edges
+7. `Card` - 15 edges
 8. `mustApply()` - 13 edges
 9. `newTestHand()` - 12 edges
-10. `NewModel()` - 12 edges
+10. `Showdown` - 12 edges
 
 ## Surprising Connections (you probably didn't know these)
 - `main()` --calls--> `DefaultPath()`  [INFERRED]
@@ -84,7 +85,7 @@
 - **Decision Pipeline: Request → Decision → Action** — context_md_decision_request, context_md_decision, context_md_fallback_action [INFERRED 0.85]
 - **ADR Implementation in Code** — docs_adr_0001_stateless_decision_requests, docs_adr_0002_native_memory_loading, superpowers_sdd_task_9_report_get_decision, superpowers_sdd_task_10_brief_asker_method [INFERRED 0.75]
 
-## Communities (33 total, 13 thin omitted)
+## Communities (34 total, 14 thin omitted)
 
 ### Community 0 - "Hand"
 Cohesion: 0.11
@@ -92,11 +93,11 @@ Nodes (29): Rand, NewHand(), T, hasAction(), mustApply(), newTestHand(), TestAll
 
 ### Community 1 - "Model"
 Cohesion: 0.10
-Nodes (27): Action, ActionType, Adapter, Card, Cmd, Digest, Hand, cardStrings() (+19 more)
+Nodes (27): Adapter, Card, Cmd, Digest, Hand, cardStrings(), Action, ActionType (+19 more)
 
 ### Community 2 - "T"
-Cohesion: 0.16
-Nodes (37): TestAskerAppliesParse(), TestClaudeAdapterHasModelPresets(), TestClaudeAdapterLeanSession(), TestClaudeAdapterUsesJSONOutput(), TestCustomAdapterViaEnv(), TestKnownAdapterArgs(), NewModel(), KeyMsg (+29 more)
+Cohesion: 0.15
+Nodes (39): TestAskerAppliesParse(), TestClaudeAdapterHasModelPresets(), TestClaudeAdapterLeanSession(), TestClaudeAdapterUsesJSONOutput(), TestKnownAdapterArgs(), TestWhitespaceCustomCmdFallsBack(), NewModel(), KeyMsg (+31 more)
 
 ### Community 3 - "Card"
 Cohesion: 0.12
@@ -104,11 +105,11 @@ Nodes (30): Rand, NewDeck(), ParseCard(), T, TestCardString(), TestDeckDeals52Un
 
 ### Community 4 - "RunPicker"
 Cohesion: 0.09
-Nodes (26): Adapter, Asker, Duration, DetectRoster(), TestAskerTimeout(), TestWhitespaceCustomCmdFallsBack(), DefaultPath(), Load() (+18 more)
+Nodes (26): Adapter, Asker, Duration, DetectRoster(), TestAskerTimeout(), TestCustomAdapterViaEnv(), DefaultPath(), Load() (+18 more)
 
 ### Community 5 - "GetDecision"
 Cohesion: 0.18
-Nodes (24): Asker, Decision, Context, ExtractDecision(), FallbackAction(), GetDecision(), GetReaction(), Action (+16 more)
+Nodes (25): Asker, Decision, Context, ExtractDecision(), FallbackAction(), GetDecision(), GetReaction(), Action (+17 more)
 
 ### Community 6 - "Showdown"
 Cohesion: 0.11
@@ -169,22 +170,22 @@ Nodes (3): ADR-0002, CLAUDE.md, Memory files
 ## Knowledge Gaps
 - **46 isolated node(s):** `github.com/haohanwu/showdown`, `stub.sh script`, `stub-agent.sh script`, `Game`, `Roster` (+41 more)
   These have ≤1 connection - possible missing edges or undocumented components.
-- **13 thin communities (<3 nodes) omitted from report** — run `graphify query` to explore isolated nodes.
+- **14 thin communities (<3 nodes) omitted from report** — run `graphify query` to explore isolated nodes.
 
 ## Suggested Questions
 _Questions this graph is uniquely positioned to answer:_
 
-- **Why does `Hand` connect `Hand` to `Card`, `Digest`?**
-  _High betweenness centrality (0.032) - this node is a cross-community bridge._
-- **Why does `NewModel()` connect `T` to `Model`, `RunPicker`?**
-  _High betweenness centrality (0.031) - this node is a cross-community bridge._
 - **Why does `Model` connect `Model` to `T`?**
-  _High betweenness centrality (0.030) - this node is a cross-community bridge._
-- **Are the 12 inferred relationships involving `NewHand()` (e.g. with `TestBuildHandState()` and `TestBuildHandStatePerspectiveIndependentOfActor()`) actually correct?**
-  _`NewHand()` has 12 INFERRED edges - model-reasoned connections that need verification._
+  _High betweenness centrality (0.068) - this node is a cross-community bridge._
+- **Why does `NewModel()` connect `T` to `Model`, `RunPicker`?**
+  _High betweenness centrality (0.047) - this node is a cross-community bridge._
+- **Why does `main()` connect `RunPicker` to `T`?**
+  _High betweenness centrality (0.042) - this node is a cross-community bridge._
 - **What connects `github.com/haohanwu/showdown`, `stub.sh script`, `stub-agent.sh script` to the rest of the system?**
   _52 weakly-connected nodes found - possible documentation gaps or missing edges._
 - **Should `Hand` be split into smaller, more focused modules?**
   _Cohesion score 0.1147086031452359 - nodes in this community are weakly interconnected._
 - **Should `Model` be split into smaller, more focused modules?**
   _Cohesion score 0.10188261351052048 - nodes in this community are weakly interconnected._
+- **Should `Card` be split into smaller, more focused modules?**
+  _Cohesion score 0.11522048364153627 - nodes in this community are weakly interconnected._
