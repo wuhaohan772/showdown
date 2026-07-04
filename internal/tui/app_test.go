@@ -727,3 +727,27 @@ func TestDecisionPromptCarriesPersonality(t *testing.T) {
 		t.Error("prompt built without personality")
 	}
 }
+
+// The stub adapter has no SessionArgs, so the session path must stay
+// completely inert: no session created, decisions still work (covered by
+// existing tests), CloseSession safe.
+func TestNoSessionForStatelessAdapter(t *testing.T) {
+	m := testModel(t)
+	m2, _ := m.Update(startHandMsg{})
+	m = m2.(Model)
+	if m.session != nil {
+		t.Error("stateless adapter must not get a session")
+	}
+	m.CloseSession() // nil session: must not panic
+}
+
+func TestPendingHandResultsAccumulateAndCarrySummaries(t *testing.T) {
+	m := testModel(t)
+	m2, _ := m.Update(startHandMsg{})
+	m = m2.(Model)
+	m2, _ = m.Update(key("f")) // human folds, hand ends
+	m = m2.(Model)
+	if len(m.pendingResults) != 1 || !strings.Contains(m.pendingResults[0], "Hand 1:") {
+		t.Errorf("pendingResults = %v, want the hand 1 summary", m.pendingResults)
+	}
+}

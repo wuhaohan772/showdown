@@ -83,7 +83,10 @@ func main() {
 
 	dir, _ := os.Getwd()
 	m := tui.NewModel(opp, st, stats.DefaultPath(), useQuiet, dir, persona, dlog)
-	_, runErr := tea.NewProgram(m, tea.WithAltScreen()).Run()
+	final, runErr := tea.NewProgram(m, tea.WithAltScreen()).Run()
+	if fm, ok := final.(tui.Model); ok {
+		fm.CloseSession() // release the persistent opponent process, if any
+	}
 	// Closing here means an agent call still in flight when user quits no-ops
 	// its log write (write-after-close is a no-op); accepted tradeoff—never
 	// block exit on the log.

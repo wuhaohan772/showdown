@@ -75,6 +75,12 @@ type Model struct {
 	// renders m.hand (the just-finished hand), so it must keep using the seat
 	// mapping that was valid for that hand, not the next one.
 	finalHumanSeat int
+
+	// P2 persistent session (claude only; nil = stateless adapter or start
+	// failed). pendingResults are digest hand-summary lines not yet conveyed
+	// to the session — the next delta turn carries and clears them.
+	session        *agent.Session
+	pendingResults []string
 }
 
 func NewModel(opp agent.Adapter, st stats.Stats, statsPath string, quiet bool, dir, personality string, log *debuglog.Logger) Model {
@@ -147,12 +153,63 @@ func (m *Model) askAgentCmd() tea.Cmd {
 		MaxAmount:    m.hand.MaxRaiseTo(),
 	}
 	legal := m.hand.LegalActions()
-	ask := debuglog.WrapAsker(m.opp.Asker(m.dir, decisionTimeout), m.log)
+	full := agent.RenderPrompt(data)
+	prompt := full
+	ask := m.opp.Asker(m.dir, decisionTimeout)
+	if s := m.ensureSession(); s != nil {
+		if s.Primed() {
+			prompt = agent.RenderDelta(data, m.pendingResults)
+		} else {
+			// priming turn: the full render (with digest) IS the catch-up
+			s.MarkPrimed()
+		}
+		m.pendingResults = nil
+		stateless := ask
+		ask = func(ctx context.Context, p string) (agent.Response, error) {
+			if !s.Alive() {
+				return stateless(ctx, full)
+			}
+			resp, err := s.Ask(ctx, p)
+			if err != nil {
+				// session died mid-decision: same decision continues via a
+				// cold spawn with the full prompt (ADR-0001 — never stall).
+				return stateless(ctx, full)
+			}
+			return resp, nil
+		}
+	}
+	wrapped := debuglog.WrapAsker(ask, m.log)
 	return func() tea.Msg {
-		act, say, fb, u := agent.GetDecision(context.Background(), ask, data, legal)
+		act, say, fb, u := agent.GetDecisionPrompt(context.Background(), wrapped, prompt, data, legal)
 		return decisionMsg{act: act, say: say, fallback: fb, usage: u}
 	}
 }
+
+// ensureSession returns a live session, lazily (re)starting one for
+// session-capable adapters. One start attempt per call; on failure the
+// caller proceeds stateless and a later decision retries (spec: failure &
+// restart policy).
+func (m *Model) ensureSession() *agent.Session {
+	if m.session.Alive() {
+		return m.session
+	}
+	if !m.opp.SupportsSession() {
+		return nil
+	}
+	s, err := m.opp.StartSession(m.dir, decisionTimeout)
+	if err != nil {
+		m.log.Log("session_start_failed", map[string]any{"error": err.Error()})
+		m.session = nil
+		return nil
+	}
+	m.log.Log("session_start", map[string]any{"restart": m.session != nil})
+	m.session = s
+	return s
+}
+
+// CloseSession releases the opponent process; main calls it after the tea
+// program exits. Nil-safe.
+func (m Model) CloseSession() { m.session.Close() }
 
 func (m *Model) finishHand() tea.Cmd {
 	r := m.hand.Result()
@@ -175,7 +232,9 @@ func (m *Model) finishHand() tea.Cmd {
 	} else {
 		m.banner = fmt.Sprintf("%s wins %d (%s)", winnerName, r.Pot, how)
 	}
-	m.digest.EndHand(agentHandSummary(m.match.HandNum, r, r.Winner == m.agentSeat()))
+	summary := agentHandSummary(m.match.HandNum, r, r.Winner == m.agentSeat())
+	m.digest.EndHand(summary)
+	m.pendingResults = append(m.pendingResults, summary)
 	m.revealed = len(m.hand.Board)
 
 	// No per-hand reaction call: each was a full CLI spawn (ADR-0003 cost
@@ -237,12 +296,27 @@ func (m *Model) settleAndNext() tea.Cmd {
 			if m.match.Winner() == 1 {
 				outcome = "MATCH OVER: you WON the match. Your human is busted."
 			}
-			ask := debuglog.WrapAsker(m.opp.Asker(m.dir, decisionTimeout), m.log)
 			name, digest, persona := m.opp.DisplayName, m.digest.String(), m.personality
+			fullPrompt := agent.ReactionPrompt(name, persona, digest, outcome)
+			prompt := fullPrompt
+			ask := m.opp.Asker(m.dir, decisionTimeout)
+			if s := m.session; s.Alive() && s.Primed() {
+				// the session already knows the match; one short turn does it
+				prompt = outcome + "\nReact in ONE short line — gloat, whine, needle, whatever fits. Plain text only, no JSON, no quotes, one line."
+				stateless := ask
+				ask = func(ctx context.Context, p string) (agent.Response, error) {
+					resp, err := s.Ask(ctx, p)
+					if err != nil {
+						return stateless(ctx, fullPrompt)
+					}
+					return resp, nil
+				}
+			}
+			wrapped := debuglog.WrapAsker(ask, m.log)
 			// Late usage from this call is folded into stats by the
 			// reactionMsg handler (post-save re-save path).
 			return func() tea.Msg {
-				say, u := agent.GetReaction(context.Background(), ask, name, persona, digest, outcome)
+				say, u := agent.GetReactionPrompt(context.Background(), wrapped, prompt)
 				return reactionMsg{say: say, usage: u}
 			}
 		}

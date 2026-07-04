@@ -15,7 +15,7 @@ you choose your opponent. Force one with `--agent codex`. Pick the
 model with `--model haiku` (cheaper than the sonnet default, but its
 table talk garbles who-folded-what; sonnet keeps the trash talk honest). Pick a table persona with `--personality unhinged` (needler, unhinged, polite, silent, degen) or write your own at `~/.showdown/personality.md` (capped at 2,000 chars). Match
 cost shows on the match-over screen and accumulates in your career
-stats. Career cost counts completed matches only; the `--debug` transcript records every call's cost either way. Silence the table talk with `--quiet`. Debugging something? `--debug` (or
+stats. Claude opponents run as one persistent session per match (prompt-cache warm: ~10x cheaper and faster decisions than one-shot spawns); codex/gemini spawn per decision. Career cost counts completed matches only; the `--debug` transcript records every call's cost either way. Silence the table talk with `--quiet`. Debugging something? `--debug` (or
 `SHOWDOWN_DEBUG=1`) writes a full JSONL transcript — prompts, replies,
 every action — to `~/.showdown/`, path printed on exit.
 
