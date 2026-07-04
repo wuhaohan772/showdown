@@ -14,7 +14,7 @@ Detects `claude`, `codex`, and `gemini` on your PATH. Multiple found →
 you choose your opponent. Force one with `--agent codex`. Pick the
 model with `--model haiku` (cheaper and faster than the default). Match
 cost shows on the match-over screen and accumulates in your career
-stats. Silence the table talk with `--quiet`. Debugging something? `--debug` (or
+stats. Career cost counts completed matches only; the `--debug` transcript records every call's cost either way. Silence the table talk with `--quiet`. Debugging something? `--debug` (or
 `SHOWDOWN_DEBUG=1`) writes a full JSONL transcript — prompts, replies,
 every action — to `~/.showdown/`, path printed on exit.
 
