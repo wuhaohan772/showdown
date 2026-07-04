@@ -103,7 +103,7 @@ func TestFallbackPrefersCheck(t *testing.T) {
 func TestGetReactionRuneSafeTruncation(t *testing.T) {
 	long := strings.Repeat("a", 118) + "——中文" // multi-byte runes straddling the cap
 	ask := func(ctx context.Context, prompt string) (Response, error) { return Response{Text: long}, nil }
-	got, _ := GetReaction(context.Background(), ask, "X", "d", "s")
+	got, _ := GetReaction(context.Background(), ask, "X", "", "d", "s")
 	if !utf8.ValidString(got) {
 		t.Errorf("truncated reaction is invalid UTF-8: %q", got)
 	}
@@ -135,5 +135,12 @@ func TestGetDecisionNilUsageStaysNil(t *testing.T) {
 	_, _, _, used := GetDecision(context.Background(), plain, RequestData{}, legalFCR())
 	if used != nil {
 		t.Errorf("used = %+v, want nil for usage-less adapter", used)
+	}
+}
+
+func TestReactionPromptCarriesPersonality(t *testing.T) {
+	p := ReactionPrompt("Stub", "PERSONA-MARKER", "digest", "summary")
+	if !strings.Contains(p, "PERSONA-MARKER") {
+		t.Error("reaction prompt missing personality")
 	}
 }

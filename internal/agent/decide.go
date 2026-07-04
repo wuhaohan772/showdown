@@ -129,8 +129,11 @@ func GetDecision(ctx context.Context, ask Asker, data RequestData, legal []poker
 
 // ReactionPrompt asks for a one-liner (gloat, whine, needle) about what
 // just happened — fired once per match, at match end.
-func ReactionPrompt(agentName, digest, summary string) string {
+func ReactionPrompt(agentName, personality, digest, summary string) string {
 	return fmt.Sprintf(`You are %s, playing heads-up poker in the terminal against the human you work for every day.
+
+Your table persona:
+%s
 
 Match so far:
 %s
@@ -138,11 +141,11 @@ Match so far:
 What just happened:
 %s
 
-React in ONE short line — gloat, whine, needle, whatever fits. Plain text only, no JSON, no quotes, one line.`, agentName, digest, summary)
+React in ONE short line — gloat, whine, needle, whatever fits. Plain text only, no JSON, no quotes, one line.`, agentName, personality, digest, summary)
 }
 
-func GetReaction(ctx context.Context, ask Asker, agentName, digest, handSummary string) (string, *Usage) {
-	resp, err := ask(ctx, ReactionPrompt(agentName, digest, handSummary))
+func GetReaction(ctx context.Context, ask Asker, agentName, personality, digest, summary string) (string, *Usage) {
+	resp, err := ask(ctx, ReactionPrompt(agentName, personality, digest, summary))
 	if err != nil {
 		return "", resp.Usage
 	}

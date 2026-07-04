@@ -19,7 +19,7 @@ func testModel(t *testing.T) Model {
 	t.Helper()
 	ad := agent.Adapter{Key: "stub", DisplayName: "Stub", Bin: "true",
 		Args: func(m, p string) []string { return nil }}
-	return NewModel(ad, stats.Stats{}, t.TempDir()+"/stats.json", false, ".", nil)
+	return NewModel(ad, stats.Stats{}, t.TempDir()+"/stats.json", false, ".", "test-persona", nil)
 }
 
 func key(s string) tea.KeyMsg {
@@ -238,7 +238,7 @@ func TestSessionStartLogged(t *testing.T) {
 	}
 	ad := agent.Adapter{Key: "stub", DisplayName: "Stub", Bin: "true",
 		Args: func(m, p string) []string { return nil }}
-	NewModel(ad, stats.Stats{}, t.TempDir()+"/stats.json", true, ".", l)
+	NewModel(ad, stats.Stats{}, t.TempDir()+"/stats.json", true, ".", "", l)
 	l.Close()
 
 	evs := readLogEvents(t, path)
@@ -261,7 +261,7 @@ func TestDebugLogCapturesHandFlow(t *testing.T) {
 	}
 	ad := agent.Adapter{Key: "stub", DisplayName: "Stub", Bin: "true",
 		Args: func(m, p string) []string { return nil }}
-	m := NewModel(ad, stats.Stats{}, t.TempDir()+"/stats.json", true, ".", l)
+	m := NewModel(ad, stats.Stats{}, t.TempDir()+"/stats.json", true, ".", "", l)
 
 	m2, _ := m.Update(startHandMsg{})
 	m = m2.(Model)
@@ -329,7 +329,7 @@ func TestAgentDecisionLogged(t *testing.T) {
 	}
 	ad := agent.Adapter{Key: "stub", DisplayName: "Stub", Bin: "true",
 		Args: func(m, p string) []string { return nil }}
-	m := NewModel(ad, stats.Stats{}, t.TempDir()+"/stats.json", true, ".", l)
+	m := NewModel(ad, stats.Stats{}, t.TempDir()+"/stats.json", true, ".", "", l)
 
 	m2, _ := m.Update(startHandMsg{})
 	m = m2.(Model)
@@ -356,7 +356,7 @@ func TestAgentDecisionLogged(t *testing.T) {
 func TestFallbackNoticeVisibleInQuietMode(t *testing.T) {
 	ad := agent.Adapter{Key: "stub", DisplayName: "Stub", Bin: "true",
 		Args: func(m, p string) []string { return nil }}
-	m := NewModel(ad, stats.Stats{}, t.TempDir()+"/stats.json", true, ".", nil)
+	m := NewModel(ad, stats.Stats{}, t.TempDir()+"/stats.json", true, ".", "", nil)
 	m2, _ := m.Update(startHandMsg{})
 	m = m2.(Model)
 	m2, _ = m.Update(key("c")) // human limps; agent (BB) has the option
@@ -414,7 +414,7 @@ func TestTalkEchoRendersAndClearsNextHand(t *testing.T) {
 func TestTalkEchoHiddenInQuietMode(t *testing.T) {
 	ad := agent.Adapter{Key: "stub", DisplayName: "Stub", Bin: "true",
 		Args: func(m, p string) []string { return nil }}
-	m := NewModel(ad, stats.Stats{}, t.TempDir()+"/stats.json", true, ".", nil)
+	m := NewModel(ad, stats.Stats{}, t.TempDir()+"/stats.json", true, ".", "", nil)
 	m2, _ := m.Update(startHandMsg{})
 	m = m2.(Model)
 	m2, _ = m.Update(key("t"))
@@ -710,5 +710,20 @@ func TestMatchOverSavesAndShowsUsage(t *testing.T) {
 	r := saved["stub"]
 	if r.TokensIn != 1500 || r.TokensOut != 200 || r.CostUSD != 0.09 {
 		t.Errorf("saved record = %+v", r)
+	}
+}
+
+func TestDecisionPromptCarriesPersonality(t *testing.T) {
+	m := testModel(t)
+	m.personality = "PERSONA-MARKER"
+	m2, _ := m.Update(startHandMsg{})
+	m = m2.(Model)
+	// force the agent-turn path regardless of button position
+	data := agent.RequestData{
+		AgentName:   m.opp.DisplayName,
+		Personality: m.personality,
+	}
+	if !strings.Contains(agent.RenderPrompt(data), "PERSONA-MARKER") {
+		t.Error("prompt built without personality")
 	}
 }

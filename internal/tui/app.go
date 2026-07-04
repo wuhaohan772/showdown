@@ -46,13 +46,14 @@ type reactionMsg struct {
 type runoutTickMsg struct{}
 
 type Model struct {
-	opp       agent.Adapter
-	stats     stats.Stats
-	statsPath string
-	quiet     bool
-	dir       string
-	rng       *rand.Rand
-	log       *debuglog.Logger
+	opp         agent.Adapter
+	stats       stats.Stats
+	statsPath   string
+	quiet       bool
+	dir         string
+	personality string
+	rng         *rand.Rand
+	log         *debuglog.Logger
 
 	match  *poker.Match
 	hand   *poker.Hand
@@ -76,7 +77,7 @@ type Model struct {
 	finalHumanSeat int
 }
 
-func NewModel(opp agent.Adapter, st stats.Stats, statsPath string, quiet bool, dir string, log *debuglog.Logger) Model {
+func NewModel(opp agent.Adapter, st stats.Stats, statsPath string, quiet bool, dir, personality string, log *debuglog.Logger) Model {
 	in := textinput.New()
 	in.CharLimit = 120
 	sp := spinner.New(spinner.WithSpinner(spinner.Dot))
@@ -84,9 +85,11 @@ func NewModel(opp agent.Adapter, st stats.Stats, statsPath string, quiet bool, d
 	log.Log("session_start", map[string]any{
 		"agent_key": opp.Key, "agent_name": opp.DisplayName,
 		"model": opp.Model, "quiet": quiet, "dir": dir, "seed": seed,
+		"personality": personality,
 	})
 	return Model{
-		opp: opp, stats: st, statsPath: statsPath, quiet: quiet, dir: dir, log: log,
+		opp: opp, stats: st, statsPath: statsPath, quiet: quiet, dir: dir,
+		personality: personality, log: log,
 		rng:   rand.New(rand.NewSource(seed)),
 		match: poker.NewMatch(), digest: agent.NewDigest(),
 		input: in, spin: sp,
@@ -135,6 +138,7 @@ func (m *Model) askAgentCmd() tea.Cmd {
 	sb, bb := m.match.Blinds()
 	data := agent.RequestData{
 		AgentName:    m.opp.DisplayName,
+		Personality:  m.personality,
 		MatchDigest:  m.digest.String(),
 		HandState:    agent.BuildHandState(m.hand, m.agentSeat(), sb, bb),
 		TalkLog:      m.digest.HandTalk(),
@@ -234,11 +238,11 @@ func (m *Model) settleAndNext() tea.Cmd {
 				outcome = "MATCH OVER: you WON the match. Your human is busted."
 			}
 			ask := debuglog.WrapAsker(m.opp.Asker(m.dir, decisionTimeout), m.log)
-			name, digest := m.opp.DisplayName, m.digest.String()
+			name, digest, persona := m.opp.DisplayName, m.digest.String(), m.personality
 			// Late usage from this call is folded into stats by the
 			// reactionMsg handler (post-save re-save path).
 			return func() tea.Msg {
-				say, u := agent.GetReaction(context.Background(), ask, name, digest, outcome)
+				say, u := agent.GetReaction(context.Background(), ask, name, persona, digest, outcome)
 				return reactionMsg{say: say, usage: u}
 			}
 		}
