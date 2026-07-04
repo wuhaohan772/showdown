@@ -5,6 +5,7 @@ import (
 	"path/filepath"
 	"testing"
 
+	tea "github.com/charmbracelet/bubbletea"
 	"github.com/haohanwu/showdown/internal/agent"
 	"github.com/haohanwu/showdown/internal/stats"
 )
@@ -84,5 +85,104 @@ func TestMenuPersonaOptions(t *testing.T) {
 	m = newMenuModel(menuRoster(), stats.Stats{}, "", "/tmp/evil.md", false, f)
 	if m.personaOpts[m.personaIdx] != "/tmp/evil.md" {
 		t.Errorf("prefill persona = %q, want /tmp/evil.md", m.personaOpts[m.personaIdx])
+	}
+}
+
+func TestMenuNavigationAndCycling(t *testing.T) {
+	m := newMenuModel(menuRoster(), stats.Stats{}, "", "", false, noPersonaFile(t))
+
+	// focus moves down and clamps at the last row
+	for i := 0; i < 10; i++ {
+		v, _ := m.Update(key("j"))
+		m = v.(menuModel)
+	}
+	if m.focus != rowTalk {
+		t.Fatalf("focus = %d, want rowTalk (%d)", m.focus, rowTalk)
+	}
+	// talk row toggles
+	v, _ := m.Update(key("l"))
+	m = v.(menuModel)
+	if m.talkOn {
+		t.Error("cycling talk row should toggle talkOn to false")
+	}
+
+	// up clamps at the top
+	for i := 0; i < 10; i++ {
+		v, _ = m.Update(key("k"))
+		m = v.(menuModel)
+	}
+	if m.focus != rowOpponent {
+		t.Fatalf("focus = %d, want rowOpponent", m.focus)
+	}
+	// opponent cycles with wrap: right twice on a 2-roster wraps to start
+	v, _ = m.Update(key("l"))
+	m = v.(menuModel)
+	if m.oppIdx != 1 {
+		t.Fatalf("oppIdx = %d, want 1", m.oppIdx)
+	}
+	v, _ = m.Update(key("l"))
+	m = v.(menuModel)
+	if m.oppIdx != 0 {
+		t.Fatalf("oppIdx = %d, want 0 (wrap)", m.oppIdx)
+	}
+	// left from 0 wraps to end
+	v, _ = m.Update(key("h"))
+	m = v.(menuModel)
+	if m.oppIdx != 1 {
+		t.Fatalf("oppIdx = %d, want 1 (left wrap)", m.oppIdx)
+	}
+}
+
+func TestMenuModelResetsOnOpponentChange(t *testing.T) {
+	m := newMenuModel(menuRoster(), stats.Stats{}, "", "", false, noPersonaFile(t))
+	// focus model row, cycle to haiku
+	v, _ := m.Update(key("j"))
+	m = v.(menuModel)
+	v, _ = m.Update(key("l"))
+	m = v.(menuModel)
+	if got := m.modelOpts[0][m.modelIdx]; got != "haiku" {
+		t.Fatalf("selected model = %q, want haiku", got)
+	}
+	// switch opponent: model resets to that adapter's initial index
+	v, _ = m.Update(key("k"))
+	m = v.(menuModel)
+	v, _ = m.Update(key("l"))
+	m = v.(menuModel)
+	if m.modelIdx != m.modelInit[1] {
+		t.Errorf("modelIdx = %d, want reset to modelInit[1]=%d", m.modelIdx, m.modelInit[1])
+	}
+}
+
+func TestMenuEnterAndQuit(t *testing.T) {
+	m := newMenuModel(menuRoster(), stats.Stats{}, "", "", false, noPersonaFile(t))
+	v, cmd := m.Update(tea.KeyMsg{Type: tea.KeyEnter})
+	m = v.(menuModel)
+	if !m.entered || cmd == nil {
+		t.Error("enter should set entered and return tea.Quit")
+	}
+
+	m = newMenuModel(menuRoster(), stats.Stats{}, "", "", false, noPersonaFile(t))
+	v, cmd = m.Update(key("q"))
+	m = v.(menuModel)
+	if !m.quitted || cmd == nil {
+		t.Error("q should set quitted and return tea.Quit")
+	}
+}
+
+func TestMenuResult(t *testing.T) {
+	m := newMenuModel(menuRoster(), stats.Stats{}, "", "", false, noPersonaFile(t))
+	ad, persona, quiet := m.result()
+	if ad.Key != "claude" || ad.Model != "" || persona != "needler" || quiet {
+		t.Errorf("defaults: got key=%q model=%q persona=%q quiet=%v", ad.Key, ad.Model, persona, quiet)
+	}
+
+	f := filepath.Join(t.TempDir(), "personality.md")
+	if err := os.WriteFile(f, []byte("x"), 0o644); err != nil {
+		t.Fatal(err)
+	}
+	m = newMenuModel(menuRoster(), stats.Stats{}, "sonnet", "", true, f)
+	ad, persona, quiet = m.result()
+	if ad.Model != "sonnet" || persona != "" || !quiet {
+		t.Errorf("got model=%q persona=%q quiet=%v, want sonnet \"\" true", ad.Model, persona, quiet)
 	}
 }

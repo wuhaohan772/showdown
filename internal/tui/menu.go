@@ -3,6 +3,7 @@ package tui
 import (
 	"os"
 
+	tea "github.com/charmbracelet/bubbletea"
 	"github.com/haohanwu/showdown/internal/agent"
 	"github.com/haohanwu/showdown/internal/stats"
 )
@@ -85,4 +86,66 @@ func newMenuModel(roster []agent.Adapter, st stats.Stats, presetModel, presetPer
 		}
 	}
 	return m
+}
+
+func (m menuModel) Init() tea.Cmd { return nil }
+
+func (m menuModel) View() string { return "" }
+
+func (m menuModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
+	k, ok := msg.(tea.KeyMsg)
+	if !ok {
+		return m, nil
+	}
+	switch k.String() {
+	case "up", "k":
+		if m.focus > 0 {
+			m.focus--
+		}
+	case "down", "j":
+		if m.focus < rowCount-1 {
+			m.focus++
+		}
+	case "left", "h":
+		m.cycle(-1)
+	case "right", "l":
+		m.cycle(1)
+	case "enter":
+		m.entered = true
+		return m, tea.Quit
+	case "q", "ctrl+c":
+		m.quitted = true
+		return m, tea.Quit
+	}
+	return m, nil
+}
+
+// cycle moves the focused row's value by d, wrapping.
+func (m *menuModel) cycle(d int) {
+	wrap := func(i, n int) int { return ((i+d)%n + n) % n }
+	switch m.focus {
+	case rowOpponent:
+		m.oppIdx = wrap(m.oppIdx, len(m.roster))
+		m.modelIdx = m.modelInit[m.oppIdx]
+	case rowModel:
+		m.modelIdx = wrap(m.modelIdx, len(m.modelOpts[m.oppIdx]))
+	case rowPersona:
+		m.personaIdx = wrap(m.personaIdx, len(m.personaOpts))
+	case rowTalk:
+		m.talkOn = !m.talkOn
+	}
+}
+
+// result maps menu selections back to the values main expects: "(default)"
+// model → "", "custom" persona → "" (LoadPersonality's file-first default).
+func (m menuModel) result() (agent.Adapter, string, bool) {
+	ad := m.roster[m.oppIdx]
+	if sel := m.modelOpts[m.oppIdx][m.modelIdx]; sel != menuDefaultModel {
+		ad.Model = sel
+	}
+	persona := m.personaOpts[m.personaIdx]
+	if persona == menuCustomPersona {
+		persona = ""
+	}
+	return ad, persona, !m.talkOn
 }
