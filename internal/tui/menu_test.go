@@ -3,6 +3,7 @@ package tui
 import (
 	"os"
 	"path/filepath"
+	"strings"
 	"testing"
 
 	tea "github.com/charmbracelet/bubbletea"
@@ -184,5 +185,39 @@ func TestMenuResult(t *testing.T) {
 	ad, persona, quiet = m.result()
 	if ad.Model != "sonnet" || persona != "" || !quiet {
 		t.Errorf("got model=%q persona=%q quiet=%v, want sonnet \"\" true", ad.Model, persona, quiet)
+	}
+}
+
+func TestMenuView(t *testing.T) {
+	st := stats.Stats{"claude": {Wins: 2, Losses: 1}}
+	m := newMenuModel(menuRoster(), st, "", "", false, noPersonaFile(t))
+	v := stripANSI(m.View())
+
+	for _, want := range []string{
+		"♠ SHOWDOWN",
+		"◀ Claude Code ▶", // focused row wears the arrows
+		"vs claude: 2–1",  // stats line for the selected opponent
+		"needler",
+		"on",
+		"[ enter ] deal me in",
+		"[ q ] quit",
+	} {
+		if !strings.Contains(v, want) {
+			t.Errorf("view missing %q\n%s", want, v)
+		}
+	}
+	if strings.Contains(v, "◀ (default) ▶") {
+		t.Error("unfocused model row should not wear arrows")
+	}
+
+	// focus the model row: arrows move
+	u, _ := m.Update(key("j"))
+	m = u.(menuModel)
+	v = stripANSI(m.View())
+	if !strings.Contains(v, "◀ (default) ▶") {
+		t.Errorf("focused model row should wear arrows\n%s", v)
+	}
+	if strings.Contains(v, "◀ Claude Code ▶") {
+		t.Error("unfocused opponent row should not wear arrows")
 	}
 }

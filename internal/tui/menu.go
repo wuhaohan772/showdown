@@ -1,9 +1,12 @@
 package tui
 
 import (
+	"fmt"
 	"os"
+	"strings"
 
 	tea "github.com/charmbracelet/bubbletea"
+	"github.com/charmbracelet/lipgloss"
 	"github.com/haohanwu/showdown/internal/agent"
 	"github.com/haohanwu/showdown/internal/stats"
 )
@@ -90,7 +93,37 @@ func newMenuModel(roster []agent.Adapter, st stats.Stats, presetModel, presetPer
 
 func (m menuModel) Init() tea.Cmd { return nil }
 
-func (m menuModel) View() string { return "" }
+var menuDim = lipgloss.NewStyle().Foreground(lipgloss.Color("8"))
+
+func (m menuModel) View() string {
+	talk := "on"
+	if !m.talkOn {
+		talk = "off"
+	}
+	vals := [rowCount]string{
+		rowOpponent: m.roster[m.oppIdx].DisplayName,
+		rowModel:    m.modelOpts[m.oppIdx][m.modelIdx],
+		rowPersona:  m.personaOpts[m.personaIdx],
+		rowTalk:     talk,
+	}
+	labels := [rowCount]string{"opponent", "model", "persona", "table talk"}
+
+	var b strings.Builder
+	b.WriteString("♠ SHOWDOWN\n\n")
+	for r := 0; r < rowCount; r++ {
+		val := "  " + vals[r]
+		if r == m.focus {
+			val = "◀ " + vals[r] + " ▶"
+		}
+		line := fmt.Sprintf("  %-12s %s", labels[r], val)
+		if r == rowOpponent {
+			line += menuDim.Render("      " + m.st.Line(m.roster[m.oppIdx].Key))
+		}
+		b.WriteString(line + "\n")
+	}
+	b.WriteString("\n" + menuDim.Render("  [ enter ] deal me in    [ q ] quit") + "\n")
+	return b.String()
+}
 
 func (m menuModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 	k, ok := msg.(tea.KeyMsg)
