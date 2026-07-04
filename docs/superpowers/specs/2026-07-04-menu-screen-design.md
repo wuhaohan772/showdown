@@ -24,8 +24,10 @@ Fewest keystrokes to a match: arrow to what you want, enter to deal.
 
 ## Architecture
 
-Separate bubbletea program, inline (no alt-screen), run before the
-game program starts. New file `internal/tui/menu.go`:
+Separate bubbletea program, alt-screen (matching the game program, so
+menu → game reads as one full-screen session; revised 2026-07-04 from
+inline after live feedback), run before the game program starts. New
+file `internal/tui/menu.go`:
 
 ```go
 func RunMenu(roster []agent.Adapter, st stats.Stats,
