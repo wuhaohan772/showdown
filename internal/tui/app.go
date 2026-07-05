@@ -155,7 +155,8 @@ func (m *Model) askAgentCmd() tea.Cmd {
 	legal := m.hand.LegalActions()
 	full := agent.RenderPrompt(data)
 	prompt := full
-	ask := m.opp.Asker(m.dir, decisionTimeout)
+	stateless := m.opp.Asker(m.dir, decisionTimeout)
+	var ask agent.Asker
 	if s := m.ensureSession(); s != nil {
 		if s.Primed() {
 			prompt = agent.RenderDelta(data, m.pendingResults)
@@ -164,23 +165,29 @@ func (m *Model) askAgentCmd() tea.Cmd {
 			s.MarkPrimed()
 		}
 		m.pendingResults = nil
-		stateless := ask
+		// Wrap each leaf asker individually so the transcript records the
+		// prompt that was actually sent (Fix 2): the session asker gets the
+		// delta and the stateless asker gets the full prompt — wrapping the
+		// composite would log the delta even on a stateless fallback.
+		wrappedSession := debuglog.WrapAsker(s.Asker(), m.log)
+		wrappedStateless := debuglog.WrapAsker(stateless, m.log)
 		ask = func(ctx context.Context, p string) (agent.Response, error) {
 			if !s.Alive() {
-				return stateless(ctx, full)
+				return wrappedStateless(ctx, full)
 			}
-			resp, err := s.Ask(ctx, p)
+			resp, err := wrappedSession(ctx, p)
 			if err != nil {
 				// session died mid-decision: same decision continues via a
 				// cold spawn with the full prompt (ADR-0001 — never stall).
-				return stateless(ctx, full)
+				return wrappedStateless(ctx, full)
 			}
 			return resp, nil
 		}
+	} else {
+		ask = debuglog.WrapAsker(stateless, m.log)
 	}
-	wrapped := debuglog.WrapAsker(ask, m.log)
 	return func() tea.Msg {
-		act, say, fb, u := agent.GetDecisionPrompt(context.Background(), wrapped, prompt, data, legal)
+		act, say, fb, u := agent.GetDecisionPrompt(context.Background(), ask, prompt, data, legal)
 		return decisionMsg{act: act, say: say, fallback: fb, usage: u}
 	}
 }
@@ -299,24 +306,28 @@ func (m *Model) settleAndNext() tea.Cmd {
 			name, digest, persona := m.opp.DisplayName, m.digest.String(), m.personality
 			fullPrompt := agent.ReactionPrompt(name, persona, digest, outcome)
 			prompt := fullPrompt
-			ask := m.opp.Asker(m.dir, decisionTimeout)
+			stateless := m.opp.Asker(m.dir, decisionTimeout)
+			var ask agent.Asker
 			if s := m.session; s.Alive() && s.Primed() {
 				// the session already knows the match; one short turn does it
 				prompt = outcome + "\nReact in ONE short line — gloat, whine, needle, whatever fits. Plain text only, no JSON, no quotes, one line."
-				stateless := ask
+				// Wrap each leaf individually (same Fix-2 rationale as askAgentCmd).
+				wrappedSession := debuglog.WrapAsker(s.Asker(), m.log)
+				wrappedStateless := debuglog.WrapAsker(stateless, m.log)
 				ask = func(ctx context.Context, p string) (agent.Response, error) {
-					resp, err := s.Ask(ctx, p)
+					resp, err := wrappedSession(ctx, p)
 					if err != nil {
-						return stateless(ctx, fullPrompt)
+						return wrappedStateless(ctx, fullPrompt)
 					}
 					return resp, nil
 				}
+			} else {
+				ask = debuglog.WrapAsker(stateless, m.log)
 			}
-			wrapped := debuglog.WrapAsker(ask, m.log)
 			// Late usage from this call is folded into stats by the
 			// reactionMsg handler (post-save re-save path).
 			return func() tea.Msg {
-				say, u := agent.GetReactionPrompt(context.Background(), wrapped, prompt)
+				say, u := agent.GetReactionPrompt(context.Background(), ask, prompt)
 				return reactionMsg{say: say, usage: u}
 			}
 		}
