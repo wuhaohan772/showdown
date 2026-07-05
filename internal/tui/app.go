@@ -309,8 +309,10 @@ func (m *Model) settleAndNext() tea.Cmd {
 			stateless := m.opp.Asker(m.dir, decisionTimeout)
 			var ask agent.Asker
 			if s := m.session; s.Alive() && s.Primed() {
-				// the session already knows the match; one short turn does it
-				prompt = outcome + "\nReact in ONE short line — gloat, whine, needle, whatever fits. Plain text only, no JSON, no quotes, one line."
+				// the session already knows the match; one short turn does it.
+				// Prepend any pending hand summaries not yet seen by the session
+				// so it has the final hand context before reacting.
+				prompt = strings.Join(append(append([]string{}, m.pendingResults...), outcome), "\n") + "\nReact in ONE short line — gloat, whine, needle, whatever fits. Plain text only, no JSON, no quotes, one line."
 				// Wrap each leaf individually (same Fix-2 rationale as askAgentCmd).
 				wrappedSession := debuglog.WrapAsker(s.Asker(), m.log)
 				wrappedStateless := debuglog.WrapAsker(stateless, m.log)

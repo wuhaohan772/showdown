@@ -167,10 +167,16 @@ func TestGetReactionPromptUsesGivenPrompt(t *testing.T) {
 		if p != "REACT-PROMPT" {
 			t.Errorf("prompt = %q", p)
 		}
-		return Response{Text: "one line\nsecond"}, nil
+		return Response{
+			Text:  "one line\nsecond",
+			Usage: &Usage{InputTokens: 10, OutputTokens: 3, CostUSD: 0.001},
+		}, nil
 	}
-	line, _ := GetReactionPrompt(context.Background(), ask, "REACT-PROMPT")
+	line, u := GetReactionPrompt(context.Background(), ask, "REACT-PROMPT")
 	if line != "one line" {
 		t.Errorf("line = %q", line)
+	}
+	if u == nil || u.InputTokens != 10 || u.OutputTokens != 3 {
+		t.Errorf("usage = %+v, want InputTokens=10 OutputTokens=3", u)
 	}
 }

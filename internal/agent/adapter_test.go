@@ -183,7 +183,8 @@ func TestClaudeSessionArgs(t *testing.T) {
 	if !claude.SupportsSession() {
 		t.Fatal("claude must support sessions")
 	}
-	joined := strings.Join(claude.SessionArgs("sonnet"), " ")
+	args := claude.SessionArgs("sonnet")
+	joined := strings.Join(args, " ")
 	for _, w := range []string{
 		"-p", "--verbose",
 		"--input-format stream-json", "--output-format stream-json",
@@ -192,6 +193,22 @@ func TestClaudeSessionArgs(t *testing.T) {
 		if !strings.Contains(joined, w) {
 			t.Errorf("session args missing %q in %q", w, joined)
 		}
+	}
+	// The --system-prompt VALUE must be non-empty and match the prefix of
+	// claudeSystemPrompt so the prompt cache stays warm across turns.
+	sysIdx := -1
+	for i, a := range args {
+		if a == "--system-prompt" {
+			sysIdx = i
+			break
+		}
+	}
+	if sysIdx == -1 || sysIdx+1 >= len(args) {
+		t.Error("session args: --system-prompt flag not found or has no value")
+	} else if args[sysIdx+1] == "" {
+		t.Error("session args: --system-prompt value is empty")
+	} else if !strings.HasPrefix(args[sysIdx+1], "You are a poker") {
+		t.Errorf("session args: --system-prompt value = %q, want prefix matching claudeSystemPrompt", args[sysIdx+1])
 	}
 	if strings.Contains(strings.Join(claude.SessionArgs(""), " "), "--model") {
 		t.Error("empty model must not add --model")
