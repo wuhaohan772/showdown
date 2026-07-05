@@ -741,6 +741,169 @@ func TestNoSessionForStatelessAdapter(t *testing.T) {
 	m.CloseSession() // nil session: must not panic
 }
 
+// TestHelperFakeClaudeTUI is not a test: it is the fake claude CLI used by
+// TUI session-path tests (standard Go helper-process pattern — same as
+// TestHelperFakeClaude in session_test.go).  It reads JSONL user messages from
+// stdin and emits a call-decision result event for each one.
+func TestHelperFakeClaudeTUI(t *testing.T) {
+	if os.Getenv("GO_FAKECLAUDE_TUI") != "1" {
+		t.Skip("helper process")
+	}
+	sc := bufio.NewScanner(os.Stdin)
+	enc := json.NewEncoder(os.Stdout)
+	for sc.Scan() {
+		_ = enc.Encode(map[string]any{
+			"type": "result", "subtype": "success",
+			// result is a JSON string whose value is a valid decision object.
+			"result":         `{"action":"call"}`,
+			"total_cost_usd": 0.01,
+			"usage": map[string]any{
+				"input_tokens": 1, "output_tokens": 1,
+				"cache_read_input_tokens": 0, "cache_creation_input_tokens": 0,
+			},
+		})
+	}
+	os.Exit(0)
+}
+
+// sessionAdapter returns an Adapter whose session is backed by this test
+// binary (helper-process pattern).  The stateless fallback uses a no-op run
+// that exits immediately so it never blocks or pollutes the log.
+func sessionAdapter(t *testing.T) agent.Adapter {
+	t.Helper()
+	return agent.Adapter{
+		Key: "fake", DisplayName: "Fake", Bin: os.Args[0],
+		// Stateless fallback: run with a regex that matches nothing — exits fast.
+		Args:        func(m, p string) []string { return []string{"-test.run=^$"} },
+		SessionArgs: func(m string) []string { return []string{"-test.run=TestHelperFakeClaudeTUI"} },
+		Env:         []string{"GO_FAKECLAUDE_TUI=1"},
+	}
+}
+
+// TestSessionPrimingThenDelta verifies that the first agent decision sends the
+// full prompt (priming) while the second sends the compact delta: the session
+// path must not re-send "=== YOUR TABLE PERSONA ===" on every turn.
+//
+// askAgentCmd is called directly (not through Update) to avoid the implicit
+// session start that advance() would trigger on the agent's turn.
+func TestSessionPrimingThenDelta(t *testing.T) {
+	logPath := filepath.Join(t.TempDir(), "debug.jsonl")
+	l, err := debuglog.New(logPath)
+	if err != nil {
+		t.Fatalf("debuglog.New: %v", err)
+	}
+	ad := sessionAdapter(t)
+	m := NewModel(ad, stats.Stats{}, t.TempDir()+"/stats.json", true, ".", "PERSONA-MARKER", l)
+	m2, _ := m.Update(startHandMsg{})
+	m = m2.(Model)
+	// After startHandMsg it is human turn (no askAgentCmd fired yet) so
+	// m.session is nil — the first askAgentCmd call will start and prime it.
+	if m.session != nil {
+		t.Fatal("session must be nil before any agent decision")
+	}
+
+	// First decision: new session, priming turn — full prompt to the session.
+	cmd1 := m.askAgentCmd()
+	msg1 := cmd1()
+	if _, ok := msg1.(decisionMsg); !ok {
+		t.Fatalf("cmd1 returned %T, want decisionMsg", msg1)
+	}
+	if !m.session.Primed() {
+		t.Error("session should be primed after first decision")
+	}
+
+	// Second decision: same session, delta turn — compact prompt, no persona.
+	cmd2 := m.askAgentCmd()
+	msg2 := cmd2()
+	if _, ok := msg2.(decisionMsg); !ok {
+		t.Fatalf("cmd2 returned %T, want decisionMsg", msg2)
+	}
+
+	l.Close()
+
+	var agentCalls []map[string]any
+	for _, e := range readLogEvents(t, logPath) {
+		if e["event"] == "agent_call" {
+			agentCalls = append(agentCalls, e)
+		}
+	}
+	if len(agentCalls) < 2 {
+		t.Fatalf("want at least 2 agent_call log entries, got %d (fake script may not have responded)", len(agentCalls))
+	}
+	first := agentCalls[0]["prompt"].(string)
+	second := agentCalls[1]["prompt"].(string)
+	if !strings.Contains(first, "=== YOUR TABLE PERSONA ===") {
+		t.Error("first (priming) call must contain full prompt with persona section")
+	}
+	if strings.Contains(second, "=== YOUR TABLE PERSONA ===") {
+		t.Error("second (delta) call must NOT contain persona section")
+	}
+}
+
+// TestSessionRestartAfterDeath verifies that when a session is killed the next
+// decision starts a fresh session and re-primes with the full prompt.
+func TestSessionRestartAfterDeath(t *testing.T) {
+	logPath := filepath.Join(t.TempDir(), "debug.jsonl")
+	l, err := debuglog.New(logPath)
+	if err != nil {
+		t.Fatalf("debuglog.New: %v", err)
+	}
+	ad := sessionAdapter(t)
+	m := NewModel(ad, stats.Stats{}, t.TempDir()+"/stats.json", true, ".", "PERSONA-MARKER", l)
+	m2, _ := m.Update(startHandMsg{})
+	m = m2.(Model)
+
+	// First decision establishes the session (priming).
+	cmd1 := m.askAgentCmd()
+	_ = cmd1()
+	if m.session == nil || !m.session.Primed() {
+		t.Fatal("session must be alive and primed after first decision")
+	}
+
+	// Simulate session death (e.g. process crash or rate-limit kill).
+	m.session.Close()
+	if m.session.Alive() {
+		t.Fatal("session should be dead after Close")
+	}
+
+	// Second decision: ensureSession must restart and re-prime with full prompt.
+	cmd2 := m.askAgentCmd()
+	_ = cmd2()
+
+	l.Close()
+
+	var sessionStarts []map[string]any
+	var agentCalls []map[string]any
+	for _, e := range readLogEvents(t, logPath) {
+		switch e["event"] {
+		case "agent_session_start":
+			sessionStarts = append(sessionStarts, e)
+		case "agent_call":
+			agentCalls = append(agentCalls, e)
+		}
+	}
+	// Find the restart event (there may be no earlier starts since we called
+	// askAgentCmd directly without going through Update on a human turn).
+	var restartSeen bool
+	for _, e := range sessionStarts {
+		if e["restart"] == true {
+			restartSeen = true
+		}
+	}
+	if !restartSeen {
+		t.Errorf("want an agent_session_start with restart=true; got starts: %v", sessionStarts)
+	}
+	// After restart the priming turn re-sends the full prompt.
+	if len(agentCalls) < 2 {
+		t.Fatalf("want at least 2 agent_call events (one per decision), got %d", len(agentCalls))
+	}
+	// Find the post-restart agent_call: it should be the last one.
+	lastPrompt := agentCalls[len(agentCalls)-1]["prompt"].(string)
+	if !strings.Contains(lastPrompt, "=== YOUR TABLE PERSONA ===") {
+		t.Error("post-restart decision must re-prime with full prompt (persona section required)")
+	}
+}
+
 func TestPendingHandResultsAccumulateAndCarrySummaries(t *testing.T) {
 	m := testModel(t)
 	m2, _ := m.Update(startHandMsg{})
