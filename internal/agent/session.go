@@ -32,6 +32,8 @@ type Session struct {
 
 type streamResult struct {
 	Type         string  `json:"type"`
+	Subtype      string  `json:"subtype"`
+	IsError      bool    `json:"is_error"`
 	Result       string  `json:"result"`
 	TotalCostUSD float64 `json:"total_cost_usd"`
 	Usage        struct {
@@ -123,6 +125,13 @@ func (s *Session) Ask(ctx context.Context, prompt string) (Response, error) {
 		if !ok {
 			s.kill()
 			return Response{}, fmt.Errorf("session closed stream")
+		}
+		// Error result (e.g. rate limit, max turns): treat as fatal — the TUI's
+		// stateless fallback path will take over for this decision, and the
+		// session is dead for future decisions.
+		if r.IsError || (r.Subtype != "" && r.Subtype != "success") {
+			s.kill()
+			return Response{}, fmt.Errorf("session error result: subtype=%q is_error=%v", r.Subtype, r.IsError)
 		}
 		s.mu.Lock()
 		cost := r.TotalCostUSD - s.lastCost

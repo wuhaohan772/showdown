@@ -32,6 +32,17 @@ func TestHelperFakeClaude(t *testing.T) {
 			os.Exit(1)
 		case "hang":
 			time.Sleep(time.Minute)
+		case "error_result":
+			_ = out.Encode(map[string]any{
+				"type": "result", "subtype": "error_max_turns", "is_error": true,
+				"result": "", "total_cost_usd": 0.0,
+				"usage": map[string]any{
+					"input_tokens": 0, "output_tokens": 0,
+					"cache_read_input_tokens": 0, "cache_creation_input_tokens": 0,
+				},
+			})
+			// process stays alive; session.kill() will reap it
+			time.Sleep(time.Minute)
 		}
 		var in struct {
 			Message struct {
@@ -147,6 +158,21 @@ func TestSessionPrimedFlagAndNilClose(t *testing.T) {
 	nilS.Close() // must not panic
 	if nilS.Alive() {
 		t.Error("nil session is not alive")
+	}
+}
+
+func TestSessionErrorResultKills(t *testing.T) {
+	s := startFakeSession(t, "error_result", 5*time.Second)
+	_, err := s.Ask(context.Background(), "x")
+	if err == nil {
+		t.Fatal("Ask should error when the session returns an error result")
+	}
+	if s.Alive() {
+		t.Error("session must be dead after error result")
+	}
+	// second Ask must also error fast, not hang
+	if _, err := s.Ask(context.Background(), "y"); err == nil {
+		t.Error("Ask on dead session should error")
 	}
 }
 
