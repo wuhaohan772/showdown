@@ -44,6 +44,12 @@ type reactionMsg struct {
 	usage *agent.Usage
 }
 type runoutTickMsg struct{}
+type showSayMsg struct {
+	say string
+	seq int
+}
+
+const sayLingerDuration = 3 * time.Second
 
 type Model struct {
 	opp         agent.Adapter
@@ -69,6 +75,7 @@ type Model struct {
 	revealed     int
 	saved        bool
 	sessionUsage agent.Usage
+	saySeq       int // incremented each hand; stale showSayMsg ticks are ignored
 
 	// finalHumanSeat captures humanSeat() just before NextHand() advances
 	// HandNum (which flips ButtonPlayer/SeatOf). The match-over screen still
@@ -122,6 +129,7 @@ func (m *Model) startHand() tea.Cmd {
 	})
 	m.agentSay = ""
 	m.humanSay = ""
+	m.saySeq++
 	m.banner = fmt.Sprintf("hand %d — blinds %d/%d", m.match.HandNum, sb, bb)
 	m.revealed = 0
 	return m.advance()
@@ -358,9 +366,19 @@ func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 			// GetDecision guarantees legality; a failure here is a bug — force fallback.
 			_ = m.apply(agent.FallbackAction(m.hand.LegalActions()))
 		}
+		var lingerCmd tea.Cmd
 		if msg.say != "" && !m.quiet {
-			m.agentSay = msg.say
 			m.digest.AddTalk(m.opp.DisplayName, msg.say)
+			if m.agentSay == "" {
+				m.agentSay = msg.say
+			} else {
+				// Old say still visible — linger 3s before replacing.
+				seq := m.saySeq
+				say := msg.say
+				lingerCmd = tea.Tick(sayLingerDuration, func(time.Time) tea.Msg {
+					return showSayMsg{say: say, seq: seq}
+				})
+			}
 		}
 		if msg.fallback {
 			m.banner = "agent glitched — forced " + string(msg.act.Type)
@@ -372,7 +390,7 @@ func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 			m.talkReturn = m.phase
 			m.phase = phaseTalkInput
 		}
-		return m, cmd
+		return m, tea.Batch(cmd, lingerCmd)
 	case reactionMsg:
 		m.sessionUsage.Add(msg.usage)
 		if msg.usage != nil && m.phase == phaseMatchOver && m.saved {
@@ -384,6 +402,11 @@ func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 			_ = m.stats.Save(m.statsPath)
 		}
 		if msg.say != "" && !m.quiet {
+			m.agentSay = msg.say
+		}
+		return m, nil
+	case showSayMsg:
+		if msg.seq == m.saySeq {
 			m.agentSay = msg.say
 		}
 		return m, nil
