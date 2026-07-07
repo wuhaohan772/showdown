@@ -50,7 +50,7 @@ func TestBuildHandStatePerspectiveIndependentOfActor(t *testing.T) {
 }
 
 func TestDigestFlow(t *testing.T) {
-	d := NewDigest()
+	d := NewDigest(1500)
 	if d.HandTalk() != "(nothing said yet)" {
 		t.Errorf("empty talk = %q", d.HandTalk())
 	}
@@ -65,6 +65,13 @@ func TestDigestFlow(t *testing.T) {
 	full := d.String()
 	if !strings.Contains(full, "Hand 1:") || !strings.Contains(full, "you fold too much") {
 		t.Errorf("digest should keep hand summaries and old talk:\n%s", full)
+	}
+}
+
+func TestDigestFirstHandMessageUsesStartStack(t *testing.T) {
+	d := NewDigest(3000)
+	if !strings.Contains(d.String(), "Stacks even at 3000") {
+		t.Errorf("first-hand digest = %q, want mention of 3000", d.String())
 	}
 }
 
