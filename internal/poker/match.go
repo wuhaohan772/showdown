@@ -25,11 +25,12 @@ type Match struct {
 	Stacks  [2]int
 	HandNum int
 
-	levels [][2]int
+	levels    [][2]int
+	handLimit int // 0 = unlimited (bust-only); otherwise a hand cap
 }
 
-func NewMatch(startStack, startSB int) *Match {
-	return &Match{Stacks: [2]int{startStack, startStack}, HandNum: 1, levels: blindLevelsFor(startSB)}
+func NewMatch(startStack, startSB, handLimit int) *Match {
+	return &Match{Stacks: [2]int{startStack, startStack}, HandNum: 1, levels: blindLevelsFor(startSB), handLimit: handLimit}
 }
 
 func (m *Match) Blinds() (int, int) {
@@ -64,7 +65,20 @@ func (m *Match) NextHand(finalSeatStacks [2]int) {
 	m.HandNum++
 }
 
-func (m *Match) Over() bool { return m.Stacks[0] == 0 || m.Stacks[1] == 0 }
+// EndedByBust reports whether either player is out of chips. Distinguishes a
+// bust ending from a hand-limit ending so callers (e.g. the agent's
+// match-over reaction) can describe the true reason the match ended.
+func (m *Match) EndedByBust() bool { return m.Stacks[0] == 0 || m.Stacks[1] == 0 }
+
+// Over reports whether the match has ended: either someone busted, or the
+// hand limit (if set) has been reached with stacks no longer tied. Tied
+// stacks at the limit play on ("sudden death") until a hand breaks the tie.
+func (m *Match) Over() bool {
+	if m.EndedByBust() {
+		return true
+	}
+	return m.handLimit > 0 && m.HandNum-1 >= m.handLimit && m.Stacks[0] != m.Stacks[1]
+}
 
 func (m *Match) Winner() int {
 	switch {
@@ -72,6 +86,11 @@ func (m *Match) Winner() int {
 		return -1
 	case m.Stacks[0] == 0:
 		return 1
+	case m.Stacks[1] == 0:
+		return 0
+	case m.Stacks[0] > m.Stacks[1]:
+		return 0
+	default:
+		return 1
 	}
-	return 0
 }

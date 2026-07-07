@@ -104,7 +104,7 @@ func NewModel(opp agent.Adapter, st stats.Stats, statsPath string, quiet bool, d
 		opp: opp, stats: st, statsPath: statsPath, quiet: quiet, dir: dir,
 		personality: personality, log: log,
 		rng:   rand.New(rand.NewSource(seed)),
-		match: poker.NewMatch(startStack, startSB), digest: agent.NewDigest(startStack),
+		match: poker.NewMatch(startStack, startSB, 0), digest: agent.NewDigest(startStack), // TODO(Task 2): thread handLimit through here
 		input: in, spin: sp,
 	}
 }
