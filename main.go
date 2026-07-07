@@ -65,7 +65,7 @@ func main() {
 		}
 		personaArg = *personalityFlag
 	} else {
-		opp, personaArg, useQuiet, startStack, startSB, err = tui.RunMenu(roster, st, *modelFlag, *personalityFlag, *stackFlag, *blindFlag, *quiet)
+		opp, personaArg, useQuiet, startStack, startSB, _, err = tui.RunMenu(roster, st, *modelFlag, *personalityFlag, *stackFlag, *blindFlag, tui.DefaultHandLimit, *quiet)
 		if errors.Is(err, tui.ErrMenuQuit) {
 			os.Exit(0)
 		}

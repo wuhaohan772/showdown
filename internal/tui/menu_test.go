@@ -25,7 +25,7 @@ func noPersonaFile(t *testing.T) string {
 }
 
 func TestMenuModelOptions(t *testing.T) {
-	m := newMenuModel(menuRoster(), stats.Stats{}, "", "", DefaultStartStack, DefaultStartSB, false, noPersonaFile(t))
+	m := newMenuModel(menuRoster(), stats.Stats{}, "", "", DefaultStartStack, DefaultStartSB, DefaultHandLimit, false, noPersonaFile(t))
 	want := []string{"(default)", "haiku", "sonnet", "opus"}
 	if len(m.modelOpts[0]) != 4 {
 		t.Fatalf("claude modelOpts = %v, want %v", m.modelOpts[0], want)
@@ -45,7 +45,7 @@ func TestMenuModelOptions(t *testing.T) {
 
 func TestMenuModelPrefill(t *testing.T) {
 	// flag value in the Models list → selected
-	m := newMenuModel(menuRoster(), stats.Stats{}, "sonnet", "", DefaultStartStack, DefaultStartSB, true, noPersonaFile(t))
+	m := newMenuModel(menuRoster(), stats.Stats{}, "sonnet", "", DefaultStartStack, DefaultStartSB, DefaultHandLimit, true, noPersonaFile(t))
 	if m.modelOpts[0][m.modelIdx] != "sonnet" {
 		t.Errorf("selected model = %q, want sonnet", m.modelOpts[0][m.modelIdx])
 	}
@@ -53,7 +53,7 @@ func TestMenuModelPrefill(t *testing.T) {
 		t.Error("presetQuiet=true should start talkOn=false")
 	}
 	// flag value not in any list → appended verbatim everywhere
-	m = newMenuModel(menuRoster(), stats.Stats{}, "gpt-x", "", DefaultStartStack, DefaultStartSB, false, noPersonaFile(t))
+	m = newMenuModel(menuRoster(), stats.Stats{}, "gpt-x", "", DefaultStartStack, DefaultStartSB, DefaultHandLimit, false, noPersonaFile(t))
 	if got := m.modelOpts[0][m.modelInit[0]]; got != "gpt-x" {
 		t.Errorf("claude prefill = %q, want gpt-x", got)
 	}
@@ -64,7 +64,7 @@ func TestMenuModelPrefill(t *testing.T) {
 
 func TestMenuPersonaOptions(t *testing.T) {
 	// no user file: presets only, needler (index 0) selected
-	m := newMenuModel(menuRoster(), stats.Stats{}, "", "", DefaultStartStack, DefaultStartSB, false, noPersonaFile(t))
+	m := newMenuModel(menuRoster(), stats.Stats{}, "", "", DefaultStartStack, DefaultStartSB, DefaultHandLimit, false, noPersonaFile(t))
 	if m.personaOpts[0] != "needler" || m.personaIdx != 0 {
 		t.Errorf("personaOpts[0]=%q idx=%d, want needler 0", m.personaOpts[0], m.personaIdx)
 	}
@@ -73,24 +73,24 @@ func TestMenuPersonaOptions(t *testing.T) {
 	if err := os.WriteFile(f, []byte("be weird"), 0o644); err != nil {
 		t.Fatal(err)
 	}
-	m = newMenuModel(menuRoster(), stats.Stats{}, "", "", DefaultStartStack, DefaultStartSB, false, f)
+	m = newMenuModel(menuRoster(), stats.Stats{}, "", "", DefaultStartStack, DefaultStartSB, DefaultHandLimit, false, f)
 	if m.personaOpts[0] != menuCustomPersona || m.personaIdx != 0 {
 		t.Errorf("with file: personaOpts[0]=%q idx=%d, want custom 0", m.personaOpts[0], m.personaIdx)
 	}
 	// --personality preset name → selected
-	m = newMenuModel(menuRoster(), stats.Stats{}, "", "degen", DefaultStartStack, DefaultStartSB, false, f)
+	m = newMenuModel(menuRoster(), stats.Stats{}, "", "degen", DefaultStartStack, DefaultStartSB, DefaultHandLimit, false, f)
 	if m.personaOpts[m.personaIdx] != "degen" {
 		t.Errorf("prefill persona = %q, want degen", m.personaOpts[m.personaIdx])
 	}
 	// --personality path → appended verbatim and selected
-	m = newMenuModel(menuRoster(), stats.Stats{}, "", "/tmp/evil.md", DefaultStartStack, DefaultStartSB, false, f)
+	m = newMenuModel(menuRoster(), stats.Stats{}, "", "/tmp/evil.md", DefaultStartStack, DefaultStartSB, DefaultHandLimit, false, f)
 	if m.personaOpts[m.personaIdx] != "/tmp/evil.md" {
 		t.Errorf("prefill persona = %q, want /tmp/evil.md", m.personaOpts[m.personaIdx])
 	}
 }
 
 func TestMenuStackAndBlindOptions(t *testing.T) {
-	m := newMenuModel(menuRoster(), stats.Stats{}, "", "", DefaultStartStack, DefaultStartSB, false, noPersonaFile(t))
+	m := newMenuModel(menuRoster(), stats.Stats{}, "", "", DefaultStartStack, DefaultStartSB, DefaultHandLimit, false, noPersonaFile(t))
 	if got := m.stackOpts[m.stackIdx]; got != DefaultStartStack {
 		t.Errorf("default stack = %d, want %d", got, DefaultStartStack)
 	}
@@ -101,7 +101,7 @@ func TestMenuStackAndBlindOptions(t *testing.T) {
 
 func TestMenuStackAndBlindPrefill(t *testing.T) {
 	// values already in the preset lists → selected
-	m := newMenuModel(menuRoster(), stats.Stats{}, "", "", 3000, 25, false, noPersonaFile(t))
+	m := newMenuModel(menuRoster(), stats.Stats{}, "", "", 3000, 25, DefaultHandLimit, false, noPersonaFile(t))
 	if got := m.stackOpts[m.stackIdx]; got != 3000 {
 		t.Errorf("stack prefill = %d, want 3000", got)
 	}
@@ -109,7 +109,7 @@ func TestMenuStackAndBlindPrefill(t *testing.T) {
 		t.Errorf("blind prefill = %d, want 25", got)
 	}
 	// values not in the preset lists → appended verbatim and selected
-	m = newMenuModel(menuRoster(), stats.Stats{}, "", "", 1234, 7, false, noPersonaFile(t))
+	m = newMenuModel(menuRoster(), stats.Stats{}, "", "", 1234, 7, DefaultHandLimit, false, noPersonaFile(t))
 	if got := m.stackOpts[m.stackIdx]; got != 1234 {
 		t.Errorf("stack custom prefill = %d, want 1234", got)
 	}
@@ -118,8 +118,28 @@ func TestMenuStackAndBlindPrefill(t *testing.T) {
 	}
 }
 
+func TestMenuHandsOptions(t *testing.T) {
+	m := newMenuModel(menuRoster(), stats.Stats{}, "", "", DefaultStartStack, DefaultStartSB, DefaultHandLimit, false, noPersonaFile(t))
+	if got := m.handOpts[m.handIdx]; got != DefaultHandLimit {
+		t.Errorf("default hand limit = %d, want %d", got, DefaultHandLimit)
+	}
+}
+
+func TestMenuHandsPrefill(t *testing.T) {
+	// value already in the preset list → selected
+	m := newMenuModel(menuRoster(), stats.Stats{}, "", "", DefaultStartStack, DefaultStartSB, 25, false, noPersonaFile(t))
+	if got := m.handOpts[m.handIdx]; got != 25 {
+		t.Errorf("hands prefill = %d, want 25", got)
+	}
+	// value not in the preset list → appended verbatim and selected
+	m = newMenuModel(menuRoster(), stats.Stats{}, "", "", DefaultStartStack, DefaultStartSB, 17, false, noPersonaFile(t))
+	if got := m.handOpts[m.handIdx]; got != 17 {
+		t.Errorf("hands custom prefill = %d, want 17", got)
+	}
+}
+
 func TestMenuNavigationAndCycling(t *testing.T) {
-	m := newMenuModel(menuRoster(), stats.Stats{}, "", "", DefaultStartStack, DefaultStartSB, false, noPersonaFile(t))
+	m := newMenuModel(menuRoster(), stats.Stats{}, "", "", DefaultStartStack, DefaultStartSB, DefaultHandLimit, false, noPersonaFile(t))
 
 	// focus moves down and clamps at the last row
 	for i := 0; i < 10; i++ {
@@ -164,7 +184,7 @@ func TestMenuNavigationAndCycling(t *testing.T) {
 }
 
 func TestMenuStackAndBlindCycling(t *testing.T) {
-	m := newMenuModel(menuRoster(), stats.Stats{}, "", "", DefaultStartStack, DefaultStartSB, false, noPersonaFile(t))
+	m := newMenuModel(menuRoster(), stats.Stats{}, "", "", DefaultStartStack, DefaultStartSB, DefaultHandLimit, false, noPersonaFile(t))
 	// opponent -> model -> persona -> stack
 	for i := 0; i < 3; i++ {
 		v, _ := m.Update(key("j"))
@@ -194,8 +214,26 @@ func TestMenuStackAndBlindCycling(t *testing.T) {
 	}
 }
 
+func TestMenuHandsCycling(t *testing.T) {
+	m := newMenuModel(menuRoster(), stats.Stats{}, "", "", DefaultStartStack, DefaultStartSB, DefaultHandLimit, false, noPersonaFile(t))
+	// opponent -> model -> persona -> stack -> blind -> hands
+	for i := 0; i < 5; i++ {
+		v, _ := m.Update(key("j"))
+		m = v.(menuModel)
+	}
+	if m.focus != rowHands {
+		t.Fatalf("focus = %d, want rowHands (%d)", m.focus, rowHands)
+	}
+	before := m.handOpts[m.handIdx]
+	v, _ := m.Update(key("l"))
+	m = v.(menuModel)
+	if m.handOpts[m.handIdx] == before {
+		t.Error("cycling right on hands row should change the selected hand limit")
+	}
+}
+
 func TestMenuModelResetsOnOpponentChange(t *testing.T) {
-	m := newMenuModel(menuRoster(), stats.Stats{}, "", "", DefaultStartStack, DefaultStartSB, false, noPersonaFile(t))
+	m := newMenuModel(menuRoster(), stats.Stats{}, "", "", DefaultStartStack, DefaultStartSB, DefaultHandLimit, false, noPersonaFile(t))
 	// focus model row, cycle to haiku
 	v, _ := m.Update(key("j"))
 	m = v.(menuModel)
@@ -215,14 +253,14 @@ func TestMenuModelResetsOnOpponentChange(t *testing.T) {
 }
 
 func TestMenuEnterAndQuit(t *testing.T) {
-	m := newMenuModel(menuRoster(), stats.Stats{}, "", "", DefaultStartStack, DefaultStartSB, false, noPersonaFile(t))
+	m := newMenuModel(menuRoster(), stats.Stats{}, "", "", DefaultStartStack, DefaultStartSB, DefaultHandLimit, false, noPersonaFile(t))
 	v, cmd := m.Update(tea.KeyMsg{Type: tea.KeyEnter})
 	m = v.(menuModel)
 	if !m.entered || cmd == nil {
 		t.Error("enter should set entered and return tea.Quit")
 	}
 
-	m = newMenuModel(menuRoster(), stats.Stats{}, "", "", DefaultStartStack, DefaultStartSB, false, noPersonaFile(t))
+	m = newMenuModel(menuRoster(), stats.Stats{}, "", "", DefaultStartStack, DefaultStartSB, DefaultHandLimit, false, noPersonaFile(t))
 	v, cmd = m.Update(key("q"))
 	m = v.(menuModel)
 	if !m.quitted || cmd == nil {
@@ -231,28 +269,28 @@ func TestMenuEnterAndQuit(t *testing.T) {
 }
 
 func TestMenuResult(t *testing.T) {
-	m := newMenuModel(menuRoster(), stats.Stats{}, "", "", DefaultStartStack, DefaultStartSB, false, noPersonaFile(t))
-	ad, persona, quiet, stack, sb := m.result()
-	if ad.Key != "claude" || ad.Model != "" || persona != "needler" || quiet || stack != DefaultStartStack || sb != DefaultStartSB {
-		t.Errorf("defaults: got key=%q model=%q persona=%q quiet=%v stack=%d sb=%d",
-			ad.Key, ad.Model, persona, quiet, stack, sb)
+	m := newMenuModel(menuRoster(), stats.Stats{}, "", "", DefaultStartStack, DefaultStartSB, DefaultHandLimit, false, noPersonaFile(t))
+	ad, persona, quiet, stack, sb, hands := m.result()
+	if ad.Key != "claude" || ad.Model != "" || persona != "needler" || quiet || stack != DefaultStartStack || sb != DefaultStartSB || hands != DefaultHandLimit {
+		t.Errorf("defaults: got key=%q model=%q persona=%q quiet=%v stack=%d sb=%d hands=%d",
+			ad.Key, ad.Model, persona, quiet, stack, sb, hands)
 	}
 
 	f := filepath.Join(t.TempDir(), "personality.md")
 	if err := os.WriteFile(f, []byte("x"), 0o644); err != nil {
 		t.Fatal(err)
 	}
-	m = newMenuModel(menuRoster(), stats.Stats{}, "sonnet", "", 3000, 25, true, f)
-	ad, persona, quiet, stack, sb = m.result()
-	if ad.Model != "sonnet" || persona != "" || !quiet || stack != 3000 || sb != 25 {
-		t.Errorf("got model=%q persona=%q quiet=%v stack=%d sb=%d, want sonnet \"\" true 3000 25",
-			ad.Model, persona, quiet, stack, sb)
+	m = newMenuModel(menuRoster(), stats.Stats{}, "sonnet", "", 3000, 25, 50, true, f)
+	ad, persona, quiet, stack, sb, hands = m.result()
+	if ad.Model != "sonnet" || persona != "" || !quiet || stack != 3000 || sb != 25 || hands != 50 {
+		t.Errorf("got model=%q persona=%q quiet=%v stack=%d sb=%d hands=%d, want sonnet \"\" true 3000 25 50",
+			ad.Model, persona, quiet, stack, sb, hands)
 	}
 }
 
 func TestMenuView(t *testing.T) {
 	st := stats.Stats{"claude": {Wins: 2, Losses: 1}}
-	m := newMenuModel(menuRoster(), st, "", "", DefaultStartStack, DefaultStartSB, false, noPersonaFile(t))
+	m := newMenuModel(menuRoster(), st, "", "", DefaultStartStack, DefaultStartSB, DefaultHandLimit, false, noPersonaFile(t))
 	v := stripANSI(m.View())
 
 	for _, want := range []string{
@@ -262,6 +300,7 @@ func TestMenuView(t *testing.T) {
 		"needler",
 		"1500",
 		"10/20",
+		"unlimited",
 		"on",
 		"[ enter ] deal me in",
 		"[ q ] quit",
@@ -287,7 +326,7 @@ func TestMenuView(t *testing.T) {
 }
 
 func TestRunMenuEmptyRoster(t *testing.T) {
-	_, _, _, _, _, err := RunMenu(nil, stats.Stats{}, "", "", DefaultStartStack, DefaultStartSB, false)
+	_, _, _, _, _, _, err := RunMenu(nil, stats.Stats{}, "", "", DefaultStartStack, DefaultStartSB, DefaultHandLimit, false)
 	if err == nil || !strings.Contains(err.Error(), "no agent CLIs found on PATH") {
 		t.Errorf("err = %v, want no-agents error", err)
 	}

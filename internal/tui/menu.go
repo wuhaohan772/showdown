@@ -19,6 +19,7 @@ const (
 	rowPersona
 	rowStack
 	rowBlind
+	rowHands
 	rowTalk
 	rowCount
 )
@@ -27,19 +28,22 @@ const (
 	menuDefaultModel  = "(default)"
 	menuCustomPersona = "custom"
 
-	// DefaultStartStack and DefaultStartSB are the sit-and-go defaults. main
-	// uses these as --stack/--blind flag defaults, so "no flag passed" and
-	// "flag passed with today's default" land on the same preset row.
+	// DefaultStartStack, DefaultStartSB, and DefaultHandLimit are the
+	// sit-and-go defaults. main uses these as --stack/--blind/--hands flag
+	// defaults, so "no flag passed" and "flag passed with today's default"
+	// land on the same preset row.
 	DefaultStartStack = 1500
 	DefaultStartSB    = 10
+	DefaultHandLimit  = 0 // unlimited: play until someone busts
 )
 
 var defaultStackOpts = []int{500, 1000, 1500, 2000, 3000, 5000}
-var defaultBlindOpts = []int{5, 10, 25, 50} // small-blind presets; big blind is always 2x
+var defaultBlindOpts = []int{5, 10, 25, 50}     // small-blind presets; big blind is always 2x
+var defaultHandOpts = []int{0, 10, 25, 50, 100} // 0 = unlimited (bust-only)
 
 // menuModel is the pre-game dashboard: pick opponent/model/persona/stack/
-// blind/talk on one screen, enter to start. Replaces the old line-based
-// RunPicker.
+// blind/hands/talk on one screen, enter to start. Replaces the old
+// line-based RunPicker.
 type menuModel struct {
 	roster []agent.Adapter
 	st     stats.Stats
@@ -60,6 +64,9 @@ type menuModel struct {
 	blindOpts []int // small-blind presets; big blind is always 2x
 	blindIdx  int
 
+	handOpts []int // hand-limit presets; 0 = unlimited
+	handIdx  int
+
 	talkOn  bool
 	entered bool
 	quitted bool
@@ -67,7 +74,7 @@ type menuModel struct {
 
 // newMenuModel builds the dashboard state. personaFile gates the "custom"
 // persona entry (callers pass agent.PersonalityPath(); tests a temp path).
-func newMenuModel(roster []agent.Adapter, st stats.Stats, presetModel, presetPersonality string, presetStack, presetSB int, presetQuiet bool, personaFile string) menuModel {
+func newMenuModel(roster []agent.Adapter, st stats.Stats, presetModel, presetPersonality string, presetStack, presetSB, presetHands int, presetQuiet bool, personaFile string) menuModel {
 	m := menuModel{roster: roster, st: st, talkOn: !presetQuiet}
 
 	m.modelOpts = make([][]string, len(roster))
@@ -124,6 +131,14 @@ func newMenuModel(roster []agent.Adapter, st stats.Stats, presetModel, presetPer
 		m.blindIdx = len(m.blindOpts) - 1
 	}
 
+	m.handOpts = append([]int{}, defaultHandOpts...)
+	if idx := indexOfInt(m.handOpts, presetHands); idx >= 0 {
+		m.handIdx = idx
+	} else {
+		m.handOpts = append(m.handOpts, presetHands)
+		m.handIdx = len(m.handOpts) - 1
+	}
+
 	return m
 }
 
@@ -140,6 +155,15 @@ func (m menuModel) Init() tea.Cmd { return nil }
 
 var menuDim = lipgloss.NewStyle().Foreground(lipgloss.Color("8"))
 
+// handsLabel renders a hand-limit preset: 0 is "unlimited", otherwise the
+// bare hand count.
+func handsLabel(n int) string {
+	if n == 0 {
+		return "unlimited"
+	}
+	return fmt.Sprintf("%d", n)
+}
+
 func (m menuModel) View() string {
 	talk := "on"
 	if !m.talkOn {
@@ -152,9 +176,10 @@ func (m menuModel) View() string {
 		rowPersona:  m.personaOpts[m.personaIdx],
 		rowStack:    fmt.Sprintf("%d", m.stackOpts[m.stackIdx]),
 		rowBlind:    fmt.Sprintf("%d/%d", sb, sb*2),
+		rowHands:    handsLabel(m.handOpts[m.handIdx]),
 		rowTalk:     talk,
 	}
-	labels := [rowCount]string{"opponent", "model", "persona", "stack", "blind", "table talk"}
+	labels := [rowCount]string{"opponent", "model", "persona", "stack", "blind", "hands", "table talk"}
 
 	var b strings.Builder
 	b.WriteString("♠ SHOWDOWN\n\n")
@@ -216,6 +241,8 @@ func (m *menuModel) cycle(d int) {
 		m.stackIdx = wrap(m.stackIdx, len(m.stackOpts))
 	case rowBlind:
 		m.blindIdx = wrap(m.blindIdx, len(m.blindOpts))
+	case rowHands:
+		m.handIdx = wrap(m.handIdx, len(m.handOpts))
 	case rowTalk:
 		m.talkOn = !m.talkOn
 	}
@@ -223,7 +250,7 @@ func (m *menuModel) cycle(d int) {
 
 // result maps menu selections back to the values main expects: "(default)"
 // model → "", "custom" persona → "" (LoadPersonality's file-first default).
-func (m menuModel) result() (agent.Adapter, string, bool, int, int) {
+func (m menuModel) result() (agent.Adapter, string, bool, int, int, int) {
 	ad := m.roster[m.oppIdx]
 	if sel := m.modelOpts[m.oppIdx][m.modelIdx]; sel != menuDefaultModel {
 		ad.Model = sel
@@ -232,7 +259,7 @@ func (m menuModel) result() (agent.Adapter, string, bool, int, int) {
 	if persona == menuCustomPersona {
 		persona = ""
 	}
-	return ad, persona, !m.talkOn, m.stackOpts[m.stackIdx], m.blindOpts[m.blindIdx]
+	return ad, persona, !m.talkOn, m.stackOpts[m.stackIdx], m.blindOpts[m.blindIdx], m.handOpts[m.handIdx]
 }
 
 // ErrMenuQuit reports the user backed out of the menu; main exits 0 silently.
@@ -241,21 +268,22 @@ var ErrMenuQuit = errors.New("menu quit")
 // RunMenu shows the pre-game dashboard in the alt screen (same mode the
 // game runs in, so menu → game is one seamless full-screen session) and
 // blocks until the user starts a match or quits. Preset args come from
-// --model, --personality, --stack, --blind, --quiet and pre-fill their rows.
-// Returns (adapter, persona, quiet, startStack, startSmallBlind, err).
-func RunMenu(roster []agent.Adapter, st stats.Stats, presetModel, presetPersonality string, presetStack, presetSB int, presetQuiet bool) (agent.Adapter, string, bool, int, int, error) {
+// --model, --personality, --stack, --blind, --hands, --quiet and pre-fill
+// their rows. Returns (adapter, persona, quiet, startStack, startSmallBlind,
+// handLimit, err).
+func RunMenu(roster []agent.Adapter, st stats.Stats, presetModel, presetPersonality string, presetStack, presetSB, presetHands int, presetQuiet bool) (agent.Adapter, string, bool, int, int, int, error) {
 	if len(roster) == 0 {
-		return agent.Adapter{}, "", false, 0, 0, errors.New("no agent CLIs found on PATH (looked for: claude, codex, gemini)")
+		return agent.Adapter{}, "", false, 0, 0, 0, errors.New("no agent CLIs found on PATH (looked for: claude, codex, gemini)")
 	}
-	m := newMenuModel(roster, st, presetModel, presetPersonality, presetStack, presetSB, presetQuiet, agent.PersonalityPath())
+	m := newMenuModel(roster, st, presetModel, presetPersonality, presetStack, presetSB, presetHands, presetQuiet, agent.PersonalityPath())
 	out, err := tea.NewProgram(m, tea.WithAltScreen()).Run()
 	if err != nil {
-		return agent.Adapter{}, "", false, 0, 0, err
+		return agent.Adapter{}, "", false, 0, 0, 0, err
 	}
 	final := out.(menuModel)
 	if final.quitted {
-		return agent.Adapter{}, "", false, 0, 0, ErrMenuQuit
+		return agent.Adapter{}, "", false, 0, 0, 0, ErrMenuQuit
 	}
-	ad, persona, quiet, stack, sb := final.result()
-	return ad, persona, quiet, stack, sb, nil
+	ad, persona, quiet, stack, sb, hands := final.result()
+	return ad, persona, quiet, stack, sb, hands, nil
 }
