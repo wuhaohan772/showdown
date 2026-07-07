@@ -18,6 +18,8 @@ func main() {
 	agentFlag := flag.String("agent", "", "opponent agent key (claude, codex, gemini)")
 	modelFlag := flag.String("model", "", "model for the agent CLI (claude: haiku/sonnet/opus; codex/gemini: passed through)")
 	personalityFlag := flag.String("personality", "", "table persona: preset name (needler, unhinged, polite, silent, degen) or path to a .md file; default ~/.showdown/personality.md if present, else needler")
+	stackFlag := flag.Int("stack", tui.DefaultStartStack, "starting chip stack per player")
+	blindFlag := flag.Int("blind", tui.DefaultStartSB, "starting small blind (big blind is always 2x)")
 	quiet := flag.Bool("quiet", false, "disable table talk")
 	debug := flag.Bool("debug", false, "write a JSONL debug transcript to ~/.showdown/")
 	flag.Parse()
@@ -43,6 +45,7 @@ func main() {
 	var opp agent.Adapter
 	var personaArg string
 	useQuiet := *quiet
+	startStack, startSB := *stackFlag, *blindFlag
 	if *agentFlag != "" {
 		if len(roster) == 0 {
 			fmt.Fprintln(os.Stderr, "no agent CLIs found on PATH (looked for: claude, codex, gemini)")
@@ -62,7 +65,7 @@ func main() {
 		}
 		personaArg = *personalityFlag
 	} else {
-		opp, personaArg, useQuiet, err = tui.RunMenu(roster, st, *modelFlag, *personalityFlag, *quiet)
+		opp, personaArg, useQuiet, startStack, startSB, err = tui.RunMenu(roster, st, *modelFlag, *personalityFlag, *stackFlag, *blindFlag, *quiet)
 		if errors.Is(err, tui.ErrMenuQuit) {
 			os.Exit(0)
 		}
@@ -82,8 +85,7 @@ func main() {
 	}
 
 	dir, _ := os.Getwd()
-	// TODO: thread configurable starting stack/blind flags through here (tracked separately).
-	m := tui.NewModel(opp, st, stats.DefaultPath(), useQuiet, dir, persona, 1500, 10, dlog)
+	m := tui.NewModel(opp, st, stats.DefaultPath(), useQuiet, dir, persona, startStack, startSB, dlog)
 	final, runErr := tea.NewProgram(m, tea.WithAltScreen()).Run()
 	if fm, ok := final.(tui.Model); ok {
 		fm.CloseSession() // release the persistent opponent process, if any
