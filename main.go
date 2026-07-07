@@ -20,6 +20,7 @@ func main() {
 	personalityFlag := flag.String("personality", "", "table persona: preset name (needler, unhinged, polite, silent, degen) or path to a .md file; default ~/.showdown/personality.md if present, else needler")
 	stackFlag := flag.Int("stack", tui.DefaultStartStack, "starting chip stack per player")
 	blindFlag := flag.Int("blind", tui.DefaultStartSB, "starting small blind (big blind is always 2x)")
+	handsFlag := flag.Int("hands", tui.DefaultHandLimit, "cap the match at this many hands (0 = unlimited, play until someone busts; tied stacks at the cap continue until untied)")
 	quiet := flag.Bool("quiet", false, "disable table talk")
 	debug := flag.Bool("debug", false, "write a JSONL debug transcript to ~/.showdown/")
 	flag.Parse()
@@ -45,7 +46,7 @@ func main() {
 	var opp agent.Adapter
 	var personaArg string
 	useQuiet := *quiet
-	startStack, startSB := *stackFlag, *blindFlag
+	startStack, startSB, handLimit := *stackFlag, *blindFlag, *handsFlag
 	if *agentFlag != "" {
 		if len(roster) == 0 {
 			fmt.Fprintln(os.Stderr, "no agent CLIs found on PATH (looked for: claude, codex, gemini)")
@@ -65,7 +66,7 @@ func main() {
 		}
 		personaArg = *personalityFlag
 	} else {
-		opp, personaArg, useQuiet, startStack, startSB, _, err = tui.RunMenu(roster, st, *modelFlag, *personalityFlag, *stackFlag, *blindFlag, tui.DefaultHandLimit, *quiet)
+		opp, personaArg, useQuiet, startStack, startSB, handLimit, err = tui.RunMenu(roster, st, *modelFlag, *personalityFlag, *stackFlag, *blindFlag, *handsFlag, *quiet)
 		if errors.Is(err, tui.ErrMenuQuit) {
 			os.Exit(0)
 		}
@@ -85,8 +86,7 @@ func main() {
 	}
 
 	dir, _ := os.Getwd()
-	// TODO: thread configurable --hands flag through here (tracked separately).
-	m := tui.NewModel(opp, st, stats.DefaultPath(), useQuiet, dir, persona, startStack, startSB, 0, dlog)
+	m := tui.NewModel(opp, st, stats.DefaultPath(), useQuiet, dir, persona, startStack, startSB, handLimit, dlog)
 	final, runErr := tea.NewProgram(m, tea.WithAltScreen()).Run()
 	if fm, ok := final.(tui.Model); ok {
 		fm.CloseSession() // release the persistent opponent process, if any
