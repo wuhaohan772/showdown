@@ -90,7 +90,7 @@ type Model struct {
 	pendingResults []string
 }
 
-func NewModel(opp agent.Adapter, st stats.Stats, statsPath string, quiet bool, dir, personality string, log *debuglog.Logger) Model {
+func NewModel(opp agent.Adapter, st stats.Stats, statsPath string, quiet bool, dir, personality string, startStack, startSB int, log *debuglog.Logger) Model {
 	in := textinput.New()
 	in.CharLimit = 120
 	sp := spinner.New(spinner.WithSpinner(spinner.Dot))
@@ -98,13 +98,13 @@ func NewModel(opp agent.Adapter, st stats.Stats, statsPath string, quiet bool, d
 	log.Log("session_start", map[string]any{
 		"agent_key": opp.Key, "agent_name": opp.DisplayName,
 		"model": opp.Model, "quiet": quiet, "dir": dir, "seed": seed,
-		"personality": personality,
+		"personality": personality, "start_stack": startStack, "start_sb": startSB,
 	})
 	return Model{
 		opp: opp, stats: st, statsPath: statsPath, quiet: quiet, dir: dir,
 		personality: personality, log: log,
 		rng:   rand.New(rand.NewSource(seed)),
-		match: poker.NewMatch(1500, 10), digest: agent.NewDigest(1500),
+		match: poker.NewMatch(startStack, startSB), digest: agent.NewDigest(startStack),
 		input: in, spin: sp,
 	}
 }

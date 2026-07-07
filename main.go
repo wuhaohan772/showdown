@@ -82,7 +82,8 @@ func main() {
 	}
 
 	dir, _ := os.Getwd()
-	m := tui.NewModel(opp, st, stats.DefaultPath(), useQuiet, dir, persona, dlog)
+	// TODO: thread configurable starting stack/blind flags through here (tracked separately).
+	m := tui.NewModel(opp, st, stats.DefaultPath(), useQuiet, dir, persona, 1500, 10, dlog)
 	final, runErr := tea.NewProgram(m, tea.WithAltScreen()).Run()
 	if fm, ok := final.(tui.Model); ok {
 		fm.CloseSession() // release the persistent opponent process, if any

@@ -19,7 +19,20 @@ func testModel(t *testing.T) Model {
 	t.Helper()
 	ad := agent.Adapter{Key: "stub", DisplayName: "Stub", Bin: "true",
 		Args: func(m, p string) []string { return nil }}
-	return NewModel(ad, stats.Stats{}, t.TempDir()+"/stats.json", false, ".", "test-persona", nil)
+	return NewModel(ad, stats.Stats{}, t.TempDir()+"/stats.json", false, ".", "test-persona", 1500, 10, nil)
+}
+
+func TestNewModelUsesCustomStackAndBlind(t *testing.T) {
+	ad := agent.Adapter{Key: "stub", DisplayName: "Stub", Bin: "true",
+		Args: func(m, p string) []string { return nil }}
+	m := NewModel(ad, stats.Stats{}, t.TempDir()+"/stats.json", true, ".", "", 3000, 25, nil)
+	if m.match.Stacks != [2]int{3000, 3000} {
+		t.Errorf("Stacks = %v, want [3000 3000]", m.match.Stacks)
+	}
+	sb, bb := m.match.Blinds()
+	if sb != 25 || bb != 50 {
+		t.Errorf("Blinds = %d/%d, want 25/50", sb, bb)
+	}
 }
 
 func key(s string) tea.KeyMsg {
@@ -238,7 +251,7 @@ func TestSessionStartLogged(t *testing.T) {
 	}
 	ad := agent.Adapter{Key: "stub", DisplayName: "Stub", Bin: "true",
 		Args: func(m, p string) []string { return nil }}
-	NewModel(ad, stats.Stats{}, t.TempDir()+"/stats.json", true, ".", "", l)
+	NewModel(ad, stats.Stats{}, t.TempDir()+"/stats.json", true, ".", "", 1500, 10, l)
 	l.Close()
 
 	evs := readLogEvents(t, path)
@@ -261,7 +274,7 @@ func TestDebugLogCapturesHandFlow(t *testing.T) {
 	}
 	ad := agent.Adapter{Key: "stub", DisplayName: "Stub", Bin: "true",
 		Args: func(m, p string) []string { return nil }}
-	m := NewModel(ad, stats.Stats{}, t.TempDir()+"/stats.json", true, ".", "", l)
+	m := NewModel(ad, stats.Stats{}, t.TempDir()+"/stats.json", true, ".", "", 1500, 10, l)
 
 	m2, _ := m.Update(startHandMsg{})
 	m = m2.(Model)
@@ -329,7 +342,7 @@ func TestAgentDecisionLogged(t *testing.T) {
 	}
 	ad := agent.Adapter{Key: "stub", DisplayName: "Stub", Bin: "true",
 		Args: func(m, p string) []string { return nil }}
-	m := NewModel(ad, stats.Stats{}, t.TempDir()+"/stats.json", true, ".", "", l)
+	m := NewModel(ad, stats.Stats{}, t.TempDir()+"/stats.json", true, ".", "", 1500, 10, l)
 
 	m2, _ := m.Update(startHandMsg{})
 	m = m2.(Model)
@@ -356,7 +369,7 @@ func TestAgentDecisionLogged(t *testing.T) {
 func TestFallbackNoticeVisibleInQuietMode(t *testing.T) {
 	ad := agent.Adapter{Key: "stub", DisplayName: "Stub", Bin: "true",
 		Args: func(m, p string) []string { return nil }}
-	m := NewModel(ad, stats.Stats{}, t.TempDir()+"/stats.json", true, ".", "", nil)
+	m := NewModel(ad, stats.Stats{}, t.TempDir()+"/stats.json", true, ".", "", 1500, 10, nil)
 	m2, _ := m.Update(startHandMsg{})
 	m = m2.(Model)
 	m2, _ = m.Update(key("c")) // human limps; agent (BB) has the option
@@ -414,7 +427,7 @@ func TestTalkEchoRendersAndClearsNextHand(t *testing.T) {
 func TestTalkEchoHiddenInQuietMode(t *testing.T) {
 	ad := agent.Adapter{Key: "stub", DisplayName: "Stub", Bin: "true",
 		Args: func(m, p string) []string { return nil }}
-	m := NewModel(ad, stats.Stats{}, t.TempDir()+"/stats.json", true, ".", "", nil)
+	m := NewModel(ad, stats.Stats{}, t.TempDir()+"/stats.json", true, ".", "", 1500, 10, nil)
 	m2, _ := m.Update(startHandMsg{})
 	m = m2.(Model)
 	m2, _ = m.Update(key("t"))
@@ -793,7 +806,7 @@ func TestSessionPrimingThenDelta(t *testing.T) {
 		t.Fatalf("debuglog.New: %v", err)
 	}
 	ad := sessionAdapter(t)
-	m := NewModel(ad, stats.Stats{}, t.TempDir()+"/stats.json", true, ".", "PERSONA-MARKER", l)
+	m := NewModel(ad, stats.Stats{}, t.TempDir()+"/stats.json", true, ".", "PERSONA-MARKER", 1500, 10, l)
 	m2, _ := m.Update(startHandMsg{})
 	m = m2.(Model)
 	// After startHandMsg it is human turn (no askAgentCmd fired yet) so
@@ -849,7 +862,7 @@ func TestSessionRestartAfterDeath(t *testing.T) {
 		t.Fatalf("debuglog.New: %v", err)
 	}
 	ad := sessionAdapter(t)
-	m := NewModel(ad, stats.Stats{}, t.TempDir()+"/stats.json", true, ".", "PERSONA-MARKER", l)
+	m := NewModel(ad, stats.Stats{}, t.TempDir()+"/stats.json", true, ".", "PERSONA-MARKER", 1500, 10, l)
 	m2, _ := m.Update(startHandMsg{})
 	m = m2.(Model)
 
