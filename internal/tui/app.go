@@ -104,7 +104,7 @@ func NewModel(opp agent.Adapter, st stats.Stats, statsPath string, quiet bool, d
 		opp: opp, stats: st, statsPath: statsPath, quiet: quiet, dir: dir,
 		personality: personality, log: log,
 		rng:   rand.New(rand.NewSource(seed)),
-		match: poker.NewMatch(), digest: agent.NewDigest(),
+		match: poker.NewMatch(1500, 10), digest: agent.NewDigest(),
 		input: in, spin: sp,
 	}
 }

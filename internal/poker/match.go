@@ -1,23 +1,43 @@
 package poker
 
-var blindLevels = [][2]int{{10, 20}, {15, 30}, {25, 50}, {50, 100}, {100, 200}, {200, 400}}
+import "math"
+
+// blindFactors are the escalation ratios of the standard 10/20 schedule
+// (10, 15, 25, 50, 100, 200 → 1x, 1.5x, 2.5x, 5x, 10x, 20x of the starting
+// small blind). blindLevelsFor scales these to any starting small blind so
+// the escalation feel stays the same regardless of buy-in size.
+var blindFactors = []float64{1, 1.5, 2.5, 5, 10, 20}
+
+func blindLevelsFor(startSB int) [][2]int {
+	levels := make([][2]int, len(blindFactors))
+	for i, f := range blindFactors {
+		sb := int(math.Round(float64(startSB) * f))
+		if sb < 1 {
+			sb = 1
+		}
+		levels[i] = [2]int{sb, sb * 2}
+	}
+	return levels
+}
 
 // Match tracks the sit-and-go by player id: 0 = human, 1 = agent.
 type Match struct {
 	Stacks  [2]int
 	HandNum int
+
+	levels [][2]int
 }
 
-func NewMatch() *Match {
-	return &Match{Stacks: [2]int{1500, 1500}, HandNum: 1}
+func NewMatch(startStack, startSB int) *Match {
+	return &Match{Stacks: [2]int{startStack, startStack}, HandNum: 1, levels: blindLevelsFor(startSB)}
 }
 
 func (m *Match) Blinds() (int, int) {
 	lvl := (m.HandNum - 1) / 10
-	if lvl >= len(blindLevels) {
-		lvl = len(blindLevels) - 1
+	if lvl >= len(m.levels) {
+		lvl = len(m.levels) - 1
 	}
-	return blindLevels[lvl][0], blindLevels[lvl][1]
+	return m.levels[lvl][0], m.levels[lvl][1]
 }
 
 func (m *Match) ButtonPlayer() int { return (m.HandNum - 1) % 2 }
