@@ -85,7 +85,8 @@ func main() {
 	}
 
 	dir, _ := os.Getwd()
-	m := tui.NewModel(opp, st, stats.DefaultPath(), useQuiet, dir, persona, startStack, startSB, dlog)
+	// TODO: thread configurable --hands flag through here (tracked separately).
+	m := tui.NewModel(opp, st, stats.DefaultPath(), useQuiet, dir, persona, startStack, startSB, 0, dlog)
 	final, runErr := tea.NewProgram(m, tea.WithAltScreen()).Run()
 	if fm, ok := final.(tui.Model); ok {
 		fm.CloseSession() // release the persistent opponent process, if any

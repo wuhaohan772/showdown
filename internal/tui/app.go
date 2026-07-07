@@ -90,7 +90,7 @@ type Model struct {
 	pendingResults []string
 }
 
-func NewModel(opp agent.Adapter, st stats.Stats, statsPath string, quiet bool, dir, personality string, startStack, startSB int, log *debuglog.Logger) Model {
+func NewModel(opp agent.Adapter, st stats.Stats, statsPath string, quiet bool, dir, personality string, startStack, startSB, handLimit int, log *debuglog.Logger) Model {
 	in := textinput.New()
 	in.CharLimit = 120
 	sp := spinner.New(spinner.WithSpinner(spinner.Dot))
@@ -98,13 +98,13 @@ func NewModel(opp agent.Adapter, st stats.Stats, statsPath string, quiet bool, d
 	log.Log("session_start", map[string]any{
 		"agent_key": opp.Key, "agent_name": opp.DisplayName,
 		"model": opp.Model, "quiet": quiet, "dir": dir, "seed": seed,
-		"personality": personality, "start_stack": startStack, "start_sb": startSB,
+		"personality": personality, "start_stack": startStack, "start_sb": startSB, "hand_limit": handLimit,
 	})
 	return Model{
 		opp: opp, stats: st, statsPath: statsPath, quiet: quiet, dir: dir,
 		personality: personality, log: log,
 		rng:   rand.New(rand.NewSource(seed)),
-		match: poker.NewMatch(startStack, startSB, 0), digest: agent.NewDigest(startStack), // TODO(Task 2): thread handLimit through here
+		match: poker.NewMatch(startStack, startSB, handLimit), digest: agent.NewDigest(startStack),
 		input: in, spin: sp,
 	}
 }
@@ -286,6 +286,25 @@ func runoutTick() tea.Cmd {
 	return tea.Tick(500*time.Millisecond, func(time.Time) tea.Msg { return runoutTickMsg{} })
 }
 
+// matchOverOutcome states how the match ended, from the agent's own
+// perspective, for its match-over reaction prompt. It must never claim a
+// bust that didn't happen (table-truth rule) — a match can also end by
+// hitting a configured hand limit with the bigger stack, which is not a
+// bust, and the agent's own "memory" of the match must never state
+// something false about how it ended.
+func matchOverOutcome(endedByBust, agentWon bool) string {
+	switch {
+	case endedByBust && agentWon:
+		return "MATCH OVER: you WON the match. Your human is busted."
+	case endedByBust:
+		return "MATCH OVER: you LOST the match to your human. They took every chip."
+	case agentWon:
+		return "MATCH OVER: you WON the match. Hand limit hit — you had the bigger stack."
+	default:
+		return "MATCH OVER: you LOST the match to your human. Hand limit hit — they had the bigger stack."
+	}
+}
+
 func (m *Model) settleAndNext() tea.Cmd {
 	final := [2]int{m.hand.Seats[0].Stack, m.hand.Seats[1].Stack}
 	m.finalHumanSeat = m.humanSeat()
@@ -307,10 +326,7 @@ func (m *Model) settleAndNext() tea.Cmd {
 			_ = m.stats.Save(m.statsPath)
 		}
 		if !m.quiet {
-			outcome := "MATCH OVER: you LOST the match to your human. They took every chip."
-			if m.match.Winner() == 1 {
-				outcome = "MATCH OVER: you WON the match. Your human is busted."
-			}
+			outcome := matchOverOutcome(m.match.EndedByBust(), m.match.Winner() == 1)
 			name, digest, persona := m.opp.DisplayName, m.digest.String(), m.personality
 			fullPrompt := agent.ReactionPrompt(name, persona, digest, outcome)
 			prompt := fullPrompt
