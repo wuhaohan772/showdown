@@ -654,9 +654,10 @@ func joinActions(as []poker.ActionType) string {
 }
 
 var (
-	dimStyle    = lipgloss.NewStyle().Foreground(lipgloss.Color("8"))
-	sayStyle    = lipgloss.NewStyle().Foreground(lipgloss.Color("11")).Italic(true)
-	bannerStyle = lipgloss.NewStyle().Foreground(lipgloss.Color("10"))
+	dimStyle      = lipgloss.NewStyle().Foreground(lipgloss.Color("8"))
+	sayStyle      = lipgloss.NewStyle().Foreground(lipgloss.Color("11")).Italic(true)
+	humanSayStyle = lipgloss.NewStyle().Foreground(lipgloss.Color("12"))
+	bannerStyle   = lipgloss.NewStyle().Foreground(lipgloss.Color("10"))
 )
 
 const (
@@ -788,7 +789,7 @@ func (m Model) feedLineGroups(w int) [][]string {
 		}
 		style := sayStyle
 		if l.who == "you" {
-			style = dimStyle
+			style = humanSayStyle
 		}
 		var group []string
 		for _, ln := range wrapChat(l.who+": "+l.text, w) {
