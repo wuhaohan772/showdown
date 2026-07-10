@@ -154,8 +154,9 @@ func TestAgentDecisionMsgApplies(t *testing.T) {
 	if m.hand.Street != poker.Flop {
 		t.Errorf("street = %v, want Flop after limp+check", m.hand.Street)
 	}
-	if m.agentSay != "hm" {
-		t.Errorf("agentSay = %q", m.agentSay)
+	last := m.feed[len(m.feed)-1]
+	if last.who != "Stub" || last.text != "hm" {
+		t.Errorf("feed tail = %+v, want Stub: hm", last)
 	}
 }
 
@@ -428,7 +429,7 @@ func typeString(t *testing.T, m Model, s string) Model {
 	return m
 }
 
-func TestTalkEchoRendersAndClearsNextHand(t *testing.T) {
+func TestTalkEchoRendersAndPersistsAcrossHands(t *testing.T) {
 	m := testModel(t)
 	m2, _ := m.Update(startHandMsg{})
 	m = m2.(Model)
@@ -443,19 +444,23 @@ func TestTalkEchoRendersAndClearsNextHand(t *testing.T) {
 	if m.phase != phaseHumanTurn {
 		t.Fatalf("phase after enter = %v, want phaseHumanTurn", m.phase)
 	}
-	if !strings.Contains(stripANSI(m.View()), `you: "read em and weep"`) {
+	if !strings.Contains(stripANSI(m.View()), "you: read em and weep") {
 		t.Error("echo line missing from view")
 	}
 	if !strings.Contains(m.digest.HandTalk(), "HUMAN: read em and weep") {
 		t.Error("talk missing from digest")
 	}
-	// fold ends the hand; enter starts the next: echo must clear
+	// fold ends the hand; enter starts the next: the feed is scrollback,
+	// so the line persists (the ephemeral-echo clear is gone by design)
 	m2, _ = m.Update(key("f"))
 	m = m2.(Model)
 	m2, _ = m.Update(key("enter"))
 	m = m2.(Model)
-	if strings.Contains(stripANSI(m.View()), "you:") {
-		t.Error("echo should clear at next hand start")
+	if !strings.Contains(stripANSI(m.View()), "you: read em and weep") {
+		t.Error("feed line should persist into the next hand")
+	}
+	if !strings.Contains(stripANSI(m.View()), "─ hand 2 ") {
+		t.Error("view missing hand-2 divider after next hand starts")
 	}
 }
 
@@ -949,6 +954,143 @@ func TestSessionRestartAfterDeath(t *testing.T) {
 	lastPrompt := agentCalls[len(agentCalls)-1]["prompt"].(string)
 	if !strings.Contains(lastPrompt, "=== YOUR TABLE PERSONA ===") {
 		t.Error("post-restart decision must re-prime with full prompt (persona section required)")
+	}
+}
+
+// ── chat panel + match-end reaction (spec 2026-07-10) ──
+
+func TestChatPanelRendersOnWideTerminal(t *testing.T) {
+	m := testModel(t)
+	m2, _ := m.Update(startHandMsg{})
+	m = m2.(Model)
+	m2, _ = m.Update(tea.WindowSizeMsg{Width: 120, Height: 40})
+	m = m2.(Model)
+	m.feed = append(m.feed,
+		chatLine{who: "Stub", text: "a very long taunt that has no choice but to wrap onto a continuation line"},
+		chatLine{who: "you", text: "bring it"})
+	view := stripANSI(m.View())
+	if !strings.Contains(view, "talk") {
+		t.Error("panel header missing")
+	}
+	if !strings.Contains(view, "Stub: a very long taunt") {
+		t.Error("speaker-prefixed line missing from panel")
+	}
+	if !strings.Contains(view, "you: bring it") {
+		t.Error("human line missing from panel")
+	}
+	if !strings.Contains(view, "─ hand 1 ") {
+		t.Error("hand divider missing from panel")
+	}
+	// full-height separator: every row of the joined view carries the bar,
+	// which also proves the two columns were padded to equal height
+	for i, ln := range strings.Split(strings.TrimRight(view, "\n"), "\n") {
+		if !strings.Contains(ln, "│") {
+			t.Errorf("row %d missing separator bar: %q", i, ln)
+		}
+	}
+}
+
+func TestChatLogFallbackOnNarrowOrUnknownWidth(t *testing.T) {
+	m := testModel(t) // width == 0: tests, pipes
+	m2, _ := m.Update(startHandMsg{})
+	m = m2.(Model)
+	m.feed = append(m.feed, chatLine{who: "Stub", text: "small table talk"})
+	view := stripANSI(m.View())
+	if !strings.Contains(view, "Stub: small table talk") {
+		t.Error("bottom log missing feed line")
+	}
+	logAt := strings.Index(view, "Stub: small table talk")
+	barAt := strings.LastIndex(view, "> ")
+	if barAt < logAt {
+		t.Error("bottom log must render above the action bar")
+	}
+	if strings.Contains(view, "talk\n") && strings.Contains(view, " │ ") {
+		t.Error("narrow view must not render the side panel")
+	}
+}
+
+func TestQuietModeHasNoPanelOrLog(t *testing.T) {
+	ad := agent.Adapter{Key: "stub", DisplayName: "Stub", Bin: "true",
+		Args: func(m, p string) []string { return nil }}
+	m := NewModel(ad, stats.Stats{}, t.TempDir()+"/stats.json", true, ".", "", 1500, 10, 0, nil)
+	m2, _ := m.Update(startHandMsg{})
+	m = m2.(Model)
+	m2, _ = m.Update(tea.WindowSizeMsg{Width: 120, Height: 40})
+	m = m2.(Model)
+	m.feed = append(m.feed, chatLine{who: "Stub", text: "SHOULD-NOT-SHOW"})
+	if strings.Contains(stripANSI(m.View()), "SHOULD-NOT-SHOW") {
+		t.Error("quiet mode must not render the feed anywhere")
+	}
+}
+
+func TestMatchOverWaitsForReaction(t *testing.T) {
+	m := testModel(t)
+	m2, _ := m.Update(startHandMsg{})
+	m = m2.(Model)
+	hs, as := m.humanSeat(), m.agentSeat()
+	m.hand.Seats[hs].Stack = 3000
+	m.hand.Seats[as].Stack = 0
+	if cmd := m.settleAndNext(); cmd == nil {
+		t.Fatal("match over should fire the reaction command")
+	}
+	if !m.reactionPending {
+		t.Fatal("reactionPending must be set while the reaction is in flight")
+	}
+	if !strings.Contains(stripANSI(m.View()), "is typing") {
+		t.Error("view missing typing spinner while reaction pending")
+	}
+
+	// first q must not quit — it shows the skip hint
+	m2, cmd := m.Update(key("q"))
+	m = m2.(Model)
+	if cmd != nil {
+		t.Fatal("first q while reaction pending must not quit")
+	}
+	if !strings.Contains(stripANSI(m.View()), "waiting for parting shot") {
+		t.Error("view missing skip hint after first q")
+	}
+
+	// reaction lands: feed gains the line, pending clears
+	m2, _ = m.Update(reactionMsg{say: "well played, human"})
+	m = m2.(Model)
+	if m.reactionPending {
+		t.Error("reactionPending must clear when the reaction arrives")
+	}
+	last := m.feed[len(m.feed)-1]
+	if last.who != "Stub" || last.text != "well played, human" {
+		t.Errorf("feed tail = %+v, want the reaction line", last)
+	}
+
+	// now q quits
+	m2, cmd = m.Update(key("q"))
+	if cmd == nil {
+		t.Fatal("q after reaction must quit")
+	}
+	if _, ok := cmd().(tea.QuitMsg); !ok {
+		t.Errorf("cmd() = %T, want tea.QuitMsg", cmd())
+	}
+}
+
+func TestMatchOverSecondQSkipsPendingReaction(t *testing.T) {
+	m := testModel(t)
+	m2, _ := m.Update(startHandMsg{})
+	m = m2.(Model)
+	hs, as := m.humanSeat(), m.agentSeat()
+	m.hand.Seats[hs].Stack = 3000
+	m.hand.Seats[as].Stack = 0
+	m.settleAndNext()
+
+	m2, cmd := m.Update(key("q")) // hint
+	m = m2.(Model)
+	if cmd != nil {
+		t.Fatal("first q must not quit")
+	}
+	m2, cmd = m.Update(key("q")) // escape hatch
+	if cmd == nil {
+		t.Fatal("second q must quit even with the reaction still pending")
+	}
+	if _, ok := cmd().(tea.QuitMsg); !ok {
+		t.Errorf("cmd() = %T, want tea.QuitMsg", cmd())
 	}
 }
 

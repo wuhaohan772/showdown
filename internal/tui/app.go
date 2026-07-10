@@ -44,12 +44,14 @@ type reactionMsg struct {
 	usage *agent.Usage
 }
 type runoutTickMsg struct{}
-type showSayMsg struct {
-	say string
-	seq int
-}
 
-const sayLingerDuration = 3 * time.Second
+// chatLine is one entry in the UI-side talk feed. The feed is a pure display
+// concern, parallel to the agent Digest (which keeps feeding the agent).
+type chatLine struct {
+	who     string // opponent DisplayName, "you", or "" for a divider
+	text    string // spoken text, or "hand N" for a divider
+	divider bool
+}
 
 type Model struct {
 	opp         agent.Adapter
@@ -69,13 +71,19 @@ type Model struct {
 	talkReturn   phase // phase to restore when talk input closes
 	input        textinput.Model
 	spin         spinner.Model
-	agentSay     string
-	humanSay     string
 	banner       string
 	revealed     int
 	saved        bool
 	sessionUsage agent.Usage
-	saySeq       int // incremented each hand; stale showSayMsg ticks are ignored
+
+	feed          []chatLine
+	width, height int
+
+	// reactionPending: the match-end reaction cmd is in flight; the match-over
+	// screen waits for it (spinner) and the first q/enter shows a skip hint
+	// instead of quitting. skipHinted records that first press.
+	reactionPending bool
+	skipHinted      bool
 
 	// finalHumanSeat captures humanSeat() just before NextHand() advances
 	// HandNum (which flips ButtonPlayer/SeatOf). The match-over screen still
@@ -127,9 +135,7 @@ func (m *Model) startHand() tea.Cmd {
 		"hole_seat1": cardStrings(m.hand.Hole[1][:]),
 		"stacks":     []int{m.hand.Seats[0].Stack, m.hand.Seats[1].Stack},
 	})
-	m.agentSay = ""
-	m.humanSay = ""
-	m.saySeq++
+	m.feed = append(m.feed, chatLine{text: fmt.Sprintf("hand %d", m.match.HandNum), divider: true})
 	m.banner = fmt.Sprintf("hand %d — blinds %d/%d", m.match.HandNum, sb, bb)
 	m.revealed = 0
 	return m.advance()
@@ -352,6 +358,7 @@ func (m *Model) settleAndNext() tea.Cmd {
 			}
 			// Late usage from this call is folded into stats by the
 			// reactionMsg handler (post-save re-save path).
+			m.reactionPending = true
 			return func() tea.Msg {
 				say, u := agent.GetReactionPrompt(context.Background(), ask, prompt)
 				return reactionMsg{say: say, usage: u}
@@ -382,19 +389,9 @@ func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 			// GetDecision guarantees legality; a failure here is a bug — force fallback.
 			_ = m.apply(agent.FallbackAction(m.hand.LegalActions()))
 		}
-		var lingerCmd tea.Cmd
 		if msg.say != "" && !m.quiet {
 			m.digest.AddTalk(m.opp.DisplayName, msg.say)
-			if m.agentSay == "" {
-				m.agentSay = msg.say
-			} else {
-				// Old say still visible — linger 3s before replacing.
-				seq := m.saySeq
-				say := msg.say
-				lingerCmd = tea.Tick(sayLingerDuration, func(time.Time) tea.Msg {
-					return showSayMsg{say: say, seq: seq}
-				})
-			}
+			m.feed = append(m.feed, chatLine{who: m.opp.DisplayName, text: msg.say})
 		}
 		if msg.fallback {
 			m.banner = "agent glitched — forced " + string(msg.act.Type)
@@ -406,7 +403,7 @@ func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 			m.talkReturn = m.phase
 			m.phase = phaseTalkInput
 		}
-		return m, tea.Batch(cmd, lingerCmd)
+		return m, cmd
 	case reactionMsg:
 		m.sessionUsage.Add(msg.usage)
 		if msg.usage != nil && m.phase == phaseMatchOver && m.saved {
@@ -418,13 +415,12 @@ func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 			_ = m.stats.Save(m.statsPath)
 		}
 		if msg.say != "" && !m.quiet {
-			m.agentSay = msg.say
+			m.feed = append(m.feed, chatLine{who: m.opp.DisplayName, text: msg.say})
 		}
+		m.reactionPending = false
 		return m, nil
-	case showSayMsg:
-		if msg.seq == m.saySeq {
-			m.agentSay = msg.say
-		}
+	case tea.WindowSizeMsg:
+		m.width, m.height = msg.Width, msg.Height
 		return m, nil
 	case runoutTickMsg:
 		typingOverRunout := m.phase == phaseTalkInput && m.talkReturn == phaseRunout
@@ -451,7 +447,16 @@ func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 func (m Model) handleKey(msg tea.KeyMsg) (tea.Model, tea.Cmd) {
 	k := msg.String()
 	m.log.Log("human_key", map[string]any{"key": k, "phase": phaseName(m.phase)})
-	if k == "ctrl+c" || (k == "q" && m.phase != phaseTalkInput && m.phase != phaseRaiseInput) {
+	if k == "ctrl+c" {
+		return m, tea.Quit
+	}
+	if k == "q" && m.phase != phaseTalkInput && m.phase != phaseRaiseInput {
+		if m.phase == phaseMatchOver && m.reactionPending && !m.skipHinted {
+			// parting shot still in flight: first q shows the skip hint
+			// instead of quitting; q again is the escape hatch.
+			m.skipHinted = true
+			return m, nil
+		}
 		return m, tea.Quit
 	}
 	switch m.phase {
@@ -489,7 +494,11 @@ func (m Model) handleKey(msg tea.KeyMsg) (tea.Model, tea.Cmd) {
 			return m, cmd
 		}
 	case phaseMatchOver:
-		if k == "enter" || k == "q" {
+		if k == "enter" {
+			if m.reactionPending && !m.skipHinted {
+				m.skipHinted = true
+				return m, nil
+			}
 			return m, tea.Quit
 		}
 	}
@@ -558,7 +567,7 @@ func (m Model) confirmInput() (tea.Model, tea.Cmd) {
 	if m.phase == phaseTalkInput {
 		if val != "" {
 			m.digest.AddTalk("HUMAN", val)
-			m.humanSay = val
+			m.feed = append(m.feed, chatLine{who: "you", text: val})
 		}
 		m.phase = m.talkReturn
 		return m, nil
@@ -650,10 +659,30 @@ var (
 	bannerStyle = lipgloss.NewStyle().Foreground(lipgloss.Color("10"))
 )
 
+const (
+	chatPanelWidth        = 30 // fixed panel width (decision: not scaled to terminal)
+	chatPanelMinTermWidth = 74 // below this (or width unknown) fall back to the bottom log
+	chatLogLines          = 4  // last-K lines shown by the narrow fallback
+)
+
 func (m Model) View() string {
 	if m.hand == nil {
 		return "shuffling..."
 	}
+	table, actions := m.renderTable()
+	if m.quiet {
+		return table + actions
+	}
+	if m.width >= chatPanelMinTermWidth {
+		return m.composeWithPanel(table + actions)
+	}
+	return table + m.renderBottomLog() + actions
+}
+
+// renderTable draws the left column: the table through the banner, and the
+// action bar separately so the narrow fallback can slot the talk log between
+// them.
+func (m Model) renderTable() (table, actions string) {
 	var b strings.Builder
 	hs, as := m.humanSeat(), m.agentSeat()
 	agentStack, humanStack := m.hand.Seats[as].Stack, m.hand.Seats[hs].Stack
@@ -676,9 +705,6 @@ func (m Model) View() string {
 		rev = 2
 	}
 	b.WriteString(indent(RenderCardRow(m.hand.Hole[as][:], rev), 2) + "\n")
-	if m.agentSay != "" && !m.quiet {
-		b.WriteString(sayStyle.Render(`  "`+m.agentSay+`"`) + "\n")
-	}
 	if m.phase == phaseAgentTurn || (m.phase == phaseTalkInput && m.talkReturn == phaseAgentTurn) {
 		b.WriteString(dimStyle.Render("  "+m.spin.View()+m.opp.DisplayName+" is thinking...") + "\n")
 	}
@@ -695,12 +721,12 @@ func (m Model) View() string {
 
 	b.WriteString(indent(RenderCardRow(m.hand.Hole[hs][:], 2), 2) + "\n")
 	fmt.Fprintf(&b, "  ♥ YOU   stack: %d\n", humanStack)
-	if m.humanSay != "" && !m.quiet {
-		b.WriteString(dimStyle.Render(`  you: "`+m.humanSay+`"`) + "\n")
-	}
 	b.WriteString("\n")
 
 	b.WriteString(bannerStyle.Render("  "+m.banner) + "\n")
+	table = b.String()
+
+	var a strings.Builder
 	switch m.phase {
 	case phaseHumanTurn:
 		opts := []string{}
@@ -719,13 +745,13 @@ func (m Model) View() string {
 			}
 		}
 		opts = append(opts, "(t)alk")
-		b.WriteString("  > " + strings.Join(opts, "  ") + "\n")
+		a.WriteString("  > " + strings.Join(opts, "  ") + "\n")
 	case phaseRaiseInput, phaseTalkInput:
-		b.WriteString("  > " + m.input.View() + "\n")
+		a.WriteString("  > " + m.input.View() + "\n")
 	case phaseAgentTurn:
-		b.WriteString("  > (t)alk\n")
+		a.WriteString("  > (t)alk\n")
 	case phaseHandEnd:
-		b.WriteString("  > (enter) next hand  (t)alk\n")
+		a.WriteString("  > (enter) next hand  (t)alk\n")
 	case phaseMatchOver:
 		winner := "YOU WIN THE MATCH"
 		if m.match.Winner() == 1 {
@@ -736,9 +762,141 @@ func (m Model) View() string {
 			usageLine = fmt.Sprintf("\n  tokens this match: %d in / %d out · $%.2f",
 				m.sessionUsage.TotalIn(), m.sessionUsage.OutputTokens, m.sessionUsage.CostUSD)
 		}
-		b.WriteString("\n  ═══ " + winner + " ═══\n  " + m.stats.Line(m.opp.Key) + usageLine + "\n  enter/q to exit\n")
+		exit := "enter/q to exit"
+		if m.reactionPending && m.skipHinted {
+			exit = "(waiting for parting shot — q again to skip)"
+		}
+		a.WriteString("\n  ═══ " + winner + " ═══\n  " + m.stats.Line(m.opp.Key) + usageLine + "\n  " + exit + "\n")
 	}
-	return b.String()
+	return table, a.String()
+}
+
+// feedLineGroups renders the feed into styled display lines wrapped to width
+// w, one group per feed entry (plus the typing spinner while the match-end
+// reaction is in flight) so callers can truncate at message boundaries.
+func (m Model) feedLineGroups(w int) [][]string {
+	var out [][]string
+	for _, l := range m.feed {
+		if l.divider {
+			label := "─ " + l.text + " "
+			pad := w - lipgloss.Width(label)
+			if pad < 0 {
+				pad = 0
+			}
+			out = append(out, []string{dimStyle.Render(label + strings.Repeat("─", pad))})
+			continue
+		}
+		style := sayStyle
+		if l.who == "you" {
+			style = dimStyle
+		}
+		var group []string
+		for _, ln := range wrapChat(l.who+": "+l.text, w) {
+			group = append(group, style.Render(ln))
+		}
+		out = append(out, group)
+	}
+	if m.reactionPending && m.phase == phaseMatchOver {
+		out = append(out, []string{dimStyle.Render(m.spin.View() + m.opp.DisplayName + " is typing…")})
+	}
+	return out
+}
+
+func (m Model) feedLines(w int) []string {
+	var out []string
+	for _, g := range m.feedLineGroups(w) {
+		out = append(out, g...)
+	}
+	return out
+}
+
+// wrapChat greedy-wraps s to width w; continuation lines are indented 2.
+// A single word longer than a line is hard-split so the panel edge holds.
+func wrapChat(s string, w int) []string {
+	if w < 8 {
+		w = 8
+	}
+	var lines []string
+	cur, pre := "", "" // pre: continuation indent once the first line is out
+	add := func(word string) {
+		for {
+			sep := ""
+			if cur != pre {
+				sep = " "
+			}
+			if lipgloss.Width(cur+sep+word) <= w {
+				cur += sep + word
+				return
+			}
+			if cur != pre {
+				lines = append(lines, cur)
+				pre = "  "
+				cur = pre
+				continue
+			}
+			// word alone overflows the line: hard-split it
+			r := []rune(word)
+			cut := w - lipgloss.Width(cur)
+			lines = append(lines, cur+string(r[:cut]))
+			pre = "  "
+			cur = pre
+			word = string(r[cut:])
+		}
+	}
+	for _, word := range strings.Fields(s) {
+		add(word)
+	}
+	if cur != pre {
+		lines = append(lines, cur)
+	}
+	return lines
+}
+
+// composeWithPanel joins the table column and the talk panel with a
+// full-height separator bar; both columns are padded to equal height.
+func (m Model) composeWithPanel(left string) string {
+	leftLines := strings.Split(strings.TrimRight(left, "\n"), "\n")
+	h := len(leftLines)
+	body := make([]string, 0, h)
+	body = append(body, dimStyle.Render("talk"))
+	lines := m.feedLines(chatPanelWidth)
+	if avail := h - 1; len(lines) > avail {
+		lines = lines[len(lines)-avail:] // auto-scroll: newest at bottom
+	}
+	body = append(body, lines...)
+	for len(body) < h {
+		body = append(body, "")
+	}
+	sep := strings.TrimRight(strings.Repeat(" │ \n", h), "\n")
+	panel := strings.Join(body, "\n")
+	return lipgloss.JoinHorizontal(lipgloss.Top,
+		strings.Join(leftLines, "\n"), sep, panel) + "\n"
+}
+
+// renderBottomLog is the narrow/no-size fallback: the last few feed lines
+// between the banner and the action bar.
+func (m Model) renderBottomLog() string {
+	w := m.width - 4
+	if w < 20 {
+		w = chatPanelWidth * 2
+	}
+	groups := m.feedLineGroups(w)
+	// take whole messages from the end so the log never opens with an
+	// orphan continuation line
+	var lines []string
+	for i := len(groups) - 1; i >= 0; i-- {
+		if len(lines)+len(groups[i]) > chatLogLines && len(lines) > 0 {
+			break
+		}
+		lines = append(groups[i], lines...)
+	}
+	if len(lines) > chatLogLines { // single message longer than the log
+		lines = lines[len(lines)-chatLogLines:]
+	}
+	if len(lines) == 0 {
+		return ""
+	}
+	return "  " + strings.Join(lines, "\n  ") + "\n"
 }
 
 func indent(s string, n int) string {
