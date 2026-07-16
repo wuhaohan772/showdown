@@ -1,1 +1,8 @@
 /showdown
+
+# dev tooling / agent scratch — not needed to run the app
+.DS_Store
+.agents/
+.claude/
+.superpowers/
+skills-lock.json
