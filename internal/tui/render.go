@@ -80,7 +80,7 @@ func RenderCardRowDeal(cards []poker.Card, revealed, landed, offset int) string 
 		blocks = append(blocks, strings.Join(b, "\n"))
 	}
 	if len(blocks) == 0 {
-		return "\n\n"
+		return ""
 	}
 	rows := make([]string, 3)
 	for _, b := range blocks {

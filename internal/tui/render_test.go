@@ -112,6 +112,12 @@ func TestRenderCardRowDealComplete(t *testing.T) {
 	}
 }
 
+func TestRenderCardRowDealEmptyMatchesRenderCardRow(t *testing.T) {
+	if got := RenderCardRowDeal(nil, 0, 0, -1); got != RenderCardRow(nil, 0) {
+		t.Errorf("empty deal row = %q, want %q", got, RenderCardRow(nil, 0))
+	}
+}
+
 func TestRenderChips(t *testing.T) {
 	if got := renderChips(0, 20); got != "" {
 		t.Errorf("empty pot: want empty string, got %q", got)
