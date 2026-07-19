@@ -1284,8 +1284,11 @@ func TestSetBannerStampsBright(t *testing.T) {
 	if m.bannerAge < bannerBright {
 		t.Errorf("banner age must reach settle threshold, got %d", m.bannerAge)
 	}
-	if bannerStyleFor(0).Render("x") == bannerStyleFor(bannerBright).Render("x") {
-		t.Error("fresh and settled banner styles must differ")
+	if !bannerStyleFor(0).GetBold() {
+		t.Error("fresh banner style must be bold")
+	}
+	if bannerStyleFor(bannerBright).GetBold() {
+		t.Error("settled banner style must not be bold")
 	}
 }
 
