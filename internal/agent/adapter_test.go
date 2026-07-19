@@ -124,6 +124,9 @@ func TestClaudeAdapterLeanSession(t *testing.T) {
 		if !strings.Contains(joined, "--disallowedTools\x00*") {
 			t.Errorf("claude args must disallow all tools, got %v", args)
 		}
+		if !strings.Contains(joined, "--settings\x00"+`{"disableAllHooks":true}`) {
+			t.Errorf("claude args must disable the player's hooks, got %v", args)
+		}
 		sysIdx := -1
 		for i, x := range args {
 			if x == "--system-prompt" {
@@ -189,6 +192,7 @@ func TestClaudeSessionArgs(t *testing.T) {
 		"-p", "--verbose",
 		"--input-format stream-json", "--output-format stream-json",
 		"--disallowedTools *", "--system-prompt", "--model sonnet",
+		`--settings {"disableAllHooks":true}`,
 	} {
 		if !strings.Contains(joined, w) {
 			t.Errorf("session args missing %q in %q", w, joined)

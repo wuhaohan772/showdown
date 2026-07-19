@@ -34,6 +34,14 @@ const claudeSystemPrompt = "You are a poker-playing AI opponent in a terminal ga
 	"Follow the prompt's instructions exactly. Be terse: output ONLY what the prompt " +
 	"asks for — no preamble, no explanation, no markdown fences, no thinking out loud."
 
+// claudeSettings disables the player's hooks in the opponent's session.
+// User-level SessionStart hooks inject style directives into every claude
+// session (seen live: a "caveman mode" plugin turned all table talk into
+// broken English). --setting-sources "" would also drop CLAUDE.md memory,
+// which ADR-0002 needs for personal needling; disableAllHooks keeps memory
+// and removes only the hook injections.
+const claudeSettings = `{"disableAllHooks":true}`
+
 var knownAdapters = []Adapter{
 	{Key: "claude", DisplayName: "Claude Code", Bin: "claude",
 		// Sonnet default: haiku garbles table-talk facts (blames the human
@@ -45,6 +53,7 @@ var knownAdapters = []Adapter{
 		Args: func(m, p string) []string {
 			args := []string{"-p", p, "--output-format", "json",
 				"--disallowedTools", "*",
+				"--settings", claudeSettings,
 				"--system-prompt", claudeSystemPrompt}
 			if m != "" {
 				args = append(args, "--model", m)
@@ -61,6 +70,7 @@ var knownAdapters = []Adapter{
 			args := []string{"-p", "--verbose",
 				"--input-format", "stream-json", "--output-format", "stream-json",
 				"--disallowedTools", "*",
+				"--settings", claudeSettings,
 				"--system-prompt", claudeSystemPrompt}
 			if m != "" {
 				args = append(args, "--model", m)
