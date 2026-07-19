@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"os"
 	"strings"
+	"time"
 
 	tea "github.com/charmbracelet/bubbletea"
 	"github.com/charmbracelet/lipgloss"
@@ -70,6 +71,16 @@ type menuModel struct {
 	talkOn  bool
 	entered bool
 	quitted bool
+
+	// Lobby motion state (spec 2026-07-19-menu-lobby-design). motion=false
+	// (SHOWDOWN_REDUCE_MOTION=1) renders the final state with zero ticks.
+	motion bool
+	frames int       // monotonic frame counter driving ambient phases
+	width  int       // last tea.WindowSizeMsg; 0 = never sized
+	deal   cardSlide // entry deal: opponent's two backs, then your A♠ A♥
+	statW  int       // tweened lifetime wins for the focused opponent
+	statL  int       // tweened lifetime losses
+	statC  int       // tweened lifetime cost in cents
 }
 
 // newMenuModel builds the dashboard state. personaFile gates the "custom"
@@ -139,6 +150,11 @@ func newMenuModel(roster []agent.Adapter, st stats.Stats, presetModel, presetPer
 		m.handIdx = len(m.handOpts) - 1
 	}
 
+	m.motion = os.Getenv("SHOWDOWN_REDUCE_MOTION") != "1"
+	if m.motion {
+		m.deal = newCardSlide(0, 4)
+	}
+
 	return m
 }
 
@@ -151,7 +167,18 @@ func indexOfInt(s []int, v int) int {
 	return -1
 }
 
-func (m menuModel) Init() tea.Cmd { return nil }
+func (m menuModel) Init() tea.Cmd {
+	if m.motion {
+		return menuTick()
+	}
+	return nil
+}
+
+type menuTickMsg struct{}
+
+func menuTick() tea.Cmd {
+	return tea.Tick(animFrame, func(time.Time) tea.Msg { return menuTickMsg{} })
+}
 
 var menuDim = lipgloss.NewStyle().Foreground(lipgloss.Color("8"))
 
@@ -199,10 +226,28 @@ func (m menuModel) View() string {
 }
 
 func (m menuModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
-	k, ok := msg.(tea.KeyMsg)
-	if !ok {
+	switch msg := msg.(type) {
+	case tea.WindowSizeMsg:
+		m.width = msg.Width
 		return m, nil
+	case menuTickMsg:
+		if !m.motion {
+			return m, nil
+		}
+		m.frames++
+		m.deal.tick()
+		r := m.st[m.roster[m.oppIdx].Key]
+		m.statW = stepToward(m.statW, r.Wins)
+		m.statL = stepToward(m.statL, r.Losses)
+		m.statC = stepToward(m.statC, int(r.CostUSD*100+0.5))
+		return m, menuTick()
+	case tea.KeyMsg:
+		return m.handleMenuKey(msg)
 	}
+	return m, nil
+}
+
+func (m menuModel) handleMenuKey(k tea.KeyMsg) (tea.Model, tea.Cmd) {
 	switch k.String() {
 	case "up", "k":
 		if m.focus > 0 {

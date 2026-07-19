@@ -331,3 +331,59 @@ func TestRunMenuEmptyRoster(t *testing.T) {
 		t.Errorf("err = %v, want no-agents error", err)
 	}
 }
+
+func TestMenuTickAdvancesDealAndStats(t *testing.T) {
+	key := menuRoster()[0].Key
+	st := stats.Stats{key: stats.Record{Wins: 8, Losses: 4, CostUSD: 2.40}}
+	m := newMenuModel(menuRoster(), st, "", "", DefaultStartStack, DefaultStartSB, DefaultHandLimit, false, noPersonaFile(t))
+	if !m.motion {
+		t.Fatal("motion must default on")
+	}
+	if !m.deal.active() {
+		t.Fatal("motion menu must open with an active entry deal")
+	}
+	if m.Init() == nil {
+		t.Fatal("Init must schedule the menu ticker when motion is on")
+	}
+	for i := 0; i < 40; i++ {
+		mm, cmd := m.Update(menuTickMsg{})
+		m = mm.(menuModel)
+		if cmd == nil {
+			t.Fatalf("frame %d: menu ticker must keep rescheduling (ambient)", i)
+		}
+	}
+	if m.deal.active() {
+		t.Error("entry deal must complete within 40 frames")
+	}
+	if m.statW != 8 || m.statL != 4 || m.statC != 240 {
+		t.Errorf("stats must tween to the real record, got W=%d L=%d C=%d", m.statW, m.statL, m.statC)
+	}
+	if m.frames != 40 {
+		t.Errorf("frames = %d, want 40", m.frames)
+	}
+}
+
+func TestMenuReduceMotionInert(t *testing.T) {
+	t.Setenv("SHOWDOWN_REDUCE_MOTION", "1")
+	m := newMenuModel(menuRoster(), stats.Stats{}, "", "", DefaultStartStack, DefaultStartSB, DefaultHandLimit, false, noPersonaFile(t))
+	if m.motion {
+		t.Fatal("SHOWDOWN_REDUCE_MOTION=1 must disable menu motion")
+	}
+	if m.Init() != nil {
+		t.Fatal("Init must not schedule a ticker under reduce-motion")
+	}
+	mm, cmd := m.Update(menuTickMsg{})
+	m = mm.(menuModel)
+	if cmd != nil || m.frames != 0 {
+		t.Error("a stray tick must be inert under reduce-motion")
+	}
+}
+
+func TestMenuStoresWindowSize(t *testing.T) {
+	m := newMenuModel(menuRoster(), stats.Stats{}, "", "", DefaultStartStack, DefaultStartSB, DefaultHandLimit, false, noPersonaFile(t))
+	mm, _ := m.Update(tea.WindowSizeMsg{Width: 80, Height: 24})
+	m = mm.(menuModel)
+	if m.width != 80 {
+		t.Errorf("width = %d, want 80", m.width)
+	}
+}
