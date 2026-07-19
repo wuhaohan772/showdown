@@ -4,6 +4,7 @@ import (
 	"context"
 	"fmt"
 	"math/rand"
+	"os"
 	"strconv"
 	"strings"
 	"time"
@@ -28,6 +29,7 @@ const (
 	phaseRunout
 	phaseHandEnd
 	phaseMatchOver
+	phaseDealing
 )
 
 const decisionTimeout = 45 * time.Second
@@ -79,6 +81,20 @@ type Model struct {
 	feed          []chatLine
 	width, height int
 
+	// Motion pass state. motion=false (SHOWDOWN_REDUCE_MOTION=1) leaves every
+	// animation inert. One ticker drives all of it; animRunning guards
+	// against scheduling it twice.
+	motion      bool
+	animRunning bool
+	deal        cardSlide // hole cards at hand start (gates phaseDealing)
+	boardDeal   cardSlide // street cards flowing in mid-hand
+	boardSeen   int       // board length already animated (or shown) — apply() compares
+	potShown    int       // displayed pot, tweens toward potTarget
+	stackShown  [2]int    // displayed stacks, player-indexed: 0 human, 1 agent
+	typeIdx     int       // feed index being typewriter-revealed; -1 idle
+	typeShown   int       // runes of feed[typeIdx].text revealed so far
+	bannerAge   int       // frames since banner was set; bright while < bannerBright
+
 	// reactionPending: the match-end reaction cmd is in flight; the match-over
 	// screen waits for it (spinner) and the first q/enter shows a skip hint
 	// instead of quitting. skipHinted records that first press.
@@ -114,6 +130,10 @@ func NewModel(opp agent.Adapter, st stats.Stats, statsPath string, quiet bool, d
 		rng:   rand.New(rand.NewSource(seed)),
 		match: poker.NewMatch(startStack, startSB, handLimit), digest: agent.NewDigest(startStack),
 		input: in, spin: sp,
+		motion:     os.Getenv("SHOWDOWN_REDUCE_MOTION") != "1",
+		typeIdx:    -1,
+		bannerAge:  bannerBright,
+		stackShown: [2]int{startStack, startStack},
 	}
 }
 
@@ -136,9 +156,16 @@ func (m *Model) startHand() tea.Cmd {
 		"stacks":     []int{m.hand.Seats[0].Stack, m.hand.Seats[1].Stack},
 	})
 	m.feed = append(m.feed, chatLine{text: fmt.Sprintf("hand %d", m.match.HandNum), divider: true})
-	m.banner = fmt.Sprintf("hand %d — blinds %d/%d", m.match.HandNum, sb, bb)
+	m.setBanner(fmt.Sprintf("hand %d — blinds %d/%d", m.match.HandNum, sb, bb))
 	m.revealed = 0
-	return m.advance()
+	m.boardSeen = 0
+	m.potShown = 0
+	if !m.motion {
+		return m.advance()
+	}
+	m.phase = phaseDealing
+	m.deal = newCardSlide(0, 4)
+	return m.startAnim()
 }
 
 // advance routes control after any applied action.
@@ -292,6 +319,68 @@ func runoutTick() tea.Cmd {
 	return tea.Tick(500*time.Millisecond, func(time.Time) tea.Msg { return runoutTickMsg{} })
 }
 
+const bannerBright = 6 // frames the banner stays bright after being set
+
+type animTickMsg struct{}
+
+func animTick() tea.Cmd {
+	return tea.Tick(animFrame, func(time.Time) tea.Msg { return animTickMsg{} })
+}
+
+// startAnim schedules the animation ticker if anything needs animating and
+// it isn't already running. Callers batch its result into whatever cmd they
+// return; nil is safe in tea.Batch.
+func (m *Model) startAnim() tea.Cmd {
+	if !m.motion || m.animRunning || !m.animating() {
+		return nil
+	}
+	m.animRunning = true
+	return animTick()
+}
+
+func (m Model) animating() bool {
+	if !m.motion || m.hand == nil {
+		return false
+	}
+	at, ht := m.displayStacks()
+	return m.deal.active() || m.boardDeal.active() || m.typeIdx >= 0 ||
+		m.potShown != m.potTarget() ||
+		m.stackShown[1] != at || m.stackShown[0] != ht ||
+		m.bannerAge < bannerBright
+}
+
+// potTarget is what the displayed pot tweens toward: the live pot during a
+// hand, 0 once the hand is settled (the chips visually drain to the winner's
+// stack, which tweens up at the same time).
+func (m Model) potTarget() int {
+	p := m.phase
+	if p == phaseTalkInput {
+		p = m.talkReturn
+	}
+	if p == phaseHandEnd || p == phaseMatchOver {
+		return 0
+	}
+	return m.hand.Pot
+}
+
+// setBanner stamps the banner bright; it decays to the normal style after
+// bannerBright frames (see bannerStyleFor, Task 6).
+func (m *Model) setBanner(s string) {
+	m.banner = s
+	m.bannerAge = 0
+}
+
+// displayStacks returns the true (target) agent and human stacks for the
+// current phase, including the match-over seat-flip correction.
+func (m Model) displayStacks() (agentStack, humanStack int) {
+	hs, as := m.humanSeat(), m.agentSeat()
+	agentStack, humanStack = m.hand.Seats[as].Stack, m.hand.Seats[hs].Stack
+	if m.phase == phaseMatchOver {
+		agentStack, humanStack = m.match.Stacks[1], m.match.Stacks[0]
+	}
+	return agentStack, humanStack
+}
+
 // matchOverOutcome states how the match ended, from the agent's own
 // perspective, for its match-over reaction prompt. It must never claim a
 // bust that didn't happen (table-truth rule) — a match can also end by
@@ -373,7 +462,7 @@ func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 	switch msg := msg.(type) {
 	case startHandMsg:
 		cmd := m.startHand()
-		return m, cmd
+		return m, tea.Batch(cmd, m.startAnim())
 	case spinner.TickMsg:
 		var cmd tea.Cmd
 		m.spin, cmd = m.spin.Update(msg)
@@ -403,7 +492,7 @@ func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 			m.talkReturn = m.phase
 			m.phase = phaseTalkInput
 		}
-		return m, cmd
+		return m, tea.Batch(cmd, m.startAnim())
 	case reactionMsg:
 		m.sessionUsage.Add(msg.usage)
 		if msg.usage != nil && m.phase == phaseMatchOver && m.saved {
@@ -418,7 +507,7 @@ func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 			m.feed = append(m.feed, chatLine{who: m.opp.DisplayName, text: msg.say})
 		}
 		m.reactionPending = false
-		return m, nil
+		return m, m.startAnim()
 	case tea.WindowSizeMsg:
 		m.width, m.height = msg.Width, msg.Height
 		return m, nil
@@ -433,11 +522,39 @@ func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 				} else {
 					m.phase = phaseHandEnd
 				}
-				return m, nil
+				return m, m.startAnim()
 			}
-			return m, runoutTick()
+			return m, tea.Batch(runoutTick(), m.startAnim())
 		}
 		return m, nil
+	case animTickMsg:
+		if !m.animRunning {
+			return m, nil // stale tick after the loop stopped
+		}
+		var cmd tea.Cmd
+		m.deal.tick()
+		m.boardDeal.tick()
+		if m.phase == phaseDealing && !m.deal.active() {
+			cmd = m.advance()
+		}
+		m.potShown = stepToward(m.potShown, m.potTarget())
+		at, ht := m.displayStacks()
+		m.stackShown[1] = stepToward(m.stackShown[1], at)
+		m.stackShown[0] = stepToward(m.stackShown[0], ht)
+		if m.typeIdx >= 0 {
+			m.typeShown += 2
+			if m.typeShown >= len([]rune(m.feed[m.typeIdx].text)) {
+				m.typeIdx = -1
+			}
+		}
+		if m.bannerAge < bannerBright {
+			m.bannerAge++
+		}
+		if m.animating() {
+			return m, tea.Batch(cmd, animTick())
+		}
+		m.animRunning = false
+		return m, cmd
 	case tea.KeyMsg:
 		return m.handleKey(msg)
 	}
@@ -491,7 +608,7 @@ func (m Model) handleKey(msg tea.KeyMsg) (tea.Model, tea.Cmd) {
 		}
 		if k == "enter" {
 			cmd := m.settleAndNext()
-			return m, cmd
+			return m, tea.Batch(cmd, m.startAnim())
 		}
 	case phaseMatchOver:
 		if k == "enter" {
@@ -515,18 +632,18 @@ func (m Model) humanAction(k string) (tea.Model, tea.Cmd) {
 		if legal[poker.Fold] {
 			_ = m.apply(poker.Action{Type: poker.Fold})
 			cmd := m.advance()
-			return m, cmd
+			return m, tea.Batch(cmd, m.startAnim())
 		}
 	case "c":
 		if legal[poker.Call] {
 			_ = m.apply(poker.Action{Type: poker.Call})
 			cmd := m.advance()
-			return m, cmd
+			return m, tea.Batch(cmd, m.startAnim())
 		}
 		if legal[poker.Check] {
 			_ = m.apply(poker.Action{Type: poker.Check})
 			cmd := m.advance()
-			return m, cmd
+			return m, tea.Batch(cmd, m.startAnim())
 		}
 	case "r", "b":
 		if legal[poker.Bet] || legal[poker.Raise] {
@@ -543,7 +660,7 @@ func (m Model) humanAction(k string) (tea.Model, tea.Cmd) {
 			}
 			_ = m.apply(poker.Action{Type: t, To: m.hand.MaxRaiseTo()})
 			cmd := m.advance()
-			return m, cmd
+			return m, tea.Batch(cmd, m.startAnim())
 		}
 	case "t":
 		m.openTalk()
@@ -591,7 +708,7 @@ func (m Model) confirmInput() (tea.Model, tea.Cmd) {
 		return m, nil
 	}
 	cmd := m.advance()
-	return m, cmd
+	return m, tea.Batch(cmd, m.startAnim())
 }
 
 func cardStrings(cs []poker.Card) []string {
@@ -618,6 +735,8 @@ func phaseName(p phase) string {
 		return "hand_end"
 	case phaseMatchOver:
 		return "match_over"
+	case phaseDealing:
+		return "dealing"
 	}
 	return "unknown"
 }
@@ -686,7 +805,7 @@ func (m Model) View() string {
 func (m Model) renderTable() (table, actions string) {
 	var b strings.Builder
 	hs, as := m.humanSeat(), m.agentSeat()
-	agentStack, humanStack := m.hand.Seats[as].Stack, m.hand.Seats[hs].Stack
+	agentStack, humanStack := m.displayStacks()
 	if m.phase == phaseMatchOver {
 		// m.hand is the just-finished hand; HandNum has already advanced (via
 		// NextHand), which flips humanSeat()/agentSeat(). Use the seat mapping
@@ -694,7 +813,9 @@ func (m Model) renderTable() (table, actions string) {
 		// is player-id indexed and unaffected by the seat flip).
 		hs = m.finalHumanSeat
 		as = 1 - hs
-		agentStack, humanStack = m.match.Stacks[1], m.match.Stacks[0]
+	}
+	if m.motion {
+		agentStack, humanStack = m.stackShown[1], m.stackShown[0]
 	}
 	inRunout := m.phase == phaseRunout || (m.phase == phaseTalkInput && m.talkReturn == phaseRunout)
 	agentHoleUp := m.phase == phaseMatchOver ||
@@ -705,7 +826,17 @@ func (m Model) renderTable() (table, actions string) {
 	if agentHoleUp {
 		rev = 2
 	}
-	b.WriteString(indent(RenderCardRow(m.hand.Hole[as][:], rev), 2) + "\n")
+	if m.phase == phaseDealing {
+		landed, off := m.deal.landed, -1
+		if landed > 2 {
+			landed = 2
+		} else if m.deal.landed < 2 {
+			off = m.deal.offset
+		}
+		b.WriteString(indent(RenderCardRowDeal(m.hand.Hole[as][:], 0, landed, off), 2) + "\n")
+	} else {
+		b.WriteString(indent(RenderCardRow(m.hand.Hole[as][:], rev), 2) + "\n")
+	}
 	if m.phase == phaseAgentTurn || (m.phase == phaseTalkInput && m.talkReturn == phaseAgentTurn) {
 		b.WriteString(dimStyle.Render("  "+m.spin.View()+m.opp.DisplayName+" is thinking...") + "\n")
 	}
@@ -718,9 +849,28 @@ func (m Model) renderTable() (table, actions string) {
 	if len(m.hand.Board) > 0 {
 		b.WriteString(indent(RenderCardRow(m.hand.Board, boardRev), 2) + "\n")
 	}
-	fmt.Fprintf(&b, "  pot: %d\n\n", m.hand.Pot)
+	pot := m.hand.Pot
+	if m.motion {
+		pot = m.potShown
+	}
+	_, bb := m.match.Blinds()
+	if chips := renderChips(pot, bb); chips != "" {
+		fmt.Fprintf(&b, "  pot %s %d\n\n", chips, pot)
+	} else {
+		fmt.Fprintf(&b, "  pot %d\n\n", pot)
+	}
 
-	b.WriteString(indent(RenderCardRow(m.hand.Hole[hs][:], 2), 2) + "\n")
+	if m.phase == phaseDealing {
+		landed, off := m.deal.landed-2, -1
+		if landed < 0 {
+			landed = 0
+		} else if m.deal.active() {
+			off = m.deal.offset
+		}
+		b.WriteString(indent(RenderCardRowDeal(m.hand.Hole[hs][:], landed, landed, off), 2) + "\n")
+	} else {
+		b.WriteString(indent(RenderCardRow(m.hand.Hole[hs][:], 2), 2) + "\n")
+	}
 	fmt.Fprintf(&b, "  ♥ YOU   stack: %d\n", humanStack)
 	b.WriteString("\n")
 
@@ -729,6 +879,8 @@ func (m Model) renderTable() (table, actions string) {
 
 	var a strings.Builder
 	switch m.phase {
+	case phaseDealing:
+		// empty bar while cards fly
 	case phaseHumanTurn:
 		opts := []string{}
 		for _, a := range m.hand.LegalActions() {

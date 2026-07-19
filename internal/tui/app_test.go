@@ -75,6 +75,7 @@ func key(s string) tea.KeyMsg {
 }
 
 func TestHandStartsWithHumanOrAgentTurn(t *testing.T) {
+	t.Setenv("SHOWDOWN_REDUCE_MOTION", "1")
 	m := testModel(t)
 	m2, _ := m.Update(startHandMsg{})
 	m = m2.(Model)
@@ -90,6 +91,7 @@ func TestHandStartsWithHumanOrAgentTurn(t *testing.T) {
 // Per-hand reactions were removed (each was a full CLI spawn); the only
 // reaction call now fires once, at match end.
 func TestNoReactionSpawnAtHandEnd(t *testing.T) {
+	t.Setenv("SHOWDOWN_REDUCE_MOTION", "1")
 	m := testModel(t) // quiet=false: the per-hand reaction used to fire here
 	m2, _ := m.Update(startHandMsg{})
 	m = m2.(Model)
@@ -127,6 +129,7 @@ func TestMatchEndReactionFired(t *testing.T) {
 }
 
 func TestHumanFoldEndsHand(t *testing.T) {
+	t.Setenv("SHOWDOWN_REDUCE_MOTION", "1")
 	m := testModel(t)
 	m2, _ := m.Update(startHandMsg{})
 	m = m2.(Model)
@@ -141,6 +144,7 @@ func TestHumanFoldEndsHand(t *testing.T) {
 }
 
 func TestAgentDecisionMsgApplies(t *testing.T) {
+	t.Setenv("SHOWDOWN_REDUCE_MOTION", "1")
 	m := testModel(t)
 	m2, _ := m.Update(startHandMsg{})
 	m = m2.(Model)
@@ -161,6 +165,7 @@ func TestAgentDecisionMsgApplies(t *testing.T) {
 }
 
 func TestRaiseInputFlow(t *testing.T) {
+	t.Setenv("SHOWDOWN_REDUCE_MOTION", "1")
 	m := testModel(t)
 	m2, _ := m.Update(startHandMsg{})
 	m = m2.(Model)
@@ -184,6 +189,7 @@ func TestRaiseInputFlow(t *testing.T) {
 }
 
 func TestTalkInputFeedsDigest(t *testing.T) {
+	t.Setenv("SHOWDOWN_REDUCE_MOTION", "1")
 	m := testModel(t)
 	m2, _ := m.Update(startHandMsg{})
 	m = m2.(Model)
@@ -235,6 +241,7 @@ func TestAgentHandSummaryPerspective(t *testing.T) {
 // HandNum), even though it was still displaying the just-finished hand.
 // That bug showed "YOU stack: 0" even when the human won the match.
 func TestMatchOverShowsCorrectStacks(t *testing.T) {
+	t.Setenv("SHOWDOWN_REDUCE_MOTION", "1")
 	m := testModel(t)
 	m2, _ := m.Update(startHandMsg{})
 	m = m2.(Model)
@@ -303,6 +310,7 @@ func TestSessionStartLogged(t *testing.T) {
 }
 
 func TestDebugLogCapturesHandFlow(t *testing.T) {
+	t.Setenv("SHOWDOWN_REDUCE_MOTION", "1")
 	path := filepath.Join(t.TempDir(), "d.jsonl")
 	l, err := debuglog.New(path)
 	if err != nil {
@@ -403,6 +411,7 @@ func TestAgentDecisionLogged(t *testing.T) {
 }
 
 func TestFallbackNoticeVisibleInQuietMode(t *testing.T) {
+	t.Setenv("SHOWDOWN_REDUCE_MOTION", "1")
 	ad := agent.Adapter{Key: "stub", DisplayName: "Stub", Bin: "true",
 		Args: func(m, p string) []string { return nil }}
 	m := NewModel(ad, stats.Stats{}, t.TempDir()+"/stats.json", true, ".", "", 1500, 10, 0, nil)
@@ -430,6 +439,7 @@ func typeString(t *testing.T, m Model, s string) Model {
 }
 
 func TestTalkEchoRendersAndPersistsAcrossHands(t *testing.T) {
+	t.Setenv("SHOWDOWN_REDUCE_MOTION", "1")
 	m := testModel(t)
 	m2, _ := m.Update(startHandMsg{})
 	m = m2.(Model)
@@ -481,6 +491,7 @@ func TestTalkEchoHiddenInQuietMode(t *testing.T) {
 }
 
 func TestTalkAtHandEndReturnsToHandEnd(t *testing.T) {
+	t.Setenv("SHOWDOWN_REDUCE_MOTION", "1")
 	m := testModel(t)
 	m2, _ := m.Update(startHandMsg{})
 	m = m2.(Model)
@@ -506,6 +517,7 @@ func TestTalkAtHandEndReturnsToHandEnd(t *testing.T) {
 }
 
 func TestTalkEscRestoresOriginPhase(t *testing.T) {
+	t.Setenv("SHOWDOWN_REDUCE_MOTION", "1")
 	m := testModel(t)
 	m2, _ := m.Update(startHandMsg{})
 	m = m2.(Model)
@@ -521,6 +533,7 @@ func TestTalkEscRestoresOriginPhase(t *testing.T) {
 }
 
 func TestTalkDuringAgentTurnSurvivesDecision(t *testing.T) {
+	t.Setenv("SHOWDOWN_REDUCE_MOTION", "1")
 	m := testModel(t)
 	m2, _ := m.Update(startHandMsg{})
 	m = m2.(Model)
@@ -555,6 +568,7 @@ func TestTalkDuringAgentTurnSurvivesDecision(t *testing.T) {
 }
 
 func TestTalkSurvivesShowdownRunout(t *testing.T) {
+	t.Setenv("SHOWDOWN_REDUCE_MOTION", "1")
 	m := testModel(t)
 	m2, _ := m.Update(startHandMsg{})
 	m = m2.(Model)
@@ -598,6 +612,7 @@ func TestTalkSurvivesShowdownRunout(t *testing.T) {
 }
 
 func TestViewHidesRunoutWhileTyping(t *testing.T) {
+	t.Setenv("SHOWDOWN_REDUCE_MOTION", "1")
 	m := testModel(t)
 	m2, _ := m.Update(startHandMsg{})
 	m = m2.(Model)
@@ -645,6 +660,7 @@ func TestViewHidesRunoutWhileTyping(t *testing.T) {
 }
 
 func TestTalkSurvivesAgentFoldToHandEnd(t *testing.T) {
+	t.Setenv("SHOWDOWN_REDUCE_MOTION", "1")
 	m := testModel(t)
 	m2, _ := m.Update(startHandMsg{})
 	m = m2.(Model)
@@ -681,6 +697,7 @@ func TestSessionUsageAccumulates(t *testing.T) {
 }
 
 func TestKeyHintRows(t *testing.T) {
+	t.Setenv("SHOWDOWN_REDUCE_MOTION", "1")
 	m := testModel(t)
 	m2, _ := m.Update(startHandMsg{})
 	m = m2.(Model)
@@ -991,6 +1008,7 @@ func TestChatPanelRendersOnWideTerminal(t *testing.T) {
 }
 
 func TestChatLogFallbackOnNarrowOrUnknownWidth(t *testing.T) {
+	t.Setenv("SHOWDOWN_REDUCE_MOTION", "1")
 	m := testModel(t) // width == 0: tests, pipes
 	m2, _ := m.Update(startHandMsg{})
 	m = m2.(Model)
@@ -1095,6 +1113,7 @@ func TestMatchOverSecondQSkipsPendingReaction(t *testing.T) {
 }
 
 func TestPendingHandResultsAccumulateAndCarrySummaries(t *testing.T) {
+	t.Setenv("SHOWDOWN_REDUCE_MOTION", "1")
 	m := testModel(t)
 	m2, _ := m.Update(startHandMsg{})
 	m = m2.(Model)
@@ -1102,5 +1121,77 @@ func TestPendingHandResultsAccumulateAndCarrySummaries(t *testing.T) {
 	m = m2.(Model)
 	if len(m.pendingResults) != 1 || !strings.Contains(m.pendingResults[0], "Hand 1:") {
 		t.Errorf("pendingResults = %v, want the hand 1 summary", m.pendingResults)
+	}
+}
+
+// ── motion pass: anim ticker, deal phase, reduce-motion (spec task 3) ──
+
+// tick pumps n animation frames through Update.
+func tick(t *testing.T, m Model, n int) Model {
+	t.Helper()
+	for i := 0; i < n; i++ {
+		mm, _ := m.Update(animTickMsg{})
+		m = mm.(Model)
+	}
+	return m
+}
+
+func TestDealAnimationGatesPhase(t *testing.T) {
+	m := testModel(t)
+	mm, _ := m.Update(startHandMsg{})
+	m = mm.(Model)
+	if m.phase != phaseDealing {
+		t.Fatalf("phase after startHand = %v, want phaseDealing", m.phase)
+	}
+	// 4 cards x 4 frames each = 16 frames to land everything; one extra frame
+	// runs the phase transition. Pump plenty.
+	m = tick(t, m, 25)
+	if m.phase == phaseDealing {
+		t.Fatalf("deal never completed; phase still dealing after 25 frames")
+	}
+	if m.phase != phaseHumanTurn && m.phase != phaseAgentTurn {
+		t.Fatalf("post-deal phase = %v, want a turn phase", m.phase)
+	}
+}
+
+func TestReduceMotionSkipsDeal(t *testing.T) {
+	t.Setenv("SHOWDOWN_REDUCE_MOTION", "1")
+	m := testModel(t)
+	mm, _ := m.Update(startHandMsg{})
+	m = mm.(Model)
+	if m.phase == phaseDealing {
+		t.Fatal("reduce-motion must skip the dealing phase entirely")
+	}
+	if m.animRunning {
+		t.Fatal("reduce-motion must never start the anim ticker")
+	}
+}
+
+func TestPotTweenReachesTarget(t *testing.T) {
+	m := testModel(t)
+	mm, _ := m.Update(startHandMsg{})
+	m = mm.(Model)
+	if m.potShown != 0 {
+		t.Fatalf("potShown starts at %d, want 0", m.potShown)
+	}
+	m = tick(t, m, 60) // deal + tween settle well within 60 frames
+	if m.potShown != m.potTarget() {
+		t.Errorf("potShown = %d after settling, want target %d", m.potShown, m.potTarget())
+	}
+	if m.potTarget() != m.hand.Pot {
+		t.Errorf("in-hand pot target = %d, want live pot %d", m.potTarget(), m.hand.Pot)
+	}
+}
+
+func TestAnimTickerStopsWhenIdle(t *testing.T) {
+	m := testModel(t)
+	mm, _ := m.Update(startHandMsg{})
+	m = mm.(Model)
+	m = tick(t, m, 80)
+	if m.animating() {
+		t.Fatalf("model still animating after 80 frames: %+v", m)
+	}
+	if m.animRunning {
+		t.Error("animRunning must clear once nothing animates")
 	}
 }
