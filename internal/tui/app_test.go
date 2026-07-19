@@ -1167,6 +1167,30 @@ func TestReduceMotionSkipsDeal(t *testing.T) {
 	}
 }
 
+func TestRaiseErrorBannerSettles(t *testing.T) {
+	m := testModel(t)
+	mm, _ := m.Update(startHandMsg{})
+	m = mm.(Model)
+	m = tick(t, m, 80) // deal + tweens fully settled, ticker idle
+	if m.animRunning {
+		t.Fatal("precondition: ticker must be idle before the raise input")
+	}
+	m.phase = phaseRaiseInput
+	m.input.SetValue("not-a-number")
+	mm, cmd := m.confirmInput()
+	m = mm.(Model)
+	if m.bannerAge != 0 {
+		t.Fatal("error banner must stamp bright")
+	}
+	if cmd == nil || !m.animRunning {
+		t.Fatal("error banner must restart the anim ticker so it can settle")
+	}
+	m = tick(t, m, bannerBright+1)
+	if m.bannerAge < bannerBright {
+		t.Errorf("banner never settled: age %d", m.bannerAge)
+	}
+}
+
 func TestPotTweenReachesTarget(t *testing.T) {
 	m := testModel(t)
 	mm, _ := m.Update(startHandMsg{})

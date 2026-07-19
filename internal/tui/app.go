@@ -704,7 +704,7 @@ func (m Model) confirmInput() (tea.Model, tea.Cmd) {
 	if err != nil {
 		m.setBanner("enter a number")
 		m.phase = phaseHumanTurn
-		return m, nil
+		return m, m.startAnim()
 	}
 	t := poker.Raise
 	for _, a := range m.hand.LegalActions() {
@@ -715,7 +715,7 @@ func (m Model) confirmInput() (tea.Model, tea.Cmd) {
 	if err := m.apply(poker.Action{Type: t, To: n}); err != nil {
 		m.setBanner(err.Error())
 		m.phase = phaseHumanTurn
-		return m, nil
+		return m, m.startAnim()
 	}
 	cmd := m.advance()
 	return m, tea.Batch(cmd, m.startAnim())
