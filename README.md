@@ -48,6 +48,9 @@ opponent.
 | `--hands 20` | Cap the match at N hands (0 = play until bust) |
 | `--quiet` | No table talk |
 | `--debug` | Write a full JSONL transcript to `~/.showdown/` |
+| `SHOWDOWN_REDUCE_MOTION=1` | Environment variable: skip all animations (deal, tweens, typewriter) |
+
+Cards are dealt into place, chips tween, and the agent's trash talk types out live; set `SHOWDOWN_REDUCE_MOTION=1` if you want everything instant.
 
 ## Personas
 
