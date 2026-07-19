@@ -5,9 +5,13 @@ coding-agent CLI you have installed: Claude Code, Codex, or Gemini.
 The agent runs from your launch directory, so it loads its own memory
 files and knows who it's playing. It trash talks accordingly.
 
+![A three-hand showdown match against Claude Code: it reads the
+project memory, needles you about your deploy script, folds to two
+bluffs, then flops a straight and takes the match](docs/demo.gif)
+
 ## Install
 
-    go install github.com/haohanwu/showdown@latest
+    go install github.com/wuhaohan772/showdown@latest
     showdown
 
 Showdown scans your `PATH` for `claude`, `codex`, and `gemini`. If it
