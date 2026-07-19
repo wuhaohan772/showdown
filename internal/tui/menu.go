@@ -185,6 +185,7 @@ func menuTick() tea.Cmd {
 
 var menuDim = lipgloss.NewStyle().Foreground(lipgloss.Color("8"))
 var menuFocus = lipgloss.NewStyle().Bold(true)
+var menuShimmer = lipgloss.NewStyle().Foreground(lipgloss.Color("230")).Bold(true)
 
 // handsLabel renders a hand-limit preset: 0 is "unlimited", otherwise the
 // bare hand count.
@@ -326,6 +327,15 @@ func (m menuModel) dealLanded() (landed, offset int) {
 	return m.deal.landed, m.deal.offset
 }
 
+// dealerButton blinks beside the opponent seat on a ~1s period (20 frames
+// at animFrame). Static (absent) under reduce-motion.
+func (m menuModel) dealerButton() string {
+	if !m.motion || m.frames%20 >= 10 {
+		return ""
+	}
+	return " " + chipStyle.Render("●")
+}
+
 // statVals is the header's lifetime record: tweened under motion, live
 // otherwise (also live per-frame targets are recomputed in the tick).
 func (m menuModel) statVals() (w, l, cents int) {
@@ -388,6 +398,7 @@ func (m menuModel) viewSeatOpponent() string {
 	if mv := m.modelOpts[m.oppIdx][m.modelIdx]; m.focus == rowModel || mv != menuDefaultModel {
 		name += " · " + m.focusVal(rowModel, mv)
 	}
+	name += m.dealerButton()
 	persona := "  persona: " + m.focusVal(rowPersona, m.personaOpts[m.personaIdx])
 	return joinSeat(cards, name, persona)
 }
@@ -403,11 +414,24 @@ func (m menuModel) viewStakes() string {
 	return b.String()
 }
 
-// menuChips is the decorative pot pile: grows with the blind preset.
-// (Task 3 adds the shimmer.)
+// menuChips is the decorative pot pile: grows with the blind preset; one
+// chip shimmers bright for a few frames every ~3s (color-only, so layout
+// never shifts). Static under reduce-motion.
 func (m menuModel) menuChips() string {
 	n := m.blindIdx + 2
-	return chipStyle.Render(strings.Repeat("●", n))
+	shimmer := -1
+	if m.motion && m.frames%60 < 4 {
+		shimmer = (m.frames / 60) % n
+	}
+	var b strings.Builder
+	for i := 0; i < n; i++ {
+		if i == shimmer {
+			b.WriteString(menuShimmer.Render("●"))
+		} else {
+			b.WriteString(chipStyle.Render("●"))
+		}
+	}
+	return b.String()
 }
 
 func (m menuModel) viewSeatYou() string {

@@ -7,8 +7,10 @@ import (
 	"testing"
 
 	tea "github.com/charmbracelet/bubbletea"
+	"github.com/charmbracelet/lipgloss"
 	"github.com/haohanwu/showdown/internal/agent"
 	"github.com/haohanwu/showdown/internal/stats"
+	"github.com/muesli/termenv"
 )
 
 func menuRoster() []agent.Adapter {
@@ -447,5 +449,49 @@ func TestMenuLobbyRendersMidDeal(t *testing.T) {
 	}
 	if v := stripANSI(m.View()); !strings.Contains(v, "♠ SHOWDOWN") {
 		t.Errorf("mid-deal lobby render broken:\n%s", v)
+	}
+}
+
+func TestMenuDealerButtonBlinks(t *testing.T) {
+	m := newMenuModel(menuRoster(), stats.Stats{}, "", "", 1500, 10, 0, false, noPersonaFile(t))
+	mm, _ := m.Update(tea.WindowSizeMsg{Width: 80, Height: 24})
+	m = mm.(menuModel)
+	m.frames = 5 // blink-on half of the period
+	on := strings.Count(stripANSI(m.View()), "●")
+	m.frames = 15 // blink-off half
+	off := strings.Count(stripANSI(m.View()), "●")
+	if on != off+1 {
+		t.Errorf("dealer button must add exactly one ● in the on-phase: on=%d off=%d", on, off)
+	}
+}
+
+func TestMenuChipShimmer(t *testing.T) {
+	lipgloss.SetColorProfile(termenv.TrueColor)
+	defer lipgloss.SetColorProfile(termenv.Ascii)
+	m := newMenuModel(menuRoster(), stats.Stats{}, "", "", 1500, 10, 0, false, noPersonaFile(t))
+	mm, _ := m.Update(tea.WindowSizeMsg{Width: 80, Height: 24})
+	m = mm.(menuModel)
+	m.frames = 0 // shimmer active (0%60 < 4), dealer blink on (0%20 < 10)
+	a := m.View()
+	m.frames = 64 // shimmer inactive (64%60 = 4), dealer blink on (64%20 = 4)
+	b := m.View()
+	if a == b {
+		t.Error("shimmer frame must render differently from non-shimmer frame")
+	}
+	if stripANSI(a) != stripANSI(b) {
+		t.Error("shimmer must be color-only: stripped output must be identical")
+	}
+}
+
+func TestMenuNoAmbientUnderReduceMotion(t *testing.T) {
+	t.Setenv("SHOWDOWN_REDUCE_MOTION", "1")
+	m := newMenuModel(menuRoster(), stats.Stats{}, "", "", 1500, 10, 0, false, noPersonaFile(t))
+	mm, _ := m.Update(tea.WindowSizeMsg{Width: 80, Height: 24})
+	m = mm.(menuModel)
+	m.frames = 5
+	a := m.View()
+	m.frames = 15
+	if b := m.View(); a != b {
+		t.Error("reduce-motion menu must render identically at any frame")
 	}
 }
