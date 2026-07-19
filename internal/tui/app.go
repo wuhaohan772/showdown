@@ -279,9 +279,9 @@ func (m *Model) finishHand() tea.Cmd {
 		how = r.Desc
 	}
 	if r.Split {
-		m.banner = fmt.Sprintf("split pot (%d) — %s", r.Pot, r.Desc)
+		m.setBanner(fmt.Sprintf("split pot (%d) — %s", r.Pot, r.Desc))
 	} else {
-		m.banner = fmt.Sprintf("%s wins %d (%s)", winnerName, r.Pot, how)
+		m.setBanner(fmt.Sprintf("%s wins %d (%s)", winnerName, r.Pot, how))
 	}
 	summary := agentHandSummary(m.match.HandNum, r, r.Winner == m.agentSeat())
 	m.digest.EndHand(summary)
@@ -490,7 +490,7 @@ func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 			}
 		}
 		if msg.fallback {
-			m.banner = "agent glitched — forced " + string(msg.act.Type)
+			m.setBanner("agent glitched — forced " + string(msg.act.Type))
 		}
 		cmd := m.advance()
 		if wasTyping {
@@ -702,7 +702,7 @@ func (m Model) confirmInput() (tea.Model, tea.Cmd) {
 	// raise input
 	n, err := strconv.Atoi(val)
 	if err != nil {
-		m.banner = "enter a number"
+		m.setBanner("enter a number")
 		m.phase = phaseHumanTurn
 		return m, nil
 	}
@@ -713,7 +713,7 @@ func (m Model) confirmInput() (tea.Model, tea.Cmd) {
 		}
 	}
 	if err := m.apply(poker.Action{Type: t, To: n}); err != nil {
-		m.banner = err.Error()
+		m.setBanner(err.Error())
 		m.phase = phaseHumanTurn
 		return m, nil
 	}
@@ -792,8 +792,18 @@ var (
 	dimStyle      = lipgloss.NewStyle().Foreground(lipgloss.Color("8"))
 	sayStyle      = lipgloss.NewStyle().Foreground(lipgloss.Color("11")).Italic(true)
 	humanSayStyle = lipgloss.NewStyle().Foreground(lipgloss.Color("12"))
-	bannerStyle   = lipgloss.NewStyle().Foreground(lipgloss.Color("10"))
+	bannerFresh   = lipgloss.NewStyle().Foreground(lipgloss.Color("10")).Bold(true)
+	bannerSettled = lipgloss.NewStyle().Foreground(lipgloss.Color("10"))
 )
+
+// bannerStyleFor stamps a fresh banner bold, settling to the normal green
+// after bannerBright animation frames (~300ms).
+func bannerStyleFor(age int) lipgloss.Style {
+	if age < bannerBright {
+		return bannerFresh
+	}
+	return bannerSettled
+}
 
 const (
 	chatPanelWidth        = 30 // fixed panel width (decision: not scaled to terminal)
@@ -837,7 +847,11 @@ func (m Model) renderTable() (table, actions string) {
 	agentHoleUp := m.phase == phaseMatchOver ||
 		(m.hand.Result() != nil && m.hand.Result().Showdown && !inRunout)
 
-	fmt.Fprintf(&b, "  ♠ %s   stack: %d\n", m.opp.DisplayName, agentStack)
+	name := m.opp.DisplayName
+	if m.opp.Model != "" {
+		name += " · " + m.opp.Model
+	}
+	fmt.Fprintf(&b, "  ♠ %s   stack: %d\n", name, agentStack)
 	rev := 0
 	if agentHoleUp {
 		rev = 2
@@ -897,7 +911,7 @@ func (m Model) renderTable() (table, actions string) {
 	fmt.Fprintf(&b, "  ♥ YOU   stack: %d\n", humanStack)
 	b.WriteString("\n")
 
-	b.WriteString(bannerStyle.Render("  "+m.banner) + "\n")
+	b.WriteString(bannerStyleFor(m.bannerAge).Render("  "+m.banner) + "\n")
 	table = b.String()
 
 	var a strings.Builder

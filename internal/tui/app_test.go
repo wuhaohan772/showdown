@@ -1272,3 +1272,30 @@ func TestHumanSayIsInstant(t *testing.T) {
 		t.Errorf("human line must be fully visible immediately: %q", joined)
 	}
 }
+
+func TestSetBannerStampsBright(t *testing.T) {
+	m := testModel(t)
+	mm, _ := m.Update(startHandMsg{})
+	m = mm.(Model)
+	if m.bannerAge != 0 {
+		t.Fatalf("startHand must stamp the banner (age 0), got %d", m.bannerAge)
+	}
+	m = tick(t, m, bannerBright+1)
+	if m.bannerAge < bannerBright {
+		t.Errorf("banner age must reach settle threshold, got %d", m.bannerAge)
+	}
+	if bannerStyleFor(0).Render("x") == bannerStyleFor(bannerBright).Render("x") {
+		t.Error("fresh and settled banner styles must differ")
+	}
+}
+
+func TestHeaderShowsModelTag(t *testing.T) {
+	m := testModel(t)
+	m.opp.Model = "sonnet"
+	mm, _ := m.Update(startHandMsg{})
+	m = mm.(Model)
+	table, _ := m.renderTable()
+	if !strings.Contains(table, m.opp.DisplayName+" · sonnet") {
+		t.Errorf("header must carry the model tag, got:\n%s", table)
+	}
+}
