@@ -11,6 +11,7 @@ var (
 	redCard   = lipgloss.NewStyle().Foreground(lipgloss.Color("9"))
 	blackCard = lipgloss.NewStyle().Foreground(lipgloss.Color("15"))
 	cardBack  = lipgloss.NewStyle().Foreground(lipgloss.Color("8"))
+	chipStyle = lipgloss.NewStyle().Foreground(lipgloss.Color("220"))
 )
 
 func SuitGlyph(s poker.Suit) string {
@@ -56,4 +57,55 @@ func RenderCardRow(cards []poker.Card, revealed int) string {
 		}
 	}
 	return strings.Join(rows, "\n")
+}
+
+// RenderCardRowDeal draws a row mid-deal: the first landed cards (face up
+// where i < revealed), then — if a card is currently sliding into this row
+// (landed < len(cards) && offset >= 0) — one face-down card after offset
+// spaces. Cards beyond the sliding one are not drawn at all.
+func RenderCardRowDeal(cards []poker.Card, revealed, landed, offset int) string {
+	if landed > len(cards) {
+		landed = len(cards)
+	}
+	blocks := make([]string, 0, landed+1)
+	for i := 0; i < landed; i++ {
+		blocks = append(blocks, RenderCard(cards[i], i < revealed))
+	}
+	if landed < len(cards) && offset >= 0 {
+		pad := strings.Repeat(" ", offset)
+		b := strings.Split(RenderCard(cards[landed], false), "\n")
+		for i := range b {
+			b[i] = pad + b[i]
+		}
+		blocks = append(blocks, strings.Join(b, "\n"))
+	}
+	if len(blocks) == 0 {
+		return "\n\n"
+	}
+	rows := make([]string, 3)
+	for _, b := range blocks {
+		for i, line := range strings.Split(b, "\n") {
+			if rows[i] != "" {
+				rows[i] += " "
+			}
+			rows[i] += line
+		}
+	}
+	return strings.Join(rows, "\n")
+}
+
+// renderChips draws the pot as a pile of chips, one per big blind, capped so
+// the line never crowds the pot number.
+func renderChips(pot, bb int) string {
+	if bb <= 0 || pot <= 0 {
+		return ""
+	}
+	n := pot / bb
+	if n < 1 {
+		n = 1
+	}
+	if n > 12 {
+		n = 12
+	}
+	return chipStyle.Render(strings.Repeat("●", n))
 }
