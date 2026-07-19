@@ -284,6 +284,7 @@ func (m *Model) finishHand() tea.Cmd {
 	m.digest.EndHand(summary)
 	m.pendingResults = append(m.pendingResults, summary)
 	m.revealed = len(m.hand.Board)
+	m.boardSeen = len(m.hand.Board)
 
 	// No per-hand reaction call: each was a full CLI spawn (ADR-0003 cost
 	// posture). Table talk flows through the decision's "say" field; the
@@ -747,6 +748,12 @@ func phaseName(p phase) string {
 func (m *Model) apply(a poker.Action) error {
 	actor := m.hand.Actor
 	err := m.hand.Apply(a)
+	if m.motion && err == nil && len(m.hand.Board) > m.boardSeen && m.hand.Result() == nil {
+		m.boardDeal = newCardSlide(m.boardSeen, len(m.hand.Board))
+	}
+	if m.hand.Result() == nil {
+		m.boardSeen = len(m.hand.Board)
+	}
 	f := map[string]any{
 		"hand": m.match.HandNum, "actor_seat": actor,
 		"action": string(a.Type), "to": a.To,
@@ -847,7 +854,14 @@ func (m Model) renderTable() (table, actions string) {
 		boardRev = m.revealed
 	}
 	if len(m.hand.Board) > 0 {
-		b.WriteString(indent(RenderCardRow(m.hand.Board, boardRev), 2) + "\n")
+		switch {
+		case inRunout:
+			b.WriteString(indent(RenderCardRow(m.hand.Board, boardRev), 2) + "\n")
+		case m.motion && m.boardDeal.active():
+			b.WriteString(indent(RenderCardRowDeal(m.hand.Board, m.boardDeal.landed, m.boardDeal.landed, m.boardDeal.offset), 2) + "\n")
+		default:
+			b.WriteString(indent(RenderCardRow(m.hand.Board, boardRev), 2) + "\n")
+		}
 	}
 	pot := m.hand.Pot
 	if m.motion {

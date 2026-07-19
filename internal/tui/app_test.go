@@ -1195,3 +1195,39 @@ func TestAnimTickerStopsWhenIdle(t *testing.T) {
 		t.Error("animRunning must clear once nothing animates")
 	}
 }
+
+func TestBoardGrowthStartsSlide(t *testing.T) {
+	m := testModel(t)
+	mm, _ := m.Update(startHandMsg{})
+	m = mm.(Model)
+	m = tick(t, m, 25) // let the hole deal finish
+	// Drive the engine to the flop directly through the apply funnel:
+	// call + check ends preflop regardless of which seat is which.
+	if err := m.apply(poker.Action{Type: poker.Call}); err != nil {
+		t.Fatalf("call: %v", err)
+	}
+	if err := m.apply(poker.Action{Type: poker.Check}); err != nil {
+		t.Fatalf("check: %v", err)
+	}
+	if len(m.hand.Board) != 3 {
+		t.Fatalf("expected flop on board, got %d cards", len(m.hand.Board))
+	}
+	if !m.boardDeal.active() || m.boardDeal.total != 3 || m.boardDeal.landed != 0 {
+		t.Errorf("flop must start a 3-card slide from 0, got %+v", m.boardDeal)
+	}
+	if m.boardSeen != 3 {
+		t.Errorf("boardSeen = %d, want 3", m.boardSeen)
+	}
+}
+
+func TestBoardGrowthNoSlideWhenReduced(t *testing.T) {
+	t.Setenv("SHOWDOWN_REDUCE_MOTION", "1")
+	m := testModel(t)
+	mm, _ := m.Update(startHandMsg{})
+	m = mm.(Model)
+	_ = m.apply(poker.Action{Type: poker.Call})
+	_ = m.apply(poker.Action{Type: poker.Check})
+	if m.boardDeal.active() {
+		t.Error("reduce-motion must not start a board slide")
+	}
+}
