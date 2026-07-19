@@ -9,9 +9,9 @@ import (
 
 	tea "github.com/charmbracelet/bubbletea"
 	"github.com/charmbracelet/lipgloss"
-	"github.com/haohanwu/showdown/internal/agent"
-	"github.com/haohanwu/showdown/internal/poker"
-	"github.com/haohanwu/showdown/internal/stats"
+	"github.com/wuhaohan772/showdown/internal/agent"
+	"github.com/wuhaohan772/showdown/internal/poker"
+	"github.com/wuhaohan772/showdown/internal/stats"
 )
 
 // Menu rows, top to bottom.

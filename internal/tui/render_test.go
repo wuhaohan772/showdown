@@ -4,7 +4,7 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/haohanwu/showdown/internal/poker"
+	"github.com/wuhaohan772/showdown/internal/poker"
 )
 
 func card(s string) poker.Card {

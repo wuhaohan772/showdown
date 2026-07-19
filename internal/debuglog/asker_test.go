@@ -6,7 +6,7 @@ import (
 	"path/filepath"
 	"testing"
 
-	"github.com/haohanwu/showdown/internal/agent"
+	"github.com/wuhaohan772/showdown/internal/agent"
 )
 
 func TestWrapAskerPassthroughAndLog(t *testing.T) {

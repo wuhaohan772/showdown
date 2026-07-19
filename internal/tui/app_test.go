@@ -9,10 +9,10 @@ import (
 	"testing"
 
 	tea "github.com/charmbracelet/bubbletea"
-	"github.com/haohanwu/showdown/internal/agent"
-	"github.com/haohanwu/showdown/internal/debuglog"
-	"github.com/haohanwu/showdown/internal/poker"
-	"github.com/haohanwu/showdown/internal/stats"
+	"github.com/wuhaohan772/showdown/internal/agent"
+	"github.com/wuhaohan772/showdown/internal/debuglog"
+	"github.com/wuhaohan772/showdown/internal/poker"
+	"github.com/wuhaohan772/showdown/internal/stats"
 )
 
 func testModel(t *testing.T) Model {

@@ -6,7 +6,7 @@ import (
 	"strconv"
 	"strings"
 
-	"github.com/haohanwu/showdown/internal/poker"
+	"github.com/wuhaohan772/showdown/internal/poker"
 )
 
 //go:embed prompt_template.md

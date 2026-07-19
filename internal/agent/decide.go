@@ -6,7 +6,7 @@ import (
 	"fmt"
 	"strings"
 
-	"github.com/haohanwu/showdown/internal/poker"
+	"github.com/wuhaohan772/showdown/internal/poker"
 )
 
 type Decision struct {

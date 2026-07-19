@@ -4,7 +4,7 @@ import (
 	"strings"
 
 	"github.com/charmbracelet/lipgloss"
-	"github.com/haohanwu/showdown/internal/poker"
+	"github.com/wuhaohan772/showdown/internal/poker"
 )
 
 var (

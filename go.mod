@@ -1,4 +1,4 @@
-module github.com/haohanwu/showdown
+module github.com/wuhaohan772/showdown
 
 go 1.24.2
 

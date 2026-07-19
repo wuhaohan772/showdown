@@ -7,7 +7,7 @@ import (
 	"testing"
 	"unicode/utf8"
 
-	"github.com/haohanwu/showdown/internal/poker"
+	"github.com/wuhaohan772/showdown/internal/poker"
 )
 
 func TestExtractDecision(t *testing.T) {

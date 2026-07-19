@@ -4,7 +4,7 @@ import (
 	"context"
 	"time"
 
-	"github.com/haohanwu/showdown/internal/agent"
+	"github.com/wuhaohan772/showdown/internal/agent"
 )
 
 // WrapAsker decorates ask so every agent CLI call is logged (event
