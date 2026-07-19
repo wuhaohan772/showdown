@@ -58,6 +58,13 @@ automatically) or pass any path with `--personality path/to/file.md`.
 Cap is 2,000 characters. Describe how the opponent should talk; the
 game handles the poker.
 
+One thing showdown deliberately ignores: your Claude Code hooks and
+plugins. They inject into every claude session, so a style plugin on
+your machine (say, one that compresses all output into caveman speak)
+would warp the opponent's table talk too. Showdown disables hooks in
+the opponent's session; your memory files still load. If you want the
+opponent to talk differently, use a persona — that's what it's for.
+
 ## Choosing a model (Claude)
 
 `sonnet` is the default and the recommendation. It plays fine and its
