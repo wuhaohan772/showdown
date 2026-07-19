@@ -8,9 +8,9 @@ import (
 
 	tea "github.com/charmbracelet/bubbletea"
 	"github.com/charmbracelet/lipgloss"
+	"github.com/muesli/termenv"
 	"github.com/wuhaohan772/showdown/internal/agent"
 	"github.com/wuhaohan772/showdown/internal/stats"
-	"github.com/muesli/termenv"
 )
 
 func menuRoster() []agent.Adapter {
