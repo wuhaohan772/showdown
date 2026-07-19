@@ -387,3 +387,65 @@ func TestMenuStoresWindowSize(t *testing.T) {
 		t.Errorf("width = %d, want 80", m.width)
 	}
 }
+
+func TestMenuLobbyView(t *testing.T) {
+	t.Setenv("SHOWDOWN_REDUCE_MOTION", "1") // final state, no anim noise
+	key := menuRoster()[0].Key
+	name := menuRoster()[0].DisplayName
+	st := stats.Stats{key: stats.Record{Wins: 3, Losses: 2, CostUSD: 1.84}}
+	m := newMenuModel(menuRoster(), st, "", "", 1500, 10, 0, false, noPersonaFile(t))
+	mm, _ := m.Update(tea.WindowSizeMsg{Width: 80, Height: 24})
+	m = mm.(menuModel)
+	v := stripANSI(m.View())
+	for _, want := range []string{
+		"♠ SHOWDOWN", "lifetime vs " + key + ": 3–2 · $1.84",
+		"persona:", "stack", "blinds", "10/20", "hands", "unlimited",
+		"table talk: on", "♥ YOU", "A♠", "A♥", "??", "pot ●",
+		"[enter] deal me in", "[q] leave table",
+	} {
+		if !strings.Contains(v, want) {
+			t.Errorf("lobby view missing %q in:\n%s", want, v)
+		}
+	}
+	if !strings.Contains(v, "◀ "+name+" ▶") {
+		t.Errorf("focused opponent row must show ◀ %s ▶ in:\n%s", name, v)
+	}
+	// model hidden while "(default)" and unfocused
+	if strings.Contains(v, menuDefaultModel) {
+		t.Errorf("default model must be hidden when unfocused:\n%s", v)
+	}
+	// focusing the model row reveals it
+	mm, _ = m.Update(tea.KeyMsg{Type: tea.KeyDown})
+	m = mm.(menuModel)
+	if v := stripANSI(m.View()); !strings.Contains(v, "◀ "+menuDefaultModel+" ▶") {
+		t.Errorf("focused model row must show ◀ (default) ▶ in:\n%s", v)
+	}
+}
+
+func TestMenuNarrowFallsBack(t *testing.T) {
+	m := newMenuModel(menuRoster(), stats.Stats{}, "", "", 1500, 10, 0, false, noPersonaFile(t))
+	mm, _ := m.Update(tea.WindowSizeMsg{Width: 40, Height: 24})
+	m = mm.(menuModel)
+	v := stripANSI(m.View())
+	if strings.Contains(v, "┌──┐") {
+		t.Errorf("narrow view must not draw cards:\n%s", v)
+	}
+	for _, want := range []string{"opponent", "model", "persona", "stack", "blind", "hands", "table talk"} {
+		if !strings.Contains(v, want) {
+			t.Errorf("narrow fallback missing label %q:\n%s", want, v)
+		}
+	}
+}
+
+func TestMenuLobbyRendersMidDeal(t *testing.T) {
+	m := newMenuModel(menuRoster(), stats.Stats{}, "", "", 1500, 10, 0, false, noPersonaFile(t))
+	mm, _ := m.Update(tea.WindowSizeMsg{Width: 80, Height: 24})
+	m = mm.(menuModel)
+	for i := 0; i < 3; i++ { // mid-deal: card 1 still sliding
+		mm, _ = m.Update(menuTickMsg{})
+		m = mm.(menuModel)
+	}
+	if v := stripANSI(m.View()); !strings.Contains(v, "♠ SHOWDOWN") {
+		t.Errorf("mid-deal lobby render broken:\n%s", v)
+	}
+}

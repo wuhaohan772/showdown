@@ -10,6 +10,7 @@ import (
 	tea "github.com/charmbracelet/bubbletea"
 	"github.com/charmbracelet/lipgloss"
 	"github.com/haohanwu/showdown/internal/agent"
+	"github.com/haohanwu/showdown/internal/poker"
 	"github.com/haohanwu/showdown/internal/stats"
 )
 
@@ -36,6 +37,8 @@ const (
 	DefaultStartStack = 1500
 	DefaultStartSB    = 10
 	DefaultHandLimit  = 0 // unlimited: play until someone busts
+
+	lobbyMinWidth = 50
 )
 
 var defaultStackOpts = []int{500, 1000, 1500, 2000, 3000, 5000}
@@ -181,6 +184,7 @@ func menuTick() tea.Cmd {
 }
 
 var menuDim = lipgloss.NewStyle().Foreground(lipgloss.Color("8"))
+var menuFocus = lipgloss.NewStyle().Bold(true)
 
 // handsLabel renders a hand-limit preset: 0 is "unlimited", otherwise the
 // bare hand count.
@@ -192,6 +196,19 @@ func handsLabel(n int) string {
 }
 
 func (m menuModel) View() string {
+	if m.width < lobbyMinWidth {
+		return m.viewFlat()
+	}
+	var b strings.Builder
+	b.WriteString(m.viewHeader() + "\n\n")
+	b.WriteString(m.viewSeatOpponent() + "\n\n")
+	b.WriteString(m.viewStakes() + "\n")
+	b.WriteString(m.viewSeatYou() + "\n\n")
+	b.WriteString(menuDim.Render("  [enter] deal me in      [q] leave table") + "\n")
+	return b.String()
+}
+
+func (m menuModel) viewFlat() string {
 	talk := "on"
 	if !m.talkOn {
 		talk = "off"
@@ -291,6 +308,120 @@ func (m *menuModel) cycle(d int) {
 	case rowTalk:
 		m.talkOn = !m.talkOn
 	}
+}
+
+// focusVal marks the focused row's value with ◀ ▶; others render bare.
+func (m menuModel) focusVal(row int, v string) string {
+	if m.focus == row {
+		return menuFocus.Render("◀ " + v + " ▶")
+	}
+	return v
+}
+
+// dealLanded is the entry deal's progress; reduce-motion is always done.
+func (m menuModel) dealLanded() (landed, offset int) {
+	if !m.motion {
+		return 4, -1
+	}
+	return m.deal.landed, m.deal.offset
+}
+
+// statVals is the header's lifetime record: tweened under motion, live
+// otherwise (also live per-frame targets are recomputed in the tick).
+func (m menuModel) statVals() (w, l, cents int) {
+	if !m.motion {
+		r := m.st[m.roster[m.oppIdx].Key]
+		return r.Wins, r.Losses, int(r.CostUSD*100 + 0.5)
+	}
+	return m.statW, m.statL, m.statC
+}
+
+func onOff(b bool) string {
+	if b {
+		return "on"
+	}
+	return "off"
+}
+
+// padTo right-pads s to display width w (ANSI-aware).
+func padTo(s string, w int) string {
+	if d := w - lipgloss.Width(s); d > 0 {
+		return s + strings.Repeat(" ", d)
+	}
+	return s
+}
+
+func (m menuModel) viewHeader() string {
+	w, l, cents := m.statVals()
+	line := fmt.Sprintf("lifetime vs %s: %d–%d · $%.2f",
+		m.roster[m.oppIdx].Key, w, l, float64(cents)/100)
+	left := "  ♠ SHOWDOWN"
+	pad := m.width - lipgloss.Width(left) - lipgloss.Width(line) - 2
+	if pad < 2 {
+		pad = 2
+	}
+	return left + strings.Repeat(" ", pad) + menuDim.Render(line)
+}
+
+// joinSeat lays two text lines alongside a 3-line card block.
+func joinSeat(cardBlock, line1, line2 string) string {
+	cards := strings.Split(cardBlock, "\n")
+	for len(cards) < 3 {
+		cards = append(cards, "")
+	}
+	const cardW = 9 // "┌──┐ ┌──┐"
+	return "    " + padTo(cards[0], cardW) + "    " + line1 + "\n" +
+		"    " + padTo(cards[1], cardW) + "    " + line2 + "\n" +
+		"    " + padTo(cards[2], cardW)
+}
+
+func (m menuModel) viewSeatOpponent() string {
+	landed, off := m.dealLanded()
+	oppLanded, oppOff := landed, -1
+	if oppLanded > 2 {
+		oppLanded = 2
+	} else if landed < 2 {
+		oppOff = off
+	}
+	cards := RenderCardRowDeal([]poker.Card{{}, {}}, 0, oppLanded, oppOff)
+	name := "♠ " + m.focusVal(rowOpponent, m.roster[m.oppIdx].DisplayName)
+	if mv := m.modelOpts[m.oppIdx][m.modelIdx]; m.focus == rowModel || mv != menuDefaultModel {
+		name += " · " + m.focusVal(rowModel, mv)
+	}
+	persona := "  persona: " + m.focusVal(rowPersona, m.personaOpts[m.personaIdx])
+	return joinSeat(cards, name, persona)
+}
+
+func (m menuModel) viewStakes() string {
+	sb := m.blindOpts[m.blindIdx]
+	var b strings.Builder
+	b.WriteString(menuDim.Render("       ── stakes ─────────────") + "\n")
+	fmt.Fprintf(&b, "       stack    %s\n", m.focusVal(rowStack, fmt.Sprintf("%d", m.stackOpts[m.stackIdx])))
+	fmt.Fprintf(&b, "       blinds   %s\n", m.focusVal(rowBlind, fmt.Sprintf("%d/%d", sb, sb*2)))
+	fmt.Fprintf(&b, "       hands    %s\n", m.focusVal(rowHands, handsLabel(m.handOpts[m.handIdx])))
+	fmt.Fprintf(&b, "       pot %s\n", m.menuChips())
+	return b.String()
+}
+
+// menuChips is the decorative pot pile: grows with the blind preset.
+// (Task 3 adds the shimmer.)
+func (m menuModel) menuChips() string {
+	n := m.blindIdx + 2
+	return chipStyle.Render(strings.Repeat("●", n))
+}
+
+func (m menuModel) viewSeatYou() string {
+	landed, off := m.dealLanded()
+	youLanded, youOff := landed-2, -1
+	if youLanded < 0 {
+		youLanded = 0
+	} else if landed < 4 {
+		youOff = off
+	}
+	hole := []poker.Card{{Rank: 14, Suit: poker.Spades}, {Rank: 14, Suit: poker.Hearts}}
+	cards := RenderCardRowDeal(hole, youLanded, youLanded, youOff)
+	talk := "  table talk: " + m.focusVal(rowTalk, onOff(m.talkOn))
+	return joinSeat(cards, "♥ YOU", talk)
 }
 
 // result maps menu selections back to the values main expects: "(default)"
