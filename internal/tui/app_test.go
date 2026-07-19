@@ -1231,3 +1231,44 @@ func TestBoardGrowthNoSlideWhenReduced(t *testing.T) {
 		t.Error("reduce-motion must not start a board slide")
 	}
 }
+
+func TestTypewriterRevealsAgentSay(t *testing.T) {
+	m := testModel(t)
+	mm, _ := m.Update(startHandMsg{})
+	m = mm.(Model)
+	m = tick(t, m, 25)
+	say := "you fold AK preflop? bold strategy"
+	mm, _ = m.Update(decisionMsg{act: poker.Action{Type: poker.Check}, say: say})
+	m = mm.(Model)
+	if m.typeIdx != len(m.feed)-1 || m.typeShown != 0 {
+		t.Fatalf("agent say must start a typewriter at the new feed line: idx=%d shown=%d", m.typeIdx, m.typeShown)
+	}
+	joined := strings.Join(m.feedLines(60), "\n")
+	if strings.Contains(joined, say) {
+		t.Fatalf("full say visible before any ticks: %q", joined)
+	}
+	if !strings.Contains(joined, "▌") {
+		t.Errorf("typing line must show the cursor: %q", joined)
+	}
+	m = tick(t, m, len([]rune(say))) // 2 runes/frame: plenty
+	if m.typeIdx != -1 {
+		t.Fatalf("typewriter never finished: idx=%d shown=%d", m.typeIdx, m.typeShown)
+	}
+	joined = strings.Join(m.feedLines(60), "\n")
+	if !strings.Contains(joined, say) || strings.Contains(joined, "▌") {
+		t.Errorf("finished line must be full text without cursor: %q", joined)
+	}
+}
+
+func TestHumanSayIsInstant(t *testing.T) {
+	m := testModel(t)
+	mm, _ := m.Update(startHandMsg{})
+	m = mm.(Model)
+	m.feed = append(m.feed, chatLine{who: "you", text: "read it and weep"})
+	if m.typeIdx != -1 {
+		t.Error("human lines must not start a typewriter")
+	}
+	if joined := strings.Join(m.feedLines(60), "\n"); !strings.Contains(joined, "read it and weep") {
+		t.Errorf("human line must be fully visible immediately: %q", joined)
+	}
+}

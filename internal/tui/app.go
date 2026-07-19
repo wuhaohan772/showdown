@@ -117,7 +117,10 @@ type Model struct {
 func NewModel(opp agent.Adapter, st stats.Stats, statsPath string, quiet bool, dir, personality string, startStack, startSB, handLimit int, log *debuglog.Logger) Model {
 	in := textinput.New()
 	in.CharLimit = 120
-	sp := spinner.New(spinner.WithSpinner(spinner.Dot))
+	sp := spinner.New(spinner.WithSpinner(spinner.Spinner{
+		Frames: []string{"▌ ", "  "},
+		FPS:    500 * time.Millisecond,
+	}))
 	seed := time.Now().UnixNano()
 	log.Log("session_start", map[string]any{
 		"agent_key": opp.Key, "agent_name": opp.DisplayName,
@@ -482,6 +485,9 @@ func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		if msg.say != "" && !m.quiet {
 			m.digest.AddTalk(m.opp.DisplayName, msg.say)
 			m.feed = append(m.feed, chatLine{who: m.opp.DisplayName, text: msg.say})
+			if m.motion {
+				m.typeIdx, m.typeShown = len(m.feed)-1, 0
+			}
 		}
 		if msg.fallback {
 			m.banner = "agent glitched — forced " + string(msg.act.Type)
@@ -506,6 +512,9 @@ func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		}
 		if msg.say != "" && !m.quiet {
 			m.feed = append(m.feed, chatLine{who: m.opp.DisplayName, text: msg.say})
+			if m.motion {
+				m.typeIdx, m.typeShown = len(m.feed)-1, 0
+			}
 		}
 		m.reactionPending = false
 		return m, m.startAnim()
@@ -943,7 +952,7 @@ func (m Model) renderTable() (table, actions string) {
 // reaction is in flight) so callers can truncate at message boundaries.
 func (m Model) feedLineGroups(w int) [][]string {
 	var out [][]string
-	for _, l := range m.feed {
+	for i, l := range m.feed {
 		if l.divider {
 			label := "─ " + l.text + " "
 			pad := w - lipgloss.Width(label)
@@ -957,8 +966,17 @@ func (m Model) feedLineGroups(w int) [][]string {
 		if l.who == "you" {
 			style = humanSayStyle
 		}
+		text := l.text
+		if i == m.typeIdx {
+			r := []rune(text)
+			n := m.typeShown
+			if n > len(r) {
+				n = len(r)
+			}
+			text = string(r[:n]) + "▌"
+		}
 		var group []string
-		for _, ln := range wrapChat(l.who+": "+l.text, w) {
+		for _, ln := range wrapChat(l.who+": "+text, w) {
 			group = append(group, style.Render(ln))
 		}
 		out = append(out, group)
