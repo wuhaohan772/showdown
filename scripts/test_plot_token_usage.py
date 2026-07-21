@@ -3,7 +3,12 @@ import os
 import tempfile
 import unittest
 
-from plot_token_usage import parse_agent_calls, parse_stats, render_per_hand_chart
+from plot_token_usage import (
+    parse_agent_calls,
+    parse_stats,
+    render_per_hand_chart,
+    render_cross_model_chart,
+)
 
 
 class TestParseAgentCalls(unittest.TestCase):
@@ -119,6 +124,21 @@ class TestRenderPerHandChart(unittest.TestCase):
         self.addCleanup(os.unlink, out.name)
 
         render_per_hand_chart(calls, out.name)
+
+        self.assertTrue(os.path.getsize(out.name) > 0)
+
+
+class TestRenderCrossModelChart(unittest.TestCase):
+    def test_writes_nonempty_png(self):
+        stats = {
+            "haiku": {"tokens_in": 10000, "tokens_out": 2000, "cost_usd": 0.05},
+            "sonnet": {"tokens_in": 8000, "tokens_out": 1500, "cost_usd": 0.40},
+        }
+        out = tempfile.NamedTemporaryFile(suffix=".png", delete=False)
+        out.close()
+        self.addCleanup(os.unlink, out.name)
+
+        render_cross_model_chart(stats, out.name)
 
         self.assertTrue(os.path.getsize(out.name) > 0)
 

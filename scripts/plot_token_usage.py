@@ -82,3 +82,33 @@ def render_per_hand_chart(calls, out_path):
     fig.tight_layout()
     fig.savefig(out_path, dpi=150)
     plt.close(fig)
+
+
+def render_cross_model_chart(stats, out_path):
+    """Grouped bar: career total tokens (left axis) and cost_usd (right axis) per model."""
+    plt.style.use("dark_background")
+    keys = list(stats.keys())
+    totals = [stats[k]["tokens_in"] + stats[k]["tokens_out"] for k in keys]
+    costs = [stats[k]["cost_usd"] for k in keys]
+    x = list(range(len(keys)))
+    width = 0.35
+
+    fig, ax1 = plt.subplots(figsize=(6, 4.5))
+    ax1.bar([i - width / 2 for i in x], totals, width, color="#3d5a80",
+            label="career total tokens")
+    ax1.set_ylabel("career total tokens")
+    ax1.set_xticks(x)
+    ax1.set_xticklabels(keys)
+
+    ax2 = ax1.twinx()
+    ax2.bar([i + width / 2 for i in x], costs, width, color="#e07a5f",
+            label="career total cost ($)")
+    ax2.set_ylabel("career total cost (USD)")
+
+    ax1.set_title("Career token usage and cost by model")
+    lines1, labels1 = ax1.get_legend_handles_labels()
+    lines2, labels2 = ax2.get_legend_handles_labels()
+    ax1.legend(lines1 + lines2, labels1 + labels2, loc="upper right")
+    fig.tight_layout()
+    fig.savefig(out_path, dpi=150)
+    plt.close(fig)
