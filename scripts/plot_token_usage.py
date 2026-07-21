@@ -52,3 +52,33 @@ def parse_stats(stats_path, keys):
             "cost_usd": rec.get("cost_usd", 0.0),
         }
     return result
+
+
+import matplotlib
+
+matplotlib.use("Agg")
+import matplotlib.pyplot as plt
+
+
+def render_per_hand_chart(calls, out_path):
+    """Stacked bar of tokens per decision: fresh input, cache-read input, output."""
+    plt.style.use("dark_background")
+    x = list(range(1, len(calls) + 1))
+    fresh_in = [c["tokens_in"] - c["cache_read"] for c in calls]
+    cache_read = [c["cache_read"] for c in calls]
+    tokens_out = [c["tokens_out"] for c in calls]
+
+    fig, ax = plt.subplots(figsize=(8, 4.5))
+    ax.bar(x, fresh_in, label="fresh input tokens", color="#e07a5f")
+    ax.bar(x, cache_read, bottom=fresh_in, label="cache-read tokens", color="#3d5a80")
+    bottom_out = [f + c for f, c in zip(fresh_in, cache_read)]
+    ax.bar(x, tokens_out, bottom=bottom_out, label="output tokens", color="#81b29a")
+
+    ax.set_xlabel("decision number")
+    ax.set_ylabel("tokens")
+    ax.set_title("Token usage per decision (one match)")
+    ax.set_xticks(x)
+    ax.legend()
+    fig.tight_layout()
+    fig.savefig(out_path, dpi=150)
+    plt.close(fig)

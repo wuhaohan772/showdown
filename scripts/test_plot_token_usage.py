@@ -3,7 +3,7 @@ import os
 import tempfile
 import unittest
 
-from plot_token_usage import parse_agent_calls, parse_stats
+from plot_token_usage import parse_agent_calls, parse_stats, render_per_hand_chart
 
 
 class TestParseAgentCalls(unittest.TestCase):
@@ -104,6 +104,23 @@ class TestParseStats(unittest.TestCase):
         path = self._write_json({"haiku": {"tokens_in": 100}})
         result = parse_stats(path, ["haiku", "sonnet"])
         self.assertEqual(set(result.keys()), {"haiku"})
+
+
+class TestRenderPerHandChart(unittest.TestCase):
+    def test_writes_nonempty_png(self):
+        calls = [
+            {"seq": 1, "tokens_in": 2000, "tokens_out": 90,
+             "cache_read": 0, "cache_write": 1900, "cost_usd": 0.02},
+            {"seq": 2, "tokens_in": 2100, "tokens_out": 85,
+             "cache_read": 2000, "cache_write": 0, "cost_usd": 0.003},
+        ]
+        out = tempfile.NamedTemporaryFile(suffix=".png", delete=False)
+        out.close()
+        self.addCleanup(os.unlink, out.name)
+
+        render_per_hand_chart(calls, out.name)
+
+        self.assertTrue(os.path.getsize(out.name) > 0)
 
 
 if __name__ == "__main__":
