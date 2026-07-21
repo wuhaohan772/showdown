@@ -35,3 +35,20 @@ def parse_agent_calls(jsonl_path):
             )
     records.sort(key=lambda r: r["seq"])
     return records
+
+
+def parse_stats(stats_path, keys):
+    """Read stats.json, return career totals for the requested opponent keys."""
+    with open(stats_path) as f:
+        all_stats = json.load(f)
+    result = {}
+    for key in keys:
+        if key not in all_stats:
+            continue
+        rec = all_stats[key]
+        result[key] = {
+            "tokens_in": rec.get("tokens_in", 0),
+            "tokens_out": rec.get("tokens_out", 0),
+            "cost_usd": rec.get("cost_usd", 0.0),
+        }
+    return result
