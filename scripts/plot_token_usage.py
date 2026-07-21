@@ -112,3 +112,21 @@ def render_cross_model_chart(stats, out_path):
     fig.tight_layout()
     fig.savefig(out_path, dpi=150)
     plt.close(fig)
+
+
+def main(argv=None):
+    parser = argparse.ArgumentParser(description=__doc__)
+    parser.add_argument("--debug", required=True, help="path to a --debug JSONL transcript")
+    parser.add_argument("--stats", required=True, help="path to ~/.showdown/stats.json")
+    parser.add_argument("--out", required=True, help="output directory for the PNGs")
+    args = parser.parse_args(argv)
+
+    calls = parse_agent_calls(args.debug)
+    render_per_hand_chart(calls, f"{args.out.rstrip('/')}/token-usage-per-hand.png")
+
+    stats = parse_stats(args.stats, ["haiku", "sonnet"])
+    render_cross_model_chart(stats, f"{args.out.rstrip('/')}/token-usage-by-model.png")
+
+
+if __name__ == "__main__":
+    main()
