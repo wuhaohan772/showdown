@@ -5,7 +5,7 @@ Requires: pip install -r requirements.txt
 
 Usage:
   python3 plot_token_usage.py --debug ~/.showdown/debug-<ts>.jsonl \
-      --stats ~/.showdown/stats.json --out ../docs/
+      --compare MATCH_A.jsonl MATCH_B.jsonl --out ../docs/
 """
 
 import argparse
@@ -37,21 +37,27 @@ def parse_agent_calls(jsonl_path):
     return records
 
 
-def parse_stats(stats_path, keys):
-    """Read stats.json, return career totals for the requested opponent keys."""
-    with open(stats_path) as f:
-        all_stats = json.load(f)
-    result = {}
-    for key in keys:
-        if key not in all_stats:
-            continue
-        rec = all_stats[key]
-        result[key] = {
-            "tokens_in": rec.get("tokens_in", 0),
-            "tokens_out": rec.get("tokens_out", 0),
-            "cost_usd": rec.get("cost_usd", 0.0),
-        }
-    return result
+def read_match_model(jsonl_path):
+    """Read a match's session_start event, return its model field."""
+    with open(jsonl_path) as f:
+        for line in f:
+            line = line.strip()
+            if not line:
+                continue
+            rec = json.loads(line)
+            if rec.get("event") == "session_start":
+                return rec.get("model", "unknown")
+    return "unknown"
+
+
+def summarize_match(jsonl_path):
+    """Sum tokens_in, tokens_out, cost_usd across a match's agent_call records."""
+    calls = parse_agent_calls(jsonl_path)
+    return {
+        "tokens_in": sum(c["tokens_in"] for c in calls),
+        "tokens_out": sum(c["tokens_out"] for c in calls),
+        "cost_usd": sum(c["cost_usd"] for c in calls),
+    }
 
 
 import matplotlib
@@ -85,7 +91,7 @@ def render_per_hand_chart(calls, out_path):
 
 
 def render_cross_model_chart(stats, out_path):
-    """Grouped bar: career total tokens (left axis) and cost_usd (right axis) per model."""
+    """Grouped bar: this-match total tokens (left axis) and cost_usd (right axis) per model."""
     plt.style.use("dark_background")
     keys = list(stats.keys())
     totals = [stats[k]["tokens_in"] + stats[k]["tokens_out"] for k in keys]
@@ -95,17 +101,17 @@ def render_cross_model_chart(stats, out_path):
 
     fig, ax1 = plt.subplots(figsize=(6, 4.5))
     ax1.bar([i - width / 2 for i in x], totals, width, color="#3d5a80",
-            label="career total tokens")
-    ax1.set_ylabel("career total tokens")
+            label="this match: tokens")
+    ax1.set_ylabel("this match: total tokens")
     ax1.set_xticks(x)
     ax1.set_xticklabels(keys)
 
     ax2 = ax1.twinx()
     ax2.bar([i + width / 2 for i in x], costs, width, color="#e07a5f",
-            label="career total cost ($)")
-    ax2.set_ylabel("career total cost (USD)")
+            label="this match: cost ($)")
+    ax2.set_ylabel("this match: cost (USD)")
 
-    ax1.set_title("Career token usage and cost by model")
+    ax1.set_title("Token usage and cost by model (one match each)")
     lines1, labels1 = ax1.get_legend_handles_labels()
     lines2, labels2 = ax2.get_legend_handles_labels()
     ax1.legend(lines1 + lines2, labels1 + labels2, loc="upper right")
@@ -116,15 +122,18 @@ def render_cross_model_chart(stats, out_path):
 
 def main(argv=None):
     parser = argparse.ArgumentParser(description=__doc__)
-    parser.add_argument("--debug", required=True, help="path to a --debug JSONL transcript")
-    parser.add_argument("--stats", required=True, help="path to ~/.showdown/stats.json")
+    parser.add_argument("--debug", required=True, help="path to the featured match's --debug JSONL (used for the per-hand chart)")
+    parser.add_argument("--compare", nargs=2, metavar=("MATCH_A", "MATCH_B"), required=True, help="two --debug JSONL paths from different models, for the cross-model chart")
     parser.add_argument("--out", required=True, help="output directory for the PNGs")
     args = parser.parse_args(argv)
 
     calls = parse_agent_calls(args.debug)
     render_per_hand_chart(calls, f"{args.out.rstrip('/')}/token-usage-per-hand.png")
 
-    stats = parse_stats(args.stats, ["haiku", "sonnet"])
+    stats = {}
+    for path in args.compare:
+        model = read_match_model(path)
+        stats[model] = summarize_match(path)
     render_cross_model_chart(stats, f"{args.out.rstrip('/')}/token-usage-by-model.png")
 
 

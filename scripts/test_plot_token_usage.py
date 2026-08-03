@@ -5,7 +5,8 @@ import unittest
 
 from plot_token_usage import (
     parse_agent_calls,
-    parse_stats,
+    read_match_model,
+    summarize_match,
     render_per_hand_chart,
     render_cross_model_chart,
 )
@@ -70,45 +71,82 @@ class TestParseAgentCalls(unittest.TestCase):
         )
 
 
-class TestParseStats(unittest.TestCase):
-    def _write_json(self, obj):
+class TestReadMatchModel(unittest.TestCase):
+    def _write_jsonl(self, lines):
         f = tempfile.NamedTemporaryFile(
-            mode="w", suffix=".json", delete=False
+            mode="w", suffix=".jsonl", delete=False
         )
-        json.dump(obj, f)
+        for line in lines:
+            f.write(json.dumps(line) + "\n")
         f.close()
         self.addCleanup(os.unlink, f.name)
         return f.name
 
-    def test_filters_to_requested_keys(self):
-        path = self._write_json(
-            {
-                "haiku": {
-                    "wins": 3,
-                    "losses": 1,
-                    "tokens_in": 10000,
-                    "tokens_out": 2000,
-                    "cost_usd": 0.05,
-                },
-                "sonnet": {
-                    "wins": 1,
-                    "losses": 2,
-                    "tokens_in": 8000,
-                    "tokens_out": 1500,
-                    "cost_usd": 0.40,
-                },
-                "codex": {"wins": 1, "losses": 0},
-            }
+    def test_reads_model_from_session_start(self):
+        path = self._write_jsonl(
+            [
+                {"seq": 1, "event": "session_start", "model": "sonnet"},
+                {"seq": 2, "event": "agent_call", "tokens_in": 100},
+            ]
         )
-        result = parse_stats(path, ["haiku", "sonnet"])
-        self.assertEqual(set(result.keys()), {"haiku", "sonnet"})
-        self.assertEqual(result["haiku"]["tokens_in"], 10000)
-        self.assertEqual(result["sonnet"]["cost_usd"], 0.40)
+        self.assertEqual(read_match_model(path), "sonnet")
 
-    def test_omits_keys_absent_from_file(self):
-        path = self._write_json({"haiku": {"tokens_in": 100}})
-        result = parse_stats(path, ["haiku", "sonnet"])
-        self.assertEqual(set(result.keys()), {"haiku"})
+    def test_returns_unknown_when_no_session_start(self):
+        path = self._write_jsonl(
+            [{"seq": 1, "event": "agent_call", "tokens_in": 100}]
+        )
+        self.assertEqual(read_match_model(path), "unknown")
+
+
+class TestSummarizeMatch(unittest.TestCase):
+    def _write_jsonl(self, lines):
+        f = tempfile.NamedTemporaryFile(
+            mode="w", suffix=".jsonl", delete=False
+        )
+        for line in lines:
+            f.write(json.dumps(line) + "\n")
+        f.close()
+        self.addCleanup(os.unlink, f.name)
+        return f.name
+
+    def test_sums_tokens_and_cost_across_calls(self):
+        path = self._write_jsonl(
+            [
+                {"seq": 1, "event": "session_start", "model": "haiku"},
+                {
+                    "seq": 2,
+                    "event": "agent_call",
+                    "tokens_in": 2000,
+                    "tokens_out": 90,
+                    "cache_read": 0,
+                    "cache_write": 1900,
+                    "cost_usd": 0.02,
+                },
+                {
+                    "seq": 3,
+                    "event": "agent_call",
+                    "tokens_in": 2100,
+                    "tokens_out": 85,
+                    "cache_read": 2000,
+                    "cache_write": 0,
+                    "cost_usd": 0.003,
+                },
+            ]
+        )
+        result = summarize_match(path)
+        self.assertEqual(
+            result,
+            {"tokens_in": 4100, "tokens_out": 175, "cost_usd": 0.023},
+        )
+
+    def test_empty_file_sums_to_zero(self):
+        path = self._write_jsonl(
+            [{"seq": 1, "event": "session_start", "model": "sonnet"}]
+        )
+        result = summarize_match(path)
+        self.assertEqual(
+            result, {"tokens_in": 0, "tokens_out": 0, "cost_usd": 0.0}
+        )
 
 
 class TestRenderPerHandChart(unittest.TestCase):
