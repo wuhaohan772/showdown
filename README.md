@@ -93,6 +93,12 @@ per match, so decisions after the first are prompt-cache warm (roughly
 10x cheaper than one-shot calls). A typical sonnet match runs well
 under a dollar.
 
+![Token usage per hand](docs/token-usage-per-hand.png)
+*Cache-read tokens (cheap) dominate after decision 1.*
+
+![Token usage by model](docs/token-usage-by-model.png)
+*One match each, haiku vs sonnet.*
+
 Quitting mid-match skips the career-cost entry; the `--debug`
 transcript records every call's cost either way.
 
