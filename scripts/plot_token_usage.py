@@ -70,7 +70,7 @@ def render_per_hand_chart(calls, out_path):
     """Stacked bar of tokens per decision: fresh input, cache-read input, output."""
     plt.style.use("dark_background")
     x = list(range(1, len(calls) + 1))
-    fresh_in = [c["tokens_in"] - c["cache_read"] for c in calls]
+    fresh_in = [c["tokens_in"] for c in calls]
     cache_read = [c["cache_read"] for c in calls]
     tokens_out = [c["tokens_out"] for c in calls]
 
