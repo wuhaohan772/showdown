@@ -14,23 +14,29 @@ picture. Two small charts, generated from real match data, fix that.
   (`internal/debuglog/debuglog.go`), one `agent_call` event per
   decision with fields `seq`, `tokens_in`, `tokens_out`, `cache_read`,
   `cache_write`, `cost_usd`.
-- **Career totals**: `~/.showdown/stats.json`
-  (`internal/stats/stats.go`), keyed by opponent (`haiku`, `sonnet`,
-  ...), each a `Record{Wins, Losses, TokensIn, TokensOut, CostUSD}`.
+- **Match model**: the same JSONL's `session_start` event has a
+  `model` field (e.g. `"sonnet"`, `"haiku"`) — this is per-match, set
+  once when the CLI session opens (`internal/tui/app.go`).
+
+`~/.showdown/stats.json` (`internal/stats/stats.go`) was considered as
+a data source for career totals but is keyed by *adapter*
+(`claude`/`codex`/`gemini`/`custom`), not by model — a haiku match and
+a sonnet match both accumulate into the same `"claude"` record. It
+cannot answer "haiku vs sonnet," so this design does not use it.
 
 ## Data collection
 
 Play two real matches before generating charts:
 
 ```
-showdown --debug --model haiku
 showdown --debug --model sonnet
+showdown --debug --model haiku
 ```
 
 A few hands each is enough. This leaves one debug JSONL per match in
-`~/.showdown/` and accumulates both opponents into `stats.json`. The
-sonnet match's JSONL is the one used for the per-hand chart (it's the
-recommended default, matches the README's own emphasis).
+`~/.showdown/`. The sonnet match's JSONL is used for the per-hand
+chart (it's the recommended default, matches the README's own
+emphasis); both matches' JSONLs are used for the cross-model chart.
 
 ## Script: `scripts/plot_token_usage.py`
 
@@ -40,8 +46,8 @@ notes `pip install matplotlib`.
 
 ```
 python3 scripts/plot_token_usage.py \
-  --debug ~/.showdown/debug-<timestamp>.jsonl \
-  --stats ~/.showdown/stats.json \
+  --debug ~/.showdown/debug-<sonnet-match-timestamp>.jsonl \
+  --compare ~/.showdown/debug-<sonnet-match-timestamp>.jsonl ~/.showdown/debug-<haiku-match-timestamp>.jsonl \
   --out docs/
 ```
 
@@ -57,16 +63,16 @@ Two independent functions, each producing one PNG:
      `cache_read == 0`, later decisions are mostly cache-read.
    - Output: `docs/token-usage-per-hand.png`.
 
-2. `plot_cross_model(stats_path, out_path)`
-   - Reads `stats.json`, filters to keys `haiku` and `sonnet` (the
-     two the README's "Choosing a model" section discusses; other
-     adapter keys present in the file, if any, are ignored).
-   - Grouped bar chart, two groups (haiku, sonnet). Left y-axis: total
-     tokens (`tokens_in` + `tokens_out`, stacked or side-by-side bars
-     per group). Right y-axis (twin): `cost_usd`, one bar per group.
-     These are cumulative career totals, not per-match — axis label
-     says "career total" explicitly so it isn't misread as a per-match
-     figure.
+2. `plot_cross_model(match_paths, out_path)`
+   - Takes the two `--compare` JSONL paths. For each, reads the
+     `session_start` event's `model` field as the group label and
+     sums that match's `agent_call` records' `tokens_in`,
+     `tokens_out`, `cost_usd`.
+   - Grouped bar chart, one group per match's model. Left y-axis:
+     total tokens (`tokens_in` + `tokens_out`) per group. Right y-axis
+     (twin): `cost_usd`, one bar per group. These are single-match
+     totals, not career totals — axis labels say "this match"
+     explicitly so it isn't misread as a career figure.
    - Output: `docs/token-usage-by-model.png`.
 
 Both charts use `plt.style.use('dark_background')` to match the tone
@@ -83,7 +89,7 @@ a dollar."), add both images with one-line captions:
 *Cache-read tokens (cheap) dominate after decision 1.*
 
 ![Token usage by model](docs/token-usage-by-model.png)
-*Career totals, haiku vs sonnet.*
+*One match each, haiku vs sonnet.*
 ```
 
 No other README sections change.
