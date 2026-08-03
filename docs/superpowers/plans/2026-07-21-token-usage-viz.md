@@ -4,7 +4,7 @@
 
 **Goal:** Add two matplotlib charts to the README's Costs section, generated from real match data, backing the existing "roughly 10x cheaper" cache-warm claim and the haiku-vs-sonnet cost tradeoff.
 
-**Architecture:** A single new Python script, `scripts/plot_token_usage.py`, with pure parsing functions (unit-testable via stdlib `unittest`, no matplotlib needed) separated from rendering functions (smoke-tested: produce a non-empty PNG). The script is run manually against real `--debug` JSONL + `~/.showdown/stats.json` output from two short real matches, producing two PNGs committed to `docs/`. README gets two `![]()` embeds in the Costs section.
+**Architecture:** A single new Python script, `scripts/plot_token_usage.py`, with pure parsing functions (unit-testable via stdlib `unittest`, no matplotlib needed) separated from rendering functions (smoke-tested: produce a non-empty PNG). The script is run manually against the `--debug` JSONL transcripts of two short real matches (one per model), producing two PNGs committed to `docs/`. README gets two `![]()` embeds in the Costs section.
 
 **Tech Stack:** Python 3 stdlib (`argparse`, `json`, `unittest`) + `matplotlib` (new dependency, not currently used anywhere in this repo — install via `pip install matplotlib`).
 
@@ -12,13 +12,15 @@
 
 ## Global Constraints
 
-- Cross-model chart uses only `haiku` and `sonnet` keys from `stats.json` (matches README's "Choosing a model (Claude)" scope) — not codex/gemini.
+- Cross-model chart compares exactly two real matches, one played `--model sonnet` and one `--model haiku` (matches README's "Choosing a model (Claude)" scope) — not codex/gemini.
+- `~/.showdown/stats.json` is NOT a usable data source for cross-model comparison: it's keyed by adapter (`claude`/`codex`/`gemini`), not by model, so a haiku match and a sonnet match both accumulate into the same `"claude"` record. Do not read it.
 - Charts use `plt.style.use('dark_background')`. No ASCII/terminal-font styling.
 - Output files, exact paths: `docs/token-usage-per-hand.png`, `docs/token-usage-by-model.png`.
 - Chart generation is manual/one-off, not wired into CI — this repo has no `.github` workflows and none should be added.
 - `agent_call` JSONL record fields (from `internal/debuglog/asker.go`): `seq`, `tokens_in`, `tokens_out`, `cache_read`, `cache_write`, `cost_usd` (plus `t`, `event`, `prompt`, `raw`, `duration_ms`, not used here).
-- `stats.json` record fields (from `internal/stats/stats.go`): `wins`, `losses`, `tokens_in`, `tokens_out`, `cost_usd` (JSON keys use `omitempty`, so a key may be missing if zero).
-- README caption text, exact (from spec): `*Cache-read tokens (cheap) dominate after decision 1.*` and `*Career totals, haiku vs sonnet.*`.
+- `session_start` JSONL record (from `internal/tui/app.go`, one per match, first line): has a `model` field (e.g. `"sonnet"`, `"haiku"`) among others (`agent_key`, `agent_name`, `dir`, `hand_limit`, `personality`, ...).
+- The cross-model chart's totals are per-match sums, not career totals — axis/legend labels say "this match" explicitly.
+- README caption text, exact (from spec): `*Cache-read tokens (cheap) dominate after decision 1.*` and `*One match each, haiku vs sonnet.*`.
 
 ---
 
@@ -182,63 +184,111 @@ git commit -m "feat: parse agent_call records from debug JSONL for token-usage c
 
 ---
 
-### Task 2: `parse_stats` — read career totals for haiku/sonnet
+### Task 2: `read_match_model` + `summarize_match` — per-match model label and totals
+
+**Revision note:** this task originally read career totals from
+`~/.showdown/stats.json` keyed by `haiku`/`sonnet`. That data doesn't
+exist — `stats.json` keys by adapter (`claude`/`codex`/`gemini`), not
+model, discovered during real data collection (Task 6). This version
+reads the two match debug JSONLs directly instead.
 
 **Files:**
 - Modify: `scripts/plot_token_usage.py`
 - Test: `scripts/test_plot_token_usage.py`
 
 **Interfaces:**
-- Consumes: nothing from Task 1.
-- Produces: `parse_stats(stats_path: str, keys: list[str]) -> dict[str, dict]`. Returns `{key: {"tokens_in": int, "tokens_out": int, "cost_usd": float}}` only for keys present in the stats file; keys not present in the file are omitted from the result (not zero-filled — caller decides how to handle missing opponents).
+- Consumes: `parse_agent_calls` from Task 1 (same module).
+- Produces: `read_match_model(jsonl_path: str) -> str`. Reads the JSONL's `session_start` event and returns its `model` field; returns `"unknown"` if no `session_start` event is found or the field is absent.
+- Produces: `summarize_match(jsonl_path: str) -> dict`. Returns `{"tokens_in": int, "tokens_out": int, "cost_usd": float}` — the sum of those fields across all `agent_call` records in the file (via `parse_agent_calls`). An empty/no-call file returns `{"tokens_in": 0, "tokens_out": 0, "cost_usd": 0.0}`.
 
-- [ ] **Step 1: Write the failing test**
+- [ ] **Step 1: Write the failing tests**
 
 Add to `scripts/test_plot_token_usage.py` (new import line and new test class):
 
 ```python
-from plot_token_usage import parse_agent_calls, parse_stats
+from plot_token_usage import (
+    parse_agent_calls,
+    read_match_model,
+    summarize_match,
+)
 
 
-class TestParseStats(unittest.TestCase):
-    def _write_json(self, obj):
+class TestReadMatchModel(unittest.TestCase):
+    def _write_jsonl(self, lines):
         f = tempfile.NamedTemporaryFile(
-            mode="w", suffix=".json", delete=False
+            mode="w", suffix=".jsonl", delete=False
         )
-        json.dump(obj, f)
+        for line in lines:
+            f.write(json.dumps(line) + "\n")
         f.close()
         self.addCleanup(os.unlink, f.name)
         return f.name
 
-    def test_filters_to_requested_keys(self):
-        path = self._write_json(
-            {
-                "haiku": {
-                    "wins": 3,
-                    "losses": 1,
-                    "tokens_in": 10000,
-                    "tokens_out": 2000,
-                    "cost_usd": 0.05,
-                },
-                "sonnet": {
-                    "wins": 1,
-                    "losses": 2,
-                    "tokens_in": 8000,
-                    "tokens_out": 1500,
-                    "cost_usd": 0.40,
-                },
-                "codex": {"wins": 1, "losses": 0},
-            }
+    def test_reads_model_from_session_start(self):
+        path = self._write_jsonl(
+            [
+                {"seq": 1, "event": "session_start", "model": "sonnet"},
+                {"seq": 2, "event": "agent_call", "tokens_in": 100},
+            ]
         )
-        result = parse_stats(path, ["haiku", "sonnet"])
-        self.assertEqual(set(result.keys()), {"haiku", "sonnet"})
-        self.assertEqual(result["haiku"]["tokens_in"], 10000)
-        self.assertEqual(result["sonnet"]["cost_usd"], 0.40)
+        self.assertEqual(read_match_model(path), "sonnet")
 
-    def test_omits_keys_absent_from_file(self):
-        path = self._write_json({"haiku": {"tokens_in": 100}})
-        result = parse_stats(path, ["haiku", "sonnet"])
-        self.assertEqual(set(result.keys()), {"haiku"})
+    def test_returns_unknown_when_no_session_start(self):
+        path = self._write_jsonl(
+            [{"seq": 1, "event": "agent_call", "tokens_in": 100}]
+        )
+        self.assertEqual(read_match_model(path), "unknown")
+
+
+class TestSummarizeMatch(unittest.TestCase):
+    def _write_jsonl(self, lines):
+        f = tempfile.NamedTemporaryFile(
+            mode="w", suffix=".jsonl", delete=False
+        )
+        for line in lines:
+            f.write(json.dumps(line) + "\n")
+        f.close()
+        self.addCleanup(os.unlink, f.name)
+        return f.name
+
+    def test_sums_tokens_and_cost_across_calls(self):
+        path = self._write_jsonl(
+            [
+                {"seq": 1, "event": "session_start", "model": "haiku"},
+                {
+                    "seq": 2,
+                    "event": "agent_call",
+                    "tokens_in": 2000,
+                    "tokens_out": 90,
+                    "cache_read": 0,
+                    "cache_write": 1900,
+                    "cost_usd": 0.02,
+                },
+                {
+                    "seq": 3,
+                    "event": "agent_call",
+                    "tokens_in": 2100,
+                    "tokens_out": 85,
+                    "cache_read": 2000,
+                    "cache_write": 0,
+                    "cost_usd": 0.003,
+                },
+            ]
+        )
+        result = summarize_match(path)
+        self.assertEqual(
+            result,
+            {"tokens_in": 4100, "tokens_out": 175, "cost_usd": 0.023},
+        )
+
+    def test_empty_file_sums_to_zero(self):
+        path = self._write_jsonl(
+            [{"seq": 1, "event": "session_start", "model": "sonnet"}]
+        )
+        result = summarize_match(path)
+        self.assertEqual(
+            result, {"tokens_in": 0, "tokens_out": 0, "cost_usd": 0.0}
+        )
 ```
 
 (Replace the existing `from plot_token_usage import parse_agent_calls` line with the combined import shown above.)
@@ -246,40 +296,46 @@ class TestParseStats(unittest.TestCase):
 - [ ] **Step 2: Run test to verify it fails**
 
 Run: `cd scripts && python3 -m unittest test_plot_token_usage -v`
-Expected: FAIL — `ImportError: cannot import name 'parse_stats'`.
+Expected: FAIL — `ImportError: cannot import name 'read_match_model'`.
 
 - [ ] **Step 3: Write minimal implementation**
 
 Add to `scripts/plot_token_usage.py`, after `parse_agent_calls`:
 
 ```python
-def parse_stats(stats_path, keys):
-    """Read stats.json, return career totals for the requested opponent keys."""
-    with open(stats_path) as f:
-        all_stats = json.load(f)
-    result = {}
-    for key in keys:
-        if key not in all_stats:
-            continue
-        rec = all_stats[key]
-        result[key] = {
-            "tokens_in": rec.get("tokens_in", 0),
-            "tokens_out": rec.get("tokens_out", 0),
-            "cost_usd": rec.get("cost_usd", 0.0),
-        }
-    return result
+def read_match_model(jsonl_path):
+    """Read a match's session_start event, return its model field."""
+    with open(jsonl_path) as f:
+        for line in f:
+            line = line.strip()
+            if not line:
+                continue
+            rec = json.loads(line)
+            if rec.get("event") == "session_start":
+                return rec.get("model", "unknown")
+    return "unknown"
+
+
+def summarize_match(jsonl_path):
+    """Sum tokens_in, tokens_out, cost_usd across a match's agent_call records."""
+    calls = parse_agent_calls(jsonl_path)
+    return {
+        "tokens_in": sum(c["tokens_in"] for c in calls),
+        "tokens_out": sum(c["tokens_out"] for c in calls),
+        "cost_usd": sum(c["cost_usd"] for c in calls),
+    }
 ```
 
 - [ ] **Step 4: Run test to verify it passes**
 
 Run: `cd scripts && python3 -m unittest test_plot_token_usage -v`
-Expected: `OK` (4 tests pass).
+Expected: `OK` (6 tests pass).
 
 - [ ] **Step 5: Commit**
 
 ```bash
 git add scripts/plot_token_usage.py scripts/test_plot_token_usage.py
-git commit -m "feat: parse career stats.json totals for token-usage charts"
+git commit -m "feat: read per-match model and token/cost totals from debug JSONL"
 ```
 
 ---
@@ -377,13 +433,21 @@ git commit -m "feat: render per-hand token-usage chart"
 
 ### Task 4: `render_cross_model_chart`
 
+**Revision note:** originally labeled "career total" (matching the
+now-abandoned `parse_stats`/`stats.json` design). Task 2 was reworked
+to produce per-match totals instead, so this task's axis/title/legend
+text changes from "career total" to "this match" to match. The
+function's input shape (`{key: {"tokens_in", "tokens_out",
+"cost_usd"}}`) is unchanged — it still doesn't care where the dict
+came from.
+
 **Files:**
 - Modify: `scripts/plot_token_usage.py`
 - Test: `scripts/test_plot_token_usage.py`
 
 **Interfaces:**
-- Consumes: `parse_stats` output shape (`{key: {"tokens_in", "tokens_out", "cost_usd"}}`).
-- Produces: `render_cross_model_chart(stats: dict, out_path: str) -> None`. Writes a PNG. Grouped bars, one group per key in `stats` (in insertion order), left axis = total tokens (`tokens_in + tokens_out`), right (twin) axis = `cost_usd`, both labeled "career total".
+- Consumes: a `dict[str, dict]` shaped like `summarize_match`'s per-match output, one entry per model (Task 2 produces the values; the caller in Task 5 supplies the model-name keys via `read_match_model`).
+- Produces: `render_cross_model_chart(stats: dict, out_path: str) -> None`. Writes a PNG. Grouped bars, one group per key in `stats` (in insertion order), left axis = total tokens (`tokens_in + tokens_out`), right (twin) axis = `cost_usd`, both labeled "this match".
 
 - [ ] **Step 1: Write the failing test**
 
@@ -392,7 +456,8 @@ Add to `scripts/test_plot_token_usage.py`:
 ```python
 from plot_token_usage import (
     parse_agent_calls,
-    parse_stats,
+    read_match_model,
+    summarize_match,
     render_per_hand_chart,
     render_cross_model_chart,
 )
@@ -424,7 +489,7 @@ Add to `scripts/plot_token_usage.py`, after `render_per_hand_chart`:
 
 ```python
 def render_cross_model_chart(stats, out_path):
-    """Grouped bar: career total tokens (left axis) and cost_usd (right axis) per model."""
+    """Grouped bar: this-match total tokens (left axis) and cost_usd (right axis) per model."""
     plt.style.use("dark_background")
     keys = list(stats.keys())
     totals = [stats[k]["tokens_in"] + stats[k]["tokens_out"] for k in keys]
@@ -434,17 +499,17 @@ def render_cross_model_chart(stats, out_path):
 
     fig, ax1 = plt.subplots(figsize=(6, 4.5))
     ax1.bar([i - width / 2 for i in x], totals, width, color="#3d5a80",
-            label="career total tokens")
-    ax1.set_ylabel("career total tokens")
+            label="this match: tokens")
+    ax1.set_ylabel("this match: total tokens")
     ax1.set_xticks(x)
     ax1.set_xticklabels(keys)
 
     ax2 = ax1.twinx()
     ax2.bar([i + width / 2 for i in x], costs, width, color="#e07a5f",
-            label="career total cost ($)")
-    ax2.set_ylabel("career total cost (USD)")
+            label="this match: cost ($)")
+    ax2.set_ylabel("this match: cost (USD)")
 
-    ax1.set_title("Career token usage and cost by model")
+    ax1.set_title("Token usage and cost by model (one match each)")
     lines1, labels1 = ax1.get_legend_handles_labels()
     lines2, labels2 = ax2.get_legend_handles_labels()
     ax1.legend(lines1 + lines2, labels1 + labels2, loc="upper right")
@@ -456,24 +521,29 @@ def render_cross_model_chart(stats, out_path):
 - [ ] **Step 4: Run test to verify it passes**
 
 Run: `cd scripts && python3 -m unittest test_plot_token_usage -v`
-Expected: `OK` (6 tests pass).
+Expected: `OK` (8 tests pass).
 
 - [ ] **Step 5: Commit**
 
 ```bash
 git add scripts/plot_token_usage.py scripts/test_plot_token_usage.py
-git commit -m "feat: render cross-model career token-usage chart"
+git commit -m "feat: render cross-model per-match token-usage chart"
 ```
 
 ---
 
 ### Task 5: CLI wiring (`main`)
 
+**Revision note:** originally took `--stats ~/.showdown/stats.json`.
+Replaced with `--compare MATCH_A MATCH_B` (two debug JSONL paths)
+since `stats.json` can't distinguish models (see Task 2's revision
+note). `--debug` (for the per-hand chart) is unchanged.
+
 **Files:**
 - Modify: `scripts/plot_token_usage.py`
 
 **Interfaces:**
-- Consumes: all four functions from Tasks 1-4.
+- Consumes: `parse_agent_calls`, `render_per_hand_chart` from Tasks 1/3; `read_match_model`, `summarize_match` from Task 2; `render_cross_model_chart` from Task 4.
 - Produces: `main(argv=None) -> None`, and `if __name__ == "__main__": main()`. No new interfaces for later tasks — this is the last piece of the script.
 
 - [ ] **Step 1: Add `main` and CLI entry point**
@@ -483,15 +553,18 @@ Add to `scripts/plot_token_usage.py`, at the end of the file:
 ```python
 def main(argv=None):
     parser = argparse.ArgumentParser(description=__doc__)
-    parser.add_argument("--debug", required=True, help="path to a --debug JSONL transcript")
-    parser.add_argument("--stats", required=True, help="path to ~/.showdown/stats.json")
+    parser.add_argument("--debug", required=True, help="path to the featured match's --debug JSONL (used for the per-hand chart)")
+    parser.add_argument("--compare", nargs=2, metavar=("MATCH_A", "MATCH_B"), required=True, help="two --debug JSONL paths from different models, for the cross-model chart")
     parser.add_argument("--out", required=True, help="output directory for the PNGs")
     args = parser.parse_args(argv)
 
     calls = parse_agent_calls(args.debug)
     render_per_hand_chart(calls, f"{args.out.rstrip('/')}/token-usage-per-hand.png")
 
-    stats = parse_stats(args.stats, ["haiku", "sonnet"])
+    stats = {}
+    for path in args.compare:
+        model = read_match_model(path)
+        stats[model] = summarize_match(path)
     render_cross_model_chart(stats, f"{args.out.rstrip('/')}/token-usage-by-model.png")
 
 
@@ -506,15 +579,18 @@ Run:
 ```bash
 cd scripts
 mkdir -p /tmp/showdown-plot-smoke
-cat > /tmp/showdown-plot-smoke/debug.jsonl <<'EOF'
-{"seq":1,"event":"agent_call","tokens_in":2000,"tokens_out":90,"cache_read":0,"cache_write":1900,"cost_usd":0.02}
-{"seq":2,"event":"agent_call","tokens_in":2100,"tokens_out":85,"cache_read":2000,"cache_write":0,"cost_usd":0.003}
+cat > /tmp/showdown-plot-smoke/sonnet.jsonl <<'EOF'
+{"seq":1,"event":"session_start","model":"sonnet"}
+{"seq":2,"event":"agent_call","tokens_in":2000,"tokens_out":90,"cache_read":0,"cache_write":1900,"cost_usd":0.02}
+{"seq":3,"event":"agent_call","tokens_in":2100,"tokens_out":85,"cache_read":2000,"cache_write":0,"cost_usd":0.003}
 EOF
-cat > /tmp/showdown-plot-smoke/stats.json <<'EOF'
-{"haiku":{"wins":3,"losses":1,"tokens_in":10000,"tokens_out":2000,"cost_usd":0.05},"sonnet":{"wins":1,"losses":2,"tokens_in":8000,"tokens_out":1500,"cost_usd":0.40}}
+cat > /tmp/showdown-plot-smoke/haiku.jsonl <<'EOF'
+{"seq":1,"event":"session_start","model":"haiku"}
+{"seq":2,"event":"agent_call","tokens_in":1500,"tokens_out":60,"cache_read":0,"cache_write":1400,"cost_usd":0.004}
 EOF
-python3 plot_token_usage.py --debug /tmp/showdown-plot-smoke/debug.jsonl \
-  --stats /tmp/showdown-plot-smoke/stats.json --out /tmp/showdown-plot-smoke
+python3 plot_token_usage.py --debug /tmp/showdown-plot-smoke/sonnet.jsonl \
+  --compare /tmp/showdown-plot-smoke/sonnet.jsonl /tmp/showdown-plot-smoke/haiku.jsonl \
+  --out /tmp/showdown-plot-smoke
 ls -la /tmp/showdown-plot-smoke/*.png
 ```
 
@@ -524,7 +600,7 @@ Expected: two PNG files listed with non-zero size, no traceback.
 
 ```bash
 git add scripts/plot_token_usage.py
-git commit -m "feat: wire plot_token_usage CLI (argparse main)"
+git commit -m "feat: wire plot_token_usage CLI (argparse main, --compare replaces --stats)"
 ```
 
 ---
@@ -551,21 +627,21 @@ Play through 5 hands (any actions — fold, call, raise, whatever happens natura
 
 Run: `/tmp/showdown-bin --debug --model haiku --hands 5`
 
-Play through 5 hands the same way. This one's JSONL isn't used directly by the per-hand chart, but playing it accumulates haiku's totals into `~/.showdown/stats.json` for the cross-model chart.
+Play through 5 hands the same way. Note this JSONL's path too — it's used directly by the cross-model chart (Task 2's revision: `stats.json` can't split by model, so both match JSONLs are read directly).
 
-- [ ] **Step 4: Verify stats.json has both keys**
+- [ ] **Step 4: Verify both JSONLs have a session_start model field**
 
-Run: `cat ~/.showdown/stats.json`
-Expected: JSON with both a `"haiku"` and a `"sonnet"` top-level key, each with non-zero `tokens_in`.
+Run: `head -1 ~/.showdown/debug-<sonnet-timestamp>.jsonl ~/.showdown/debug-<haiku-timestamp>.jsonl`
+Expected: each first line is a `session_start` event with `"model":"sonnet"` and `"model":"haiku"` respectively.
 
 - [ ] **Step 5: Generate the real charts into `docs/`**
 
-Run (from repo root, substituting the actual sonnet debug path from Step 2):
+Run (from repo root, substituting the actual debug paths from Steps 2-3):
 
 ```bash
 python3 scripts/plot_token_usage.py \
   --debug ~/.showdown/debug-<sonnet-match-timestamp>.jsonl \
-  --stats ~/.showdown/stats.json \
+  --compare ~/.showdown/debug-<sonnet-match-timestamp>.jsonl ~/.showdown/debug-<haiku-match-timestamp>.jsonl \
   --out docs/
 ```
 
@@ -620,7 +696,7 @@ under a dollar.
 *Cache-read tokens (cheap) dominate after decision 1.*
 
 ![Token usage by model](docs/token-usage-by-model.png)
-*Career totals, haiku vs sonnet.*
+*One match each, haiku vs sonnet.*
 
 Quitting mid-match skips the career-cost entry; the `--debug`
 ```
