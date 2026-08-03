@@ -5,6 +5,7 @@ import "github.com/wuhaohan772/showdown/internal/poker"
 // DetectShove classifies a finished hand's log from agentSeat's perspective:
 // sawShove is true if the opponent went all-in at any point in the hand;
 // foldedToShove is true if that hand also ended with the agent folding.
+// sawShove includes any opponent all-in — an aggressive shove or a short-stack call-off; both are lumped together.
 func DetectShove(log []poker.LogItem, agentSeat int, r *poker.Result) (sawShove, foldedToShove bool) {
 	for _, li := range log {
 		if li.Seat != agentSeat && li.AllIn {

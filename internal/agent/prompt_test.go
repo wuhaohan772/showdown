@@ -101,8 +101,8 @@ func TestNeedlingRuleLastInFormatRules(t *testing.T) {
 	if jsonRule == -1 {
 		t.Fatal("format rules missing the final JSON-only instruction")
 	}
-	if !(cards < truth && truth < needle && needle < shoveRule && shoveRule < jsonRule) {
-		t.Error("behavioral rule order must be card-talk < table-truth < needling < shove-tendency < final JSON rule")
+	if !(cards < truth && truth < shoveRule && shoveRule < needle && needle < jsonRule) {
+		t.Error("behavioral rule order must be card-talk < table-truth < shove-tendency < needling < final JSON rule (needling stays last: recency wins)")
 	}
 }
 
