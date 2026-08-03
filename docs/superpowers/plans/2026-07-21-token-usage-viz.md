@@ -18,6 +18,7 @@
 - Output files, exact paths: `docs/token-usage-per-hand.png`, `docs/token-usage-by-model.png`.
 - Chart generation is manual/one-off, not wired into CI — this repo has no `.github` workflows and none should be added.
 - `agent_call` JSONL record fields (from `internal/debuglog/asker.go`): `seq`, `tokens_in`, `tokens_out`, `cache_read`, `cache_write`, `cost_usd` (plus `t`, `event`, `prompt`, `raw`, `duration_ms`, not used here).
+- `tokens_in` is already the fresh/non-cached token count — it does NOT include `cache_read` or `cache_write`. Per `internal/agent/response.go`, `TotalIn() = InputTokens + CacheRead + CacheWrite` (three separate additive buckets). Never subtract `cache_read` from `tokens_in`.
 - `session_start` JSONL record (from `internal/tui/app.go`, one per match, first line): has a `model` field (e.g. `"sonnet"`, `"haiku"`) among others (`agent_key`, `agent_name`, `dir`, `hand_limit`, `personality`, ...).
 - The cross-model chart's totals are per-match sums, not career totals — axis/legend labels say "this match" explicitly.
 - README caption text, exact (from spec): `*Cache-read tokens (cheap) dominate after decision 1.*` and `*One match each, haiku vs sonnet.*`.
@@ -342,13 +343,26 @@ git commit -m "feat: read per-match model and token/cost totals from debug JSONL
 
 ### Task 3: `render_per_hand_chart`
 
+**Revision note:** originally stacked `tokens_in - cache_read` as the
+"fresh input" segment. That's wrong: the Claude usage API's
+`input_tokens` field is *already* the fresh (non-cached) token count —
+it does not include `cache_read_input_tokens` or
+`cache_creation_input_tokens`. Confirmed in `internal/agent/response.go`:
+`TotalIn() = InputTokens + CacheRead + CacheWrite` — three separate
+buckets summed, not nested. Subtracting `cache_read` from `tokens_in`
+double-counts the cache savings and goes negative whenever
+`cache_read` is large relative to `tokens_in` (the exact "cache
+warm" case this chart exists to show — discovered on real match data
+where `tokens_in` was ~1 and `cache_read` was in the thousands).
+Fixed by stacking `tokens_in` directly, no subtraction.
+
 **Files:**
 - Modify: `scripts/plot_token_usage.py`
 - Test: `scripts/test_plot_token_usage.py`
 
 **Interfaces:**
 - Consumes: `parse_agent_calls` output shape (list of dicts with `seq`, `tokens_in`, `tokens_out`, `cache_read`).
-- Produces: `render_per_hand_chart(calls: list[dict], out_path: str) -> None`. Writes a PNG to `out_path`. Stacked bar per decision: non-cached input tokens (`tokens_in - cache_read`) + `cache_read` + `tokens_out`, x-axis = decision index (1-based position in the list, not raw `seq`), dark background style.
+- Produces: `render_per_hand_chart(calls: list[dict], out_path: str) -> None`. Writes a PNG to `out_path`. Stacked bar per decision: `tokens_in` (fresh, already excludes cache) + `cache_read` (cached) + `tokens_out`, x-axis = decision index (1-based position in the list, not raw `seq`), dark background style.
 
 - [ ] **Step 1: Write the failing test (smoke test — matplotlib output isn't pixel-diffed, just checked for existence and non-zero size)**
 
@@ -397,7 +411,7 @@ def render_per_hand_chart(calls, out_path):
     """Stacked bar of tokens per decision: fresh input, cache-read input, output."""
     plt.style.use("dark_background")
     x = list(range(1, len(calls) + 1))
-    fresh_in = [c["tokens_in"] - c["cache_read"] for c in calls]
+    fresh_in = [c["tokens_in"] for c in calls]
     cache_read = [c["cache_read"] for c in calls]
     tokens_out = [c["tokens_out"] for c in calls]
 

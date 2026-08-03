@@ -55,9 +55,9 @@ Two independent functions, each producing one PNG:
 
 1. `plot_per_hand(jsonl_path, out_path)`
    - Reads `agent_call` events in `seq` order from the JSONL.
-   - Stacked bar per decision: `cache_read` tokens (cheap) vs.
-     non-cached input tokens (`tokens_in - cache_read`, full price)
-     plus `tokens_out`.
+   - Stacked bar per decision: `tokens_in` (fresh — the Claude usage
+     API already excludes cached tokens from this field, so no
+     subtraction) + `cache_read` (cached, cheap) + `tokens_out`.
    - X axis: decision number. Y axis: tokens.
    - Makes the cache warm-up visible directly: decision 1 has
      `cache_read == 0`, later decisions are mostly cache-read.
