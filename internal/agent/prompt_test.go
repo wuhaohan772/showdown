@@ -84,6 +84,8 @@ func TestNeedlingRuleLastInFormatRules(t *testing.T) {
 	needle := strings.Index(out, "Needle them with what you know")
 	truth := strings.Index(out, "Trash talk must be true to the table")
 	cards := strings.Index(out, "Card talk is a weapon, not a habit")
+	shoveRule := strings.Index(out, "Opponent tendency")
+	jsonRule := strings.Index(out, "Your entire reply must parse as JSON")
 	if needle == -1 {
 		t.Fatal("format rules missing the personalized-needling default rule")
 	}
@@ -93,8 +95,14 @@ func TestNeedlingRuleLastInFormatRules(t *testing.T) {
 	if cards == -1 {
 		t.Fatal("format rules missing the card-talk rule")
 	}
-	if !(cards < truth && truth < needle) {
-		t.Error("behavioral rule order must be card-talk < table-truth < needling (recency wins; needling last)")
+	if shoveRule == -1 {
+		t.Fatal("format rules missing the opponent-shove-tendency rule")
+	}
+	if jsonRule == -1 {
+		t.Fatal("format rules missing the final JSON-only instruction")
+	}
+	if !(cards < truth && truth < needle && needle < shoveRule && shoveRule < jsonRule) {
+		t.Error("behavioral rule order must be card-talk < table-truth < needling < shove-tendency < final JSON rule")
 	}
 }
 

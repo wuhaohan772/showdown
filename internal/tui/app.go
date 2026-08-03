@@ -284,6 +284,8 @@ func (m *Model) finishHand() tea.Cmd {
 		m.setBanner(fmt.Sprintf("%s wins %d (%s)", winnerName, r.Pot, how))
 	}
 	summary := agentHandSummary(m.match.HandNum, r, r.Winner == m.agentSeat())
+	sawShove, foldedToShove := agent.DetectShove(m.hand.Log, m.agentSeat(), r)
+	m.digest.RecordHand(sawShove, foldedToShove)
 	m.digest.EndHand(summary)
 	m.pendingResults = append(m.pendingResults, summary)
 	m.revealed = len(m.hand.Board)

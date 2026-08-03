@@ -1316,6 +1316,62 @@ func TestSetBannerStampsBright(t *testing.T) {
 	}
 }
 
+// playHumanShoveAgentFold drives one hand to completion where the human
+// shoves all-in the first time it's their turn, and the agent folds once
+// facing that shove. If the agent acts first (its turn comes before the
+// human has shoved), it calls/checks to pass the action along rather than
+// folding prematurely.
+func playHumanShoveAgentFold(t *testing.T, m Model) Model {
+	t.Helper()
+	shoved := false
+	for m.phase == phaseHumanTurn || m.phase == phaseAgentTurn {
+		if m.phase == phaseHumanTurn {
+			m2, _ := m.Update(key("a"))
+			m = m2.(Model)
+			shoved = true
+			continue
+		}
+		// phaseAgentTurn
+		act := poker.Action{Type: poker.Fold}
+		if !shoved {
+			legal := map[poker.ActionType]bool{}
+			for _, a := range m.hand.LegalActions() {
+				legal[a] = true
+			}
+			act = poker.Action{Type: poker.Call}
+			if !legal[poker.Call] {
+				act = poker.Action{Type: poker.Check}
+			}
+		}
+		m2, _ := m.Update(decisionMsg{act: act})
+		m = m2.(Model)
+	}
+	return m
+}
+
+func TestFinishHandRecordsShoveTendency(t *testing.T) {
+	t.Setenv("SHOWDOWN_REDUCE_MOTION", "1")
+	m := testModel(t)
+	m2, _ := m.Update(startHandMsg{})
+	m = m2.(Model)
+
+	for hand := 1; hand <= 3; hand++ {
+		m = playHumanShoveAgentFold(t, m)
+		if m.phase != phaseHandEnd {
+			t.Fatalf("hand %d: phase = %v, want phaseHandEnd", hand, m.phase)
+		}
+		if hand < 3 {
+			m2, _ = m.Update(key("enter"))
+			m = m2.(Model)
+		}
+	}
+
+	want := "Opponent tendency: shoved all-in 3 of 3 hands; you folded to 3 of those shoves."
+	if d := m.digest.String(); !strings.Contains(d, want) {
+		t.Errorf("digest = %q, want it to contain %q", d, want)
+	}
+}
+
 func TestHeaderShowsModelTag(t *testing.T) {
 	m := testModel(t)
 	m.opp.Model = "sonnet"
