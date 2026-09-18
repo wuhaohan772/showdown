@@ -1,0 +1,5 @@
+# Keep prompt/doc text LF in the worktree: the prompt template is embedded in
+# the binary, and a CRLF checkout puts mixed line endings in every agent prompt.
+*.md text eol=lf
+*.go text eol=lf
+*.sh text eol=lf

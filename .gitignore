@@ -6,3 +6,4 @@
 .claude/
 .superpowers/
 skills-lock.json
+*.exe
