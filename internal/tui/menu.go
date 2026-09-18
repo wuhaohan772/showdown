@@ -183,9 +183,9 @@ func menuTick() tea.Cmd {
 	return tea.Tick(animFrame, func(time.Time) tea.Msg { return menuTickMsg{} })
 }
 
-var menuDim = lipgloss.NewStyle().Foreground(lipgloss.Color("8"))
+var menuDim lipgloss.Style
 var menuFocus = lipgloss.NewStyle().Bold(true)
-var menuShimmer = lipgloss.NewStyle().Foreground(lipgloss.Color("230")).Bold(true)
+var menuShimmer lipgloss.Style
 
 // handsLabel renders a hand-limit preset: 0 is "unlimited", otherwise the
 // bare hand count.

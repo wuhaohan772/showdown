@@ -7,11 +7,12 @@ import (
 	"github.com/wuhaohan772/showdown/internal/poker"
 )
 
+// Card styles. ApplyTheme owns their values; see theme.go.
 var (
-	redCard   = lipgloss.NewStyle().Foreground(lipgloss.Color("9"))
-	blackCard = lipgloss.NewStyle().Foreground(lipgloss.Color("15"))
-	cardBack  = lipgloss.NewStyle().Foreground(lipgloss.Color("8"))
-	chipStyle = lipgloss.NewStyle().Foreground(lipgloss.Color("220"))
+	redCard   lipgloss.Style
+	blackCard lipgloss.Style
+	cardBack  lipgloss.Style
+	chipStyle lipgloss.Style
 )
 
 func SuitGlyph(s poker.Suit) string {

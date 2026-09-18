@@ -94,6 +94,7 @@ type Model struct {
 	typeIdx     int       // feed index being typewriter-revealed; -1 idle
 	typeShown   int       // runes of feed[typeIdx].text revealed so far
 	bannerAge   int       // frames since banner was set; bright while < bannerBright
+	frame       int       // animation frames since launch; drives clawd's pose
 
 	// reactionPending: the match-end reaction cmd is in flight; the match-over
 	// screen waits for it (spinner) and the first q/enter shows a skip hint
@@ -544,6 +545,7 @@ func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 			return m, nil // stale tick after the loop stopped
 		}
 		var cmd tea.Cmd
+		m.frame++
 		m.deal.tick()
 		m.boardDeal.tick()
 		if m.phase == phaseDealing && !m.deal.active() {
@@ -790,12 +792,15 @@ func joinActions(as []poker.ActionType) string {
 	return strings.Join(strs, ", ")
 }
 
+// Table styles. ApplyTheme owns their values; see theme.go.
 var (
-	dimStyle      = lipgloss.NewStyle().Foreground(lipgloss.Color("8"))
-	sayStyle      = lipgloss.NewStyle().Foreground(lipgloss.Color("11")).Italic(true)
-	humanSayStyle = lipgloss.NewStyle().Foreground(lipgloss.Color("12"))
-	bannerFresh   = lipgloss.NewStyle().Foreground(lipgloss.Color("10")).Bold(true)
-	bannerSettled = lipgloss.NewStyle().Foreground(lipgloss.Color("10"))
+	dimStyle      lipgloss.Style
+	textStyle     lipgloss.Style
+	sayStyle      lipgloss.Style
+	humanSayStyle lipgloss.Style
+	bannerFresh   lipgloss.Style
+	bannerSettled lipgloss.Style
+	clawdStyle    lipgloss.Style
 )
 
 // bannerStyleFor stamps a fresh banner bold, settling to the normal green
@@ -853,7 +858,22 @@ func (m Model) renderTable() (table, actions string) {
 	if m.opp.Model != "" {
 		name += " · " + m.opp.Model
 	}
-	fmt.Fprintf(&b, "  ♠ %s   stack: %d\n", name, agentStack)
+	thinking := m.phase == phaseAgentTurn || (m.phase == phaseTalkInput && m.talkReturn == phaseAgentTurn)
+	if m.opp.Key == "claude" {
+		won := false
+		if r := m.hand.Result(); r != nil && r.Winner == as && !inRunout {
+			won = true
+		}
+		var extra []string
+		if thinking {
+			extra = append(extra, dimStyle.Render(m.spin.View()+"thinking..."))
+		}
+		b.WriteString(renderClawd(clawdPoseFor(thinking, won, m.frame),
+			textStyle.Render("♠ "+name),
+			dimStyle.Render(fmt.Sprintf("stack: %d", agentStack)), extra))
+	} else {
+		fmt.Fprintf(&b, "  ♠ %s   stack: %d\n", name, agentStack)
+	}
 	rev := 0
 	if agentHoleUp {
 		rev = 2
@@ -869,7 +889,7 @@ func (m Model) renderTable() (table, actions string) {
 	} else {
 		b.WriteString(indent(RenderCardRow(m.hand.Hole[as][:], rev), 2) + "\n")
 	}
-	if m.phase == phaseAgentTurn || (m.phase == phaseTalkInput && m.talkReturn == phaseAgentTurn) {
+	if thinking && m.opp.Key != "claude" { // clawd carries its own thinking line
 		b.WriteString(dimStyle.Render("  "+m.spin.View()+m.opp.DisplayName+" is thinking...") + "\n")
 	}
 	b.WriteString("\n")

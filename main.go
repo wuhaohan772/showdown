@@ -23,7 +23,9 @@ func main() {
 	handsFlag := flag.Int("hands", tui.DefaultHandLimit, "cap the match at this many hands (0 = unlimited, play until someone busts; tied stacks at the cap continue until untied)")
 	quiet := flag.Bool("quiet", false, "disable table talk")
 	debug := flag.Bool("debug", false, "write a JSONL debug transcript to ~/.showdown/")
+	themeFlag := flag.String("theme", "", "color theme: auto (default), dark, or light; also read from SHOWDOWN_THEME")
 	flag.Parse()
+	tui.ApplyTheme(tui.ResolveTheme(tui.ThemeArg(*themeFlag)))
 
 	var dlog *debuglog.Logger
 	var dlogPath string
