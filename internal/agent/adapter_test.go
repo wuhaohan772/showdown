@@ -2,13 +2,24 @@ package agent
 
 import (
 	"context"
+	"path/filepath"
+	"runtime"
 	"strings"
 	"testing"
 	"time"
 )
 
+// stubCmd is the canned-decision agent used by the adapter tests. Windows
+// cannot exec the shell script, so it gets the batch twin.
+func stubCmd() string {
+	if runtime.GOOS == "windows" {
+		return filepath.Join("testdata", "stub.bat") // cmd.exe rejects forward slashes in a .bat path
+	}
+	return "testdata/stub.sh"
+}
+
 func TestCustomAdapterViaEnv(t *testing.T) {
-	t.Setenv("SHOWDOWN_AGENT_CMD", "testdata/stub.sh")
+	t.Setenv("SHOWDOWN_AGENT_CMD", stubCmd())
 	roster := DetectRoster()
 	if len(roster) != 1 || roster[0].Key != "custom" {
 		t.Fatalf("roster = %+v, want single custom adapter", roster)
