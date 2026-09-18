@@ -152,3 +152,58 @@ func TestRenderDelta(t *testing.T) {
 		}
 	}
 }
+
+// A turn with no legal raise must not quote raise bounds: describing a move
+// the agent cannot make invites an illegal action (2026-09-17 playtest —
+// "Minimum 1500, maximum 1500" reached an agent whose only options were
+// fold and call).
+func TestAmountRulesOmitBoundsWhenRaiseIllegal(t *testing.T) {
+	out := RenderPrompt(RequestData{
+		AgentName: "Stub", LegalActions: "fold, call",
+		MinRaise: 1500, MaxAmount: 1500,
+	})
+	if !strings.Contains(out, "no bet or raise is legal this turn") {
+		t.Error("prompt missing the no-raise amount rule")
+	}
+	if strings.Contains(out, "Minimum 1500") {
+		t.Error("prompt quotes raise bounds on a turn with no legal raise")
+	}
+	// the raise-legal turn still carries them
+	withRaise := RenderPrompt(RequestData{
+		AgentName: "Stub", LegalActions: "fold, call, raise",
+		MinRaise: 40, MaxAmount: 1500,
+	})
+	if !strings.Contains(withRaise, "Minimum 40, maximum 1500") {
+		t.Error("raise-legal prompt lost its bounds")
+	}
+}
+
+func TestRenderDeltaOmitsBoundsWhenRaiseIllegal(t *testing.T) {
+	out := RenderDelta(RequestData{
+		HandState: "STATE", TalkLog: "(nothing said yet)",
+		LegalActions: "fold, call", MinRaise: 990, MaxAmount: 990,
+	}, nil)
+	if strings.Contains(out, "Minimum raise-to") {
+		t.Errorf("delta quotes raise bounds with no legal raise:\n%s", out)
+	}
+	if !strings.Contains(out, `omit "amount"`) {
+		t.Errorf("delta missing the omit-amount instruction:\n%s", out)
+	}
+}
+
+// Threats are table talk. The rule that licenses them must also fence them:
+// the agent never acts on the machine mid-match.
+func TestThreatRuleIsTalkOnly(t *testing.T) {
+	out := RenderPrompt(RequestData{AgentName: "Stub"})
+	threat := strings.Index(out, "Menace is allowed")
+	if threat == -1 {
+		t.Fatal("format rules missing the revenge-threat rule")
+	}
+	if !strings.Contains(out, "you take no action on this machine during the match") {
+		t.Error("threat rule must fence threats as talk only")
+	}
+	needle := strings.Index(out, "Needle them with what you know")
+	if !(threat < needle) {
+		t.Error("needling must stay the last behavioral rule (recency wins)")
+	}
+}

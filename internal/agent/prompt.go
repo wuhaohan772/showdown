@@ -33,11 +33,29 @@ func RenderPrompt(d RequestData) string {
 		"{legal_actions}", d.LegalActions,
 		"{min_raise}", strconv.Itoa(d.MinRaise),
 		"{max_amount}", strconv.Itoa(d.MaxAmount),
+		"{amount_rules}", amountRules(d),
 	)
 	out := r.Replace(promptTemplate)
 	out = strings.ReplaceAll(out, "{{", "{")
 	out = strings.ReplaceAll(out, "}}", "}")
 	return out
+}
+
+// raiseLegal reports whether this turn allows putting more chips in than a
+// call — the only case where "amount" and the raise bounds mean anything.
+func raiseLegal(legalActions string) bool {
+	return strings.Contains(legalActions, "raise") || strings.Contains(legalActions, "bet")
+}
+
+// amountRules renders the "amount" format bullets for this turn. Quoting
+// raise bounds when no raise is legal describes a move the agent cannot
+// make, so that turn gets the short rule instead.
+func amountRules(d RequestData) string {
+	if !raiseLegal(d.LegalActions) {
+		return `- Omit "amount" entirely: no bet or raise is legal this turn.`
+	}
+	return fmt.Sprintf(`- "amount" is required only for bet/raise. It is the TOTAL number of chips you are betting/raising TO (not the increment). Minimum %d, maximum %d (all-in).
+- Omit "amount" for fold/check/call.`, d.MinRaise, d.MaxAmount)
 }
 
 // BuildHandState describes the hand from agentSeat's perspective (agent = "you"), regardless of whose turn it is.
@@ -107,7 +125,12 @@ func RenderDelta(d RequestData, handResults []string) string {
 	b.WriteString("\n=== CURRENT HAND ===\n" + d.HandState + "\n")
 	b.WriteString("\n=== TABLE TALK THIS HAND ===\n" + d.TalkLog + "\n")
 	fmt.Fprintf(&b, "\n=== YOUR MOVE ===\nLegal actions: %s\n", d.LegalActions)
-	fmt.Fprintf(&b, "Reply with ONLY the JSON object — same format and rules as before. "+
-		"Minimum raise-to %d, maximum %d (all-in).\n", d.MinRaise, d.MaxAmount)
+	b.WriteString("Reply with ONLY the JSON object — same format and rules as before.")
+	if raiseLegal(d.LegalActions) {
+		fmt.Fprintf(&b, " Minimum raise-to %d, maximum %d (all-in).", d.MinRaise, d.MaxAmount)
+	} else {
+		b.WriteString(` No bet or raise is legal this turn, so omit "amount".`)
+	}
+	b.WriteString("\n")
 	return b.String()
 }
