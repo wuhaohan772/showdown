@@ -5,9 +5,9 @@ coding-agent CLI you have installed: Claude Code, Codex, or Gemini.
 The agent runs from your launch directory, so it loads its own memory
 files and knows who it's playing. It trash talks accordingly.
 
-![A three-hand showdown match against Claude Code: it reads the
-project memory, needles you about your deploy script, folds to two
-bluffs, then flops a straight and takes the match](docs/demo.gif)
+![A showdown match against Claude Code: clawd watches from the far
+side of the table, needles you about your slipping ship date and your
+deploy script, then loses the last of its chips to two pair](docs/demo.gif)
 
 ## Install
 
@@ -52,9 +52,14 @@ opponent.
 | `--hands 20` | Cap the match at N hands (0 = play until bust) |
 | `--quiet` | No table talk |
 | `--debug` | Write a full JSONL transcript to `~/.showdown/` |
+| `--theme dark` | Color theme: `auto` (default), `dark`, or `light`. Also read from `SHOWDOWN_THEME` |
 | `SHOWDOWN_REDUCE_MOTION=1` | Environment variable: skip all animations (deal, tweens, typewriter) |
 
 Cards are dealt into place, chips tween, and the agent's trash talk types out live; set `SHOWDOWN_REDUCE_MOTION=1` if you want everything instant.
+
+Showdown reads your terminal background and picks a light or dark palette. Detection misses on mid-grey backgrounds, where it can leave the dim text and the black suits hard to read — pass `--theme light` or `--theme dark` to settle it.
+
+Play against Claude Code and clawd, its mascot, sits on the far side of the table: eyes flicking side to side while it decides, arms up when it drags a pot.
 
 ## Personas
 
