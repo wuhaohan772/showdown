@@ -7,7 +7,7 @@ files and knows who it's playing. It trash talks accordingly.
 
 ![A showdown match against Claude Code: clawd watches from the far
 side of the table, needles you about your slipping ship date and your
-deploy script, then loses the last of its chips to two pair](docs/demo.gif)
+deploy script, then loses the last of its chips to a pair](docs/demo.gif)
 
 ## Install
 
@@ -25,19 +25,20 @@ opponent.
    table-talk setting. Adjust anything, then start.
 2. You get two hole cards. Blinds post automatically, starting at
    10/20.
-3. On your turn: `f` fold, `c` check/call, `r` raise (then type an
-   amount), `a` all-in.
+3. On your turn: `f` fold, `c` check/call, `b` bet or `r` raise (then
+   type an amount), `a` all-in.
 4. The agent talks while it plays. Its chat runs in the panel on the
    right (or in the log line on narrow terminals). Press `t` any time
    to talk back.
 5. When a hand ends, `enter` deals the next one. Blinds rise every 10
-   hands. Play continues until someone busts.
-6. At match over, the agent gets one parting shot, then the result and
-   API cost post to your career stats.
+   hands. Play continues until someone busts, unless you capped the
+   match with `--hands`.
+6. At match over, the agent gets one parting shot, then the result
+   posts to your career stats (with the API cost, for Claude).
 
 ## Keys
 
-`f` fold · `c` check/call · `r` raise (then amount) · `a` all-in ·
+`f` fold · `c` check/call · `b`/`r` bet/raise (then amount) · `a` all-in ·
 `t` trash talk · `enter` next hand · `q` quit
 
 ## Options
@@ -45,7 +46,7 @@ opponent.
 | Flag | What it does |
 |------|--------------|
 | `--agent claude` | Skip the picker, force this opponent (`claude`, `codex`, `gemini`) |
-| `--model sonnet` | Model for the agent CLI. Claude: `haiku`/`sonnet`/`opus`; codex/gemini values pass through |
+| `--model sonnet` | Model for the agent CLI. Claude: `haiku`/`sonnet`/`opus` (default `sonnet`). Codex: `gpt-6-luna`/`gpt-6-sol`/`gpt-6-astra` (default `gpt-6-sol`, always at low reasoning effort). Gemini values pass through |
 | `--personality unhinged` | Preset name or path to your own `.md` file (see below) |
 | `--stack 1500` | Starting chips per player |
 | `--blind 10` | Starting small blind (big blind is always 2x) |
@@ -78,7 +79,7 @@ would warp the opponent's table talk too. Showdown disables hooks in
 the opponent's session; your memory files still load. If you want the
 opponent to talk differently, use a persona — that's what it's for.
 
-## Choosing a model (Claude)
+## Choosing a model
 
 `sonnet` is the default and the recommendation. It plays fine and its
 trash talk stays factually straight about who folded what.
@@ -89,12 +90,19 @@ believe you folded that"). This is a model limitation, not a bug we
 can prompt around, so if the taunts stop making sense on haiku, that's
 why. Switch to sonnet if it bothers you.
 
+For Codex the default is `gpt-6-sol`, Codex's mid tier and the closest
+match to sonnet on cost and ability. `gpt-6-luna` is the fast, cheap
+tier and `gpt-6-astra` the frontier one. Showdown always runs Codex at
+low reasoning effort, whatever your `~/.codex/config.toml` says, so a
+decision doesn't take minutes.
+
 ## Costs
 
 Every agent decision is a real API call through your agent CLI, billed
-however that CLI bills you. The match-over screen shows what the match
-cost, and completed matches accumulate into career stats at
-`~/.showdown/stats.json`. Claude opponents keep one persistent session
+however that CLI bills you. For Claude, the match-over screen shows what
+the match cost, and completed matches accumulate into career stats at
+`~/.showdown/stats.json`. Codex and Gemini don't report cost to
+showdown, so their matches record wins and losses but no spend. Claude opponents keep one persistent session
 per match, so decisions after the first are prompt-cache warm (roughly
 10x cheaper than one-shot calls). A typical sonnet match runs well
 under a dollar.
