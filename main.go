@@ -16,13 +16,14 @@ import (
 
 func main() {
 	agentFlag := flag.String("agent", "", "opponent agent key (claude, codex, gemini)")
-	modelFlag := flag.String("model", "", "model for the agent CLI (claude: haiku/sonnet/opus; codex/gemini: passed through)")
+	modelFlag := flag.String("model", "", "model for the agent CLI (claude: haiku/sonnet/opus, default sonnet; codex: gpt-6-luna/gpt-6-sol/gpt-6-astra, default gpt-6-sol; gemini: passed through)")
 	personalityFlag := flag.String("personality", "", "table persona: preset name (needler, unhinged, polite, silent, degen) or path to a .md file; default ~/.showdown/personality.md if present, else needler")
 	stackFlag := flag.Int("stack", tui.DefaultStartStack, "starting chip stack per player")
 	blindFlag := flag.Int("blind", tui.DefaultStartSB, "starting small blind (big blind is always 2x)")
 	handsFlag := flag.Int("hands", tui.DefaultHandLimit, "cap the match at this many hands (0 = unlimited, play until someone busts; tied stacks at the cap continue until untied)")
 	quiet := flag.Bool("quiet", false, "disable table talk")
 	debug := flag.Bool("debug", false, "write a JSONL debug transcript to ~/.showdown/")
+	noMouse := flag.Bool("no-mouse", false, "don't capture the mouse (clicking the mascot won't animate it; plain click-drag selects text again)")
 	themeFlag := flag.String("theme", "", "color theme: auto (default), dark, or light; also read from SHOWDOWN_THEME")
 	flag.Parse()
 	tui.ApplyTheme(tui.ResolveTheme(tui.ThemeArg(*themeFlag)))
@@ -89,7 +90,12 @@ func main() {
 
 	dir, _ := os.Getwd()
 	m := tui.NewModel(opp, st, stats.DefaultPath(), useQuiet, dir, persona, startStack, startSB, handLimit, dlog)
-	final, runErr := tea.NewProgram(m, tea.WithAltScreen()).Run()
+	m = m.WithMouse(!*noMouse)
+	opts := []tea.ProgramOption{tea.WithAltScreen()}
+	if !*noMouse {
+		opts = append(opts, tea.WithMouseCellMotion()) // clicks on the mascot
+	}
+	final, runErr := tea.NewProgram(m, opts...).Run()
 	if fm, ok := final.(tui.Model); ok {
 		fm.CloseSession() // release the persistent opponent process, if any
 	}

@@ -83,7 +83,7 @@ func TestNeedlingRuleLastInFormatRules(t *testing.T) {
 	out := RenderPrompt(RequestData{AgentName: "Stub"})
 	needle := strings.Index(out, "Needle them with what you know")
 	truth := strings.Index(out, "Trash talk must be true to the table")
-	cards := strings.Index(out, "Card talk is a weapon, not a habit")
+	cards := strings.Index(out, "Your hole cards are secret")
 	shoveRule := strings.Index(out, "Opponent tendency")
 	jsonRule := strings.Index(out, "Your entire reply must parse as JSON")
 	if needle == -1 {
@@ -175,6 +175,25 @@ func TestAmountRulesOmitBoundsWhenRaiseIllegal(t *testing.T) {
 	})
 	if !strings.Contains(withRaise, "Minimum 40, maximum 1500") {
 		t.Error("raise-legal prompt lost its bounds")
+	}
+}
+
+// 2026-09-24 playtest: in a primed session sonnet named its real hand
+// ("A6", "pair of sixes") in most lines; the secrecy rule was only in the
+// priming turn. Every delta turn repeats it.
+func TestCardSecrecyRuleInEveryTurn(t *testing.T) {
+	full := RenderPrompt(RequestData{AgentName: "Stub"})
+	for _, want := range []string{"Never name or hint at them", "when you fold", "pair of sixes"} {
+		if !strings.Contains(full, want) {
+			t.Errorf("full prompt missing card-secrecy text %q", want)
+		}
+	}
+	if strings.Contains(full, "mix truth and lies") {
+		t.Error("old card-talk rule still present: it licensed naming the real hand")
+	}
+	delta := RenderDelta(RequestData{LegalActions: "fold, call"}, nil)
+	if !strings.Contains(delta, "hole cards stay secret") {
+		t.Errorf("delta turn must repeat the card-secrecy rule:\n%s", delta)
 	}
 }
 

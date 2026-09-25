@@ -125,6 +125,10 @@ func RenderDelta(d RequestData, handResults []string) string {
 	b.WriteString("\n=== CURRENT HAND ===\n" + d.HandState + "\n")
 	b.WriteString("\n=== TABLE TALK THIS HAND ===\n" + d.TalkLog + "\n")
 	fmt.Fprintf(&b, "\n=== YOUR MOVE ===\nLegal actions: %s\n", d.LegalActions)
+	// the card-secrecy rule sits thousands of tokens back in the priming
+	// turn, with the hole cards right above; repeat it where recency wins
+	// (2026-09-24 playtest: sonnet named its real hand in most lines).
+	b.WriteString(`Your hole cards stay secret: "say" never names or hints at them or your made hand.` + "\n")
 	b.WriteString("Reply with ONLY the JSON object — same format and rules as before.")
 	if raiseLegal(d.LegalActions) {
 		fmt.Fprintf(&b, " Minimum raise-to %d, maximum %d (all-in).", d.MinRaise, d.MaxAmount)

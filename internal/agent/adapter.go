@@ -78,8 +78,15 @@ var knownAdapters = []Adapter{
 			return args
 		}},
 	{Key: "codex", DisplayName: "Codex", Bin: "codex",
+		// Matched to claude's sonnet default on cost and ability: gpt-6-sol
+		// is Codex's mid tier ("workhorse"; luna is the fast tier, astra
+		// the frontier one), and low reasoning effort stands in for sonnet
+		// running without extended thinking. The effort is always passed so
+		// a player's config.toml (often high) can't slow every decision.
+		Model:  "gpt-6-sol",
+		Models: []string{"gpt-6-luna", "gpt-6-sol", "gpt-6-astra"},
 		Args: func(m, p string) []string {
-			args := []string{"exec"}
+			args := []string{"exec", "-c", `model_reasoning_effort="low"`}
 			if m != "" {
 				args = append(args, "-m", m)
 			}

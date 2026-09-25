@@ -28,6 +28,10 @@ type palette struct {
 // lipgloss degrades it for terminals that cannot show 24-bit color.
 const clawdOrange = lipgloss.Color("#D77757")
 
+// codexBlue colors the Codex prompt bot; a mid blue that reads on both
+// dark and light backgrounds.
+const codexBlue = lipgloss.Color("#5F8FD7")
+
 // darkPalette targets dark and mid-grey backgrounds: bright text, no ANSI 8.
 var darkPalette = palette{
 	name:      "dark",
@@ -104,6 +108,7 @@ func ApplyTheme(name string) {
 	cardBack = lipgloss.NewStyle().Foreground(p.dim)
 	chipStyle = lipgloss.NewStyle().Foreground(p.chip)
 	clawdStyle = lipgloss.NewStyle().Foreground(clawdOrange)
+	codexStyle = lipgloss.NewStyle().Foreground(codexBlue)
 }
 
 var active = darkPalette
