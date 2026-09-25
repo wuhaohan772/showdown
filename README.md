@@ -5,9 +5,9 @@ coding-agent CLI you have installed: Claude Code, Codex, or Gemini.
 The agent runs from your launch directory, so it loads its own memory
 files and knows who it's playing. It trash talks accordingly.
 
-![A showdown match against Claude Code: clawd watches from the far
-side of the table, needles you about your slipping ship date and your
-deploy script, then loses the last of its chips to a pair](docs/demo.gif)
+![A hand against Claude Code: clawd watches from the far side of the
+table, needles you about your slipping ship date, then takes the pot
+with trip sevens and throws its arms up](docs/demo.gif)
 
 ## Install
 
