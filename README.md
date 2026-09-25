@@ -53,13 +53,14 @@ opponent.
 | `--quiet` | No table talk |
 | `--debug` | Write a full JSONL transcript to `~/.showdown/` |
 | `--theme dark` | Color theme: `auto` (default), `dark`, or `light`. Also read from `SHOWDOWN_THEME` |
+| `--no-mouse` | Don't capture the mouse: clicking the mascot does nothing, and plain click-drag selects text again |
 | `SHOWDOWN_REDUCE_MOTION=1` | Environment variable: skip all animations (deal, tweens, typewriter) |
 
 Cards are dealt into place, chips tween, and the agent's trash talk types out live; set `SHOWDOWN_REDUCE_MOTION=1` if you want everything instant.
 
 Showdown reads your terminal background and picks a light or dark palette. Detection misses on mid-grey backgrounds, where it can leave the dim text and the black suits hard to read — pass `--theme light` or `--theme dark` to settle it.
 
-Play against Claude Code and clawd, its mascot, sits on the far side of the table: eyes flicking side to side while it decides, arms up when it drags a pot.
+Play against Claude Code and clawd, its mascot, sits on the far side of the table: eyes flicking side to side while it decides, arms up when it drags a pot. Codex gets a little prompt bot that does the same. Click either one and it jumps or looks around, like clawd does in Claude Code. While showdown has the mouse, the table shows which key to hold to select text (fn in Terminal.app, ⌥ option in iTerm2, shift elsewhere); `--no-mouse` gives plain click-drag back.
 
 ## Personas
 

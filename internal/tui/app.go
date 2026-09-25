@@ -86,15 +86,18 @@ type Model struct {
 	// against scheduling it twice.
 	motion      bool
 	animRunning bool
-	deal        cardSlide // hole cards at hand start (gates phaseDealing)
-	boardDeal   cardSlide // street cards flowing in mid-hand
-	boardSeen   int       // board length already animated (or shown) — apply() compares
-	potShown    int       // displayed pot, tweens toward potTarget
-	stackShown  [2]int    // displayed stacks, player-indexed: 0 human, 1 agent
-	typeIdx     int       // feed index being typewriter-revealed; -1 idle
-	typeShown   int       // runes of feed[typeIdx].text revealed so far
-	bannerAge   int       // frames since banner was set; bright while < bannerBright
-	frame       int       // animation frames since launch; drives clawd's pose
+	deal        cardSlide     // hole cards at hand start (gates phaseDealing)
+	boardDeal   cardSlide     // street cards flowing in mid-hand
+	boardSeen   int           // board length already animated (or shown) — apply() compares
+	potShown    int           // displayed pot, tweens toward potTarget
+	stackShown  [2]int        // displayed stacks, player-indexed: 0 human, 1 agent
+	typeIdx     int           // feed index being typewriter-revealed; -1 idle
+	typeShown   int           // runes of feed[typeIdx].text revealed so far
+	bannerAge   int           // frames since banner was set; bright while < bannerBright
+	frame       int           // animation frames since launch; drives the mascot's pose
+	clickAnim   []mascotFrame // mascot's click reaction; nil when idle
+	clickIdx    int           // frame of clickAnim showing
+	selectHint  string        // how to select text while the mouse is captured; "" = not captured
 
 	// reactionPending: the match-end reaction cmd is in flight; the match-over
 	// screen waits for it (spinner) and the first q/enter shows a skip hint
@@ -353,7 +356,7 @@ func (m Model) animating() bool {
 	return m.deal.active() || m.boardDeal.active() || m.typeIdx >= 0 ||
 		m.potShown != m.potTarget() ||
 		m.stackShown[1] != at || m.stackShown[0] != ht ||
-		m.bannerAge < bannerBright
+		m.bannerAge < bannerBright || m.clickAnim != nil
 }
 
 // potTarget is what the displayed pot tweens toward: the live pot during a
@@ -564,6 +567,11 @@ func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		if m.bannerAge < bannerBright {
 			m.bannerAge++
 		}
+		if m.clickAnim != nil {
+			if m.clickIdx++; m.clickIdx >= len(m.clickAnim) {
+				m.clickAnim = nil
+			}
+		}
 		if m.animating() {
 			return m, tea.Batch(cmd, animTick())
 		}
@@ -571,8 +579,25 @@ func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		return m, cmd
 	case tea.KeyMsg:
 		return m.handleKey(msg)
+	case tea.MouseMsg:
+		return m.handleMouse(msg)
 	}
 	return m, nil
+}
+
+// handleMouse plays a click reaction when the mascot is clicked, as Claude
+// Code does: a jump or a look around, picked at random. A click while one
+// is playing is ignored.
+func (m Model) handleMouse(msg tea.MouseMsg) (tea.Model, tea.Cmd) {
+	if msg.Action != tea.MouseActionPress || msg.Button != tea.MouseButtonLeft {
+		return m, nil
+	}
+	if _, ok := mascotFor(m.opp.Key); !ok || !m.motion || m.hand == nil ||
+		m.clickAnim != nil || !inMascot(msg.X, msg.Y) {
+		return m, nil
+	}
+	m.clickAnim, m.clickIdx = clickAnims[m.rng.Intn(len(clickAnims))], 0
+	return m, m.startAnim()
 }
 
 func (m Model) handleKey(msg tea.KeyMsg) (tea.Model, tea.Cmd) {
@@ -801,6 +826,7 @@ var (
 	bannerFresh   lipgloss.Style
 	bannerSettled lipgloss.Style
 	clawdStyle    lipgloss.Style
+	codexStyle    lipgloss.Style
 )
 
 // bannerStyleFor stamps a fresh banner bold, settling to the normal green
@@ -823,6 +849,8 @@ func (m Model) View() string {
 		return "shuffling..."
 	}
 	table, actions := m.renderTable()
+	// a blank first row so the header isn't flush against the top edge
+	table = "\n" + table
 	if m.quiet {
 		return table + actions
 	}
@@ -859,7 +887,7 @@ func (m Model) renderTable() (table, actions string) {
 		name += " · " + m.opp.Model
 	}
 	thinking := m.phase == phaseAgentTurn || (m.phase == phaseTalkInput && m.talkReturn == phaseAgentTurn)
-	if m.opp.Key == "claude" {
+	if mc, ok := mascotFor(m.opp.Key); ok {
 		won := false
 		if r := m.hand.Result(); r != nil && r.Winner == as && !inRunout {
 			won = true
@@ -868,8 +896,17 @@ func (m Model) renderTable() (table, actions string) {
 		if thinking {
 			extra = append(extra, dimStyle.Render(m.spin.View()+"thinking..."))
 		}
-		b.WriteString(renderClawd(clawdPoseFor(thinking, won, m.frame),
-			textStyle.Render("♠ "+name),
+		model := m.opp.Model
+		if model == "" {
+			model = "default model"
+		}
+		f := mascotFrame{pose: mascotPoseFor(thinking, won, m.frame)}
+		if m.clickAnim != nil {
+			f = m.clickAnim[m.clickIdx]
+		}
+		b.WriteString(mc.render(f,
+			textStyle.Bold(true).Render(m.opp.DisplayName),
+			dimStyle.Render(model),
 			dimStyle.Render(fmt.Sprintf("stack: %d", agentStack)), extra))
 	} else {
 		fmt.Fprintf(&b, "  ♠ %s   stack: %d\n", name, agentStack)
@@ -889,7 +926,7 @@ func (m Model) renderTable() (table, actions string) {
 	} else {
 		b.WriteString(indent(RenderCardRow(m.hand.Hole[as][:], rev), 2) + "\n")
 	}
-	if thinking && m.opp.Key != "claude" { // clawd carries its own thinking line
+	if _, ok := mascotFor(m.opp.Key); thinking && !ok { // a mascot carries its own thinking line
 		b.WriteString(dimStyle.Render("  "+m.spin.View()+m.opp.DisplayName+" is thinking...") + "\n")
 	}
 	b.WriteString("\n")
@@ -980,7 +1017,34 @@ func (m Model) renderTable() (table, actions string) {
 		}
 		a.WriteString("\n  ═══ " + winner + " ═══\n  " + m.stats.Line(m.opp.Key) + usageLine + "\n  " + exit + "\n")
 	}
+	if m.selectHint != "" {
+		a.WriteString(dimStyle.Render("  "+m.selectHint) + "\n")
+	}
 	return table, a.String()
+}
+
+// WithMouse records that the program captures the mouse (for mascot
+// clicks). Capturing it takes plain click-drag away from the terminal, so
+// the table shows which key brings text selection back.
+func (m Model) WithMouse(on bool) Model {
+	m.selectHint = ""
+	if on {
+		m.selectHint = "hold " + selectKey(os.Getenv("TERM_PROGRAM")) + " while dragging to highlight text"
+	}
+	return m
+}
+
+// selectKey is the modifier that makes a terminal select text even while
+// an app captures the mouse.
+func selectKey(termProgram string) string {
+	switch termProgram {
+	case "Apple_Terminal":
+		return "fn"
+	case "iTerm.app":
+		return "⌥ option"
+	default: // Ghostty, kitty, WezTerm, Alacritty, most Linux terminals
+		return "shift"
+	}
 }
 
 // feedLineGroups renders the feed into styled display lines wrapped to width
@@ -1079,9 +1143,10 @@ func (m Model) composeWithPanel(left string) string {
 	leftLines := strings.Split(strings.TrimRight(left, "\n"), "\n")
 	h := len(leftLines)
 	body := make([]string, 0, h)
-	body = append(body, dimStyle.Render("talk"))
+	// blank row first so "talk" lines up with the table's first row
+	body = append(body, "", dimStyle.Render("talk"))
 	lines := m.feedLines(chatPanelWidth)
-	if avail := h - 1; len(lines) > avail {
+	if avail := h - 2; len(lines) > avail {
 		lines = lines[len(lines)-avail:] // auto-scroll: newest at bottom
 	}
 	body = append(body, lines...)
