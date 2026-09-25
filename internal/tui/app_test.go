@@ -1382,3 +1382,33 @@ func TestHeaderShowsModelTag(t *testing.T) {
 		t.Errorf("header must carry the model tag, got:\n%s", table)
 	}
 }
+
+// "YOU win", not "YOU wins" (seen in the re-recorded demo, 2026-09-24).
+// Hand 1: the human has the button and acts first preflop; the agent acts
+// first after the flop.
+func TestHandResultBannerGrammar(t *testing.T) {
+	t.Setenv("SHOWDOWN_REDUCE_MOTION", "1")
+	for _, tc := range []struct {
+		name string
+		acts []poker.Action
+		want string
+	}{
+		{"human folds preflop", []poker.Action{{Type: poker.Fold}}, "Stub wins 30 (opponent folded)"},
+		{"agent folds to a flop bet", []poker.Action{
+			{Type: poker.Call}, {Type: poker.Check}, // preflop: human limps, agent checks
+			{Type: poker.Check}, {Type: poker.Bet, To: 20}, {Type: poker.Fold}, // flop
+		}, "YOU win "},
+	} {
+		m2, _ := testModel(t).Update(startHandMsg{})
+		m := m2.(Model)
+		for _, a := range tc.acts {
+			if err := m.hand.Apply(a); err != nil {
+				t.Fatalf("%s: %v", tc.name, err)
+			}
+		}
+		m.finishHand()
+		if !strings.HasPrefix(m.banner, tc.want) {
+			t.Errorf("%s: banner = %q, want it to start %q", tc.name, m.banner, tc.want)
+		}
+	}
+}

@@ -274,9 +274,9 @@ func (m *Model) finishHand() tea.Cmd {
 		"stacks": []int{m.hand.Seats[0].Stack, m.hand.Seats[1].Stack},
 	})
 	m.phase = phaseHandEnd
-	winnerName := "YOU"
+	winner := "YOU win"
 	if r.Winner == m.agentSeat() {
-		winnerName = m.opp.DisplayName
+		winner = m.opp.DisplayName + " wins"
 	}
 	how := "opponent folded"
 	if r.Showdown {
@@ -285,7 +285,7 @@ func (m *Model) finishHand() tea.Cmd {
 	if r.Split {
 		m.setBanner(fmt.Sprintf("split pot (%d) — %s", r.Pot, r.Desc))
 	} else {
-		m.setBanner(fmt.Sprintf("%s wins %d (%s)", winnerName, r.Pot, how))
+		m.setBanner(fmt.Sprintf("%s %d (%s)", winner, r.Pot, how))
 	}
 	summary := agentHandSummary(m.match.HandNum, r, r.Winner == m.agentSeat())
 	sawShove, foldedToShove := agent.DetectShove(m.hand.Log, m.agentSeat(), r)
