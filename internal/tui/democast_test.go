@@ -16,8 +16,8 @@ import (
 	"github.com/wuhaohan772/showdown/internal/stats"
 )
 
-// TestRecordDemo writes docs/demo.cast by driving the real Model through a
-// scripted match — no agent CLI, no API spend, same frames the game draws.
+// TestRecordDemo writes docs/demo.cast by driving the real Model through one
+// scripted hand — no agent CLI, no API spend, same frames the game draws.
 // It is skipped unless SHOWDOWN_RECORD_DEMO=1; see scripts/record-demo.sh.
 //
 // The script is fixed but the deck is not, so the driver reacts to the hand
@@ -32,11 +32,16 @@ func TestRecordDemo(t *testing.T) {
 
 	const (
 		cols, rows = 100, 24
-		seed       = 11 // deck that deals the scripted story
 	)
+	// seed 23 deals clawd trip sevens, so the demo ends on its win pose.
+	// SHOWDOWN_DEMO_SEED overrides it when picking a new deal.
+	seed := int64(23)
+	if v := os.Getenv("SHOWDOWN_DEMO_SEED"); v != "" {
+		fmt.Sscan(v, &seed)
+	}
 	ad := agent.Adapter{Key: "claude", DisplayName: "Claude Code", Model: "sonnet", Bin: "true",
 		Args: func(m, p string) []string { return nil }}
-	m := NewModel(ad, stats.Stats{}, t.TempDir()+"/stats.json", false, ".", "needler", 300, 10, 0, nil)
+	m := NewModel(ad, stats.Stats{}, t.TempDir()+"/stats.json", false, ".", "needler", DefaultStartStack, DefaultStartSB, 0, nil)
 	m.rng = rand.New(rand.NewSource(seed))
 	m.spin.Spinner.FPS = 0 // the recorder drives frames, not wall-clock
 
@@ -61,10 +66,22 @@ func TestRecordDemo(t *testing.T) {
 	taunts := []string{
 		"Read your CLAUDE.md before we started. Ship date's slipping and you're in here playing cards.",
 		"Raise it. Every chip you lose is a commit you don't get to push tonight.",
-		"That fold was the most disciplined thing you've done since the deploy script.",
-		"Take it. I'm rewriting your test suite in my head while you stack those.",
-		"All-in? Bold. I'm renaming your main branch if this holds up.",
+		"Call. I'm renaming your main branch if this holds up.",
 	}
+	// readFor holds until the typewriter finishes a line, then long enough
+	// to read it: ~3 words a second, 2.5s minimum. Without this the demo
+	// moved on before the talk had finished typing.
+	readFor := func(say string) {
+		for i := 0; m.typeIdx >= 0 && i < 400; i++ {
+			hold(1)
+		}
+		n := len(strings.Fields(say)) * 7
+		if n < 50 {
+			n = 50
+		}
+		hold(n)
+	}
+
 	nextTaunt := 0
 	agentSays := func() string {
 		if nextTaunt >= len(taunts) {
@@ -76,11 +93,11 @@ func TestRecordDemo(t *testing.T) {
 	}
 
 	step(startHandMsg{})
-	hold(20)
+	hold(40) // take in the table and the header
 
 	// humanScript is consumed in order; each entry is a preferred action for
 	// one human turn, and falls back to check/call when it is not legal.
-	humanScript := []string{"raise", "call", "check", "fold", "allin", "call", "check"}
+	humanScript := []string{"raise"} // then check/call down to the showdown
 	humanTurn := 0
 	playHuman := func() {
 		want := "call"
@@ -107,7 +124,7 @@ func TestRecordDemo(t *testing.T) {
 		default:
 			step(key("c"))
 		}
-		hold(10)
+		hold(16)
 	}
 
 	// playAgent answers the agent's turn with a canned decision: raise when
@@ -121,39 +138,35 @@ func TestRecordDemo(t *testing.T) {
 		case !legal[poker.Call]:
 			act = poker.Action{Type: poker.Fold}
 		}
-		hold(8) // let clawd's eyes move while it "thinks"
-		step(decisionMsg{act: act, say: agentSays()})
-		hold(14)
+		hold(16) // let clawd's eyes move while it "thinks"
+		say := agentSays()
+		step(decisionMsg{act: act, say: say})
+		if say != "" {
+			readFor(say)
+		} else {
+			hold(16)
+		}
 	}
 
-	for hand := 0; hand < 3; hand++ {
-		for range [40]struct{}{} {
-			switch m.phase {
-			case phaseHumanTurn:
-				playHuman()
-			case phaseAgentTurn:
-				playAgent()
-			case phaseRunout:
-				hold(6)
-			case phaseDealing:
-				hold(4)
-			default:
-			}
-			if m.phase == phaseHandEnd || m.phase == phaseMatchOver {
-				break
-			}
+	for range [40]struct{}{} {
+		switch m.phase {
+		case phaseHumanTurn:
+			playHuman()
+		case phaseAgentTurn:
+			playAgent()
+		case phaseRunout:
+			hold(6)
+		case phaseDealing:
+			hold(4)
 		}
-		hold(24) // rest on the result
-		if m.phase == phaseMatchOver {
+		if m.phase == phaseHandEnd {
 			break
 		}
-		step(tea.KeyMsg{Type: tea.KeyEnter})
-		hold(16)
 	}
-
-	if m.phase == phaseMatchOver {
-		step(reactionMsg{say: "Enjoy it. Your branch and I have unfinished business."})
-		hold(40)
+	hold(80) // rest on the showdown and the result
+	if r := m.hand.Result(); r != nil {
+		t.Logf("DEMO seed=%d winner_is_agent=%v showdown=%v desc=%q banner=%q",
+			seed, r.Winner == m.agentSeat(), r.Showdown, r.Desc, m.banner)
 	}
 
 	if err := rec.write("../../docs/demo.cast"); err != nil {
