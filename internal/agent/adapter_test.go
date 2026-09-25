@@ -236,3 +236,24 @@ func TestStartSessionUnsupportedAdapter(t *testing.T) {
 		t.Error("StartSession on session-less adapter must error")
 	}
 }
+
+// Codex defaults to its mid tier at low effort, matching claude's sonnet,
+// and the effort holds even when the player picks another model.
+func TestCodexDefaultsMatchSonnet(t *testing.T) {
+	var codex Adapter
+	for _, a := range knownAdapters {
+		if a.Key == "codex" {
+			codex = a
+		}
+	}
+	if codex.Model != "gpt-6-sol" {
+		t.Errorf("codex default model = %q, want gpt-6-sol", codex.Model)
+	}
+	for _, m := range []string{codex.Model, "gpt-6-astra"} {
+		got := strings.Join(codex.Args(m, "PROMPT"), " ")
+		want := `exec -c model_reasoning_effort="low" -m ` + m + " PROMPT"
+		if got != want {
+			t.Errorf("codex args = %q, want %q", got, want)
+		}
+	}
+}
