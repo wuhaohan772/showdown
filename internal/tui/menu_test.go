@@ -65,10 +65,10 @@ func TestMenuModelPrefill(t *testing.T) {
 }
 
 func TestMenuPersonaOptions(t *testing.T) {
-	// no user file: presets only, needler (index 0) selected
+	// no user file: presets only, standard (index 0) selected
 	m := newMenuModel(menuRoster(), stats.Stats{}, "", "", DefaultStartStack, DefaultStartSB, DefaultHandLimit, false, noPersonaFile(t))
-	if m.personaOpts[0] != "needler" || m.personaIdx != 0 {
-		t.Errorf("personaOpts[0]=%q idx=%d, want needler 0", m.personaOpts[0], m.personaIdx)
+	if m.personaOpts[0] != "standard" || m.personaIdx != 0 || len(m.personaOpts) != 2 {
+		t.Errorf("personaOpts=%v idx=%d, want [standard silent] at 0", m.personaOpts, m.personaIdx)
 	}
 	// user file exists: custom prepended and selected
 	f := filepath.Join(t.TempDir(), "personality.md")
@@ -80,9 +80,9 @@ func TestMenuPersonaOptions(t *testing.T) {
 		t.Errorf("with file: personaOpts[0]=%q idx=%d, want custom 0", m.personaOpts[0], m.personaIdx)
 	}
 	// --personality preset name → selected
-	m = newMenuModel(menuRoster(), stats.Stats{}, "", "degen", DefaultStartStack, DefaultStartSB, DefaultHandLimit, false, f)
-	if m.personaOpts[m.personaIdx] != "degen" {
-		t.Errorf("prefill persona = %q, want degen", m.personaOpts[m.personaIdx])
+	m = newMenuModel(menuRoster(), stats.Stats{}, "", "silent", DefaultStartStack, DefaultStartSB, DefaultHandLimit, false, f)
+	if m.personaOpts[m.personaIdx] != "silent" {
+		t.Errorf("prefill persona = %q, want silent", m.personaOpts[m.personaIdx])
 	}
 	// --personality path → appended verbatim and selected
 	m = newMenuModel(menuRoster(), stats.Stats{}, "", "/tmp/evil.md", DefaultStartStack, DefaultStartSB, DefaultHandLimit, false, f)
@@ -273,7 +273,7 @@ func TestMenuEnterAndQuit(t *testing.T) {
 func TestMenuResult(t *testing.T) {
 	m := newMenuModel(menuRoster(), stats.Stats{}, "", "", DefaultStartStack, DefaultStartSB, DefaultHandLimit, false, noPersonaFile(t))
 	ad, persona, quiet, stack, sb, hands := m.result()
-	if ad.Key != "claude" || ad.Model != "" || persona != "needler" || quiet || stack != DefaultStartStack || sb != DefaultStartSB || hands != DefaultHandLimit {
+	if ad.Key != "claude" || ad.Model != "" || persona != "standard" || quiet || stack != DefaultStartStack || sb != DefaultStartSB || hands != DefaultHandLimit {
 		t.Errorf("defaults: got key=%q model=%q persona=%q quiet=%v stack=%d sb=%d hands=%d",
 			ad.Key, ad.Model, persona, quiet, stack, sb, hands)
 	}
@@ -299,7 +299,7 @@ func TestMenuView(t *testing.T) {
 		"♠ SHOWDOWN",
 		"◀ Claude Code ▶", // focused row wears the arrows
 		"vs claude: 2–1",  // stats line for the selected opponent
-		"needler",
+		"standard",
 		"1500",
 		"10/20",
 		"unlimited",

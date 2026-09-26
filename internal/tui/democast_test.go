@@ -41,7 +41,7 @@ func TestRecordDemo(t *testing.T) {
 	}
 	ad := agent.Adapter{Key: "claude", DisplayName: "Claude Code", Model: "sonnet", Bin: "true",
 		Args: func(m, p string) []string { return nil }}
-	m := NewModel(ad, stats.Stats{}, t.TempDir()+"/stats.json", false, ".", "needler", DefaultStartStack, DefaultStartSB, 0, nil)
+	m := NewModel(ad, stats.Stats{}, t.TempDir()+"/stats.json", false, ".", "standard", DefaultStartStack, DefaultStartSB, 0, nil)
 	m.rng = rand.New(rand.NewSource(seed))
 	m.spin.Spinner.FPS = 0 // the recorder drives frames, not wall-clock
 

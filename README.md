@@ -47,7 +47,7 @@ opponent.
 |------|--------------|
 | `--agent claude` | Skip the picker, force this opponent (`claude`, `codex`, `gemini`) |
 | `--model sonnet` | Model for the agent CLI. Claude: `haiku`/`sonnet`/`opus` (default `sonnet`). Codex: `gpt-6-luna`/`gpt-6-sol`/`gpt-6-astra` (default `gpt-6-sol`, always at low reasoning effort). Gemini values pass through |
-| `--personality unhinged` | Preset name or path to your own `.md` file (see below) |
+| `--personality silent` | `standard` (trash talk, the default), `silent`, or a path to your own `.md` file (see below) |
 | `--stack 1500` | Starting chips per player |
 | `--blind 10` | Starting small blind (big blind is always 2x) |
 | `--hands 20` | Cap the match at N hands (0 = play until bust) |
@@ -65,7 +65,8 @@ Play against Claude Code and clawd, its mascot, sits on the far side of the tabl
 
 ## Personas
 
-Presets: `needler` (default), `unhinged`, `polite`, `silent`, `degen`.
+Two presets: `standard` (the default) talks trash and holds grudges;
+`silent` plays without a word.
 
 To write your own, put a `personality.md` at `~/.showdown/` (used
 automatically) or pass any path with `--personality path/to/file.md`.
