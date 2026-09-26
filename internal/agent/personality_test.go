@@ -9,7 +9,7 @@ import (
 )
 
 func TestPresetNamesOrderAndContent(t *testing.T) {
-	want := []string{"needler", "unhinged", "polite", "silent", "degen"}
+	want := []string{"standard", "silent"}
 	got := PresetNames()
 	if len(got) != len(want) {
 		t.Fatalf("PresetNames() = %v", got)
@@ -28,15 +28,15 @@ func TestPresetNamesOrderAndContent(t *testing.T) {
 	}
 }
 
-func TestLoadPersonalityDefaultsToNeedler(t *testing.T) {
+func TestLoadPersonalityDefaultsToStandard(t *testing.T) {
 	missing := filepath.Join(t.TempDir(), "nope.md")
 	text, truncated, err := LoadPersonality("", missing)
 	if err != nil || truncated {
 		t.Fatalf("err=%v truncated=%v", err, truncated)
 	}
-	needler, _, _ := LoadPersonality("needler", "")
-	if text != needler {
-		t.Errorf("default = %q, want needler preset", text)
+	standard, _, _ := LoadPersonality("standard", "")
+	if text != standard {
+		t.Errorf("default = %q, want standard preset", text)
 	}
 }
 

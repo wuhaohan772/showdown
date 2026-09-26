@@ -17,7 +17,7 @@ import (
 func main() {
 	agentFlag := flag.String("agent", "", "opponent agent key (claude, codex, gemini)")
 	modelFlag := flag.String("model", "", "model for the agent CLI (claude: haiku/sonnet/opus, default sonnet; codex: gpt-6-luna/gpt-6-sol/gpt-6-astra, default gpt-6-sol; gemini: passed through)")
-	personalityFlag := flag.String("personality", "", "table persona: preset name (needler, unhinged, polite, silent, degen) or path to a .md file; default ~/.showdown/personality.md if present, else needler")
+	personalityFlag := flag.String("personality", "", "table persona: standard (trash talk) or silent, or a path to your own .md file; default ~/.showdown/personality.md if present, else standard")
 	stackFlag := flag.Int("stack", tui.DefaultStartStack, "starting chip stack per player")
 	blindFlag := flag.Int("blind", tui.DefaultStartSB, "starting small blind (big blind is always 2x)")
 	handsFlag := flag.Int("hands", tui.DefaultHandLimit, "cap the match at this many hands (0 = unlimited, play until someone busts; tied stacks at the cap continue until untied)")
